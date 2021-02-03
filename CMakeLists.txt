@@ -22,6 +22,9 @@ find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
 
+# temporary depend
+find_package(std_msgs REQUIRED)
+
 add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/generic_publisher.cpp
   src/${PROJECT_NAME}/generic_subscription.cpp
@@ -38,16 +41,27 @@ ament_target_dependencies(${PROJECT_NAME}
   rcl
   rcutils
   rosbag2_cpp
+  std_msgs
+)
+
+add_executable(${PROJECT_NAME}_exec
+  src/domain_bridge.cpp
+)
+
+set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
+
+target_link_libraries(${PROJECT_NAME}_exec
+  ${PROJECT_NAME}
 )
 
 install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ${PROJECT_NAME}
+install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 ament_export_include_directories(include)

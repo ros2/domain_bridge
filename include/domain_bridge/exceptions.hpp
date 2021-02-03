@@ -12,29 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
+#ifndef DOMAIN_BRIDGE__EXCEPTIONS_HPP_
+#define DOMAIN_BRIDGE__EXCEPTIONS_HPP_
+
+#include <stdexcept>
+#include <string>
 
 #include "domain_bridge/visibility_control.hpp"
 
 namespace domain_bridge
 {
 
-class DomainBridgeImpl;
-
-class DomainBridge
+class BridgeExistsError : public std::runtime_error
 {
 public:
   DOMAIN_BRIDGE_PUBLIC
-  DomainBridge(size_t domain_id_a, size_t domain_id_b);
-
-  DOMAIN_BRIDGE_PUBLIC
-  ~DomainBridge();
-
-  DOMAIN_BRIDGE_PUBLIC
-  void spin();
-
-private:
-  std::unique_ptr<DomainBridgeImpl> impl_;
-};  // class DomainBridge
+  BridgeExistsError(size_t domain_id, const std::string topic)
+  : std::runtime_error(
+      "the topic '" + topic + "' is already bridged from domain " + std::to_string(domain_id))
+  {}
+};
 
 }  // namespace domain_bridge
+#endif  // DOMAIN_BRIDGE__EXCEPTIONS_HPP_
