@@ -17,13 +17,9 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rcl REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
-
-# temporary depend
-find_package(std_msgs REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/generic_publisher.cpp
@@ -38,10 +34,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 ament_target_dependencies(${PROJECT_NAME}
   rclcpp
-  rcl
   rcutils
   rosbag2_cpp
-  std_msgs
 )
 
 add_executable(${PROJECT_NAME}_exec
