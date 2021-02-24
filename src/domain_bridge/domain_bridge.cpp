@@ -12,17 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "domain_bridge/domain_bridge.hpp"
+
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
+#include <utility>
 
-#include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/exceptions.hpp"
 
-#include <rclcpp/rclcpp.hpp>
-#include <rclcpp/executors/multi_threaded_executor.hpp>
-#include <rcutils/logging_macros.h>
-#include <rosbag2_cpp/typesupport_helpers.hpp>
+#include "rclcpp/rclcpp.hpp"
+#include "rclcpp/executors/multi_threaded_executor.hpp"
+#include "rcutils/logging_macros.h"
+#include "rosbag2_cpp/typesupport_helpers.hpp"
 
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
@@ -34,42 +37,30 @@ namespace domain_bridge
 class DomainBridgeImpl
 {
 public:
-  using SubscriptionMap = std::map<std::string, std::shared_ptr<GenericSubscription>>;
-  using PublisherMap = std::map<std::string, std::shared_ptr<GenericPublisher>>;
+  using SubscriptionMap =
+    std::map<std::pair<size_t, std::string>, std::shared_ptr<GenericSubscription>>;
+  using PublisherMap = std::map<std::pair<size_t, std::string>, std::shared_ptr<GenericPublisher>>;
+  using NodeMap = std::map<size_t, std::shared_ptr<rclcpp::Node>>;
 
-  DomainBridgeImpl(size_t domain_id_a, size_t domain_id_b)
+  DomainBridgeImpl()
   {
-    this->context_a_ = create_context_with_domain_id(domain_id_a);
-    this->context_b_ = create_context_with_domain_id(domain_id_b);
-
-    auto options_a = create_node_options(context_a_);
-    auto options_b = create_node_options(context_b_);
-
-    this->node_a_ = std::make_shared<rclcpp::Node>("domain_bridge_a", options_a);
-    this->node_b_ = std::make_shared<rclcpp::Node>("domain_bridge_b", options_b);
-
+    this->executor_context_ = create_context_with_domain_id(1);
     rclcpp::ExecutorOptions executor_options;
-    executor_options.context = context_a_;
+    executor_options.context = this->executor_context_;
     this->executor_ = std::make_unique<rclcpp::executors::MultiThreadedExecutor>(executor_options);
-
-    // Test bridge
-    this->bridge_from_a("chitter", "std_msgs/msg/String");
-    this->bridge_from_b("chatter", "std_msgs/msg/String");
   }
 
   ~DomainBridgeImpl()
   {
     const std::string reason("Domain bridge shutdown");
-    this->context_a_->shutdown(reason);
-    this->context_b_->shutdown(reason);
+    this->executor_context_->shutdown(reason);
   }
 
   rclcpp::Context::SharedPtr create_context_with_domain_id(size_t domain_id)
   {
     auto context = std::make_shared<rclcpp::Context>();
     rclcpp::InitOptions options;
-    options.auto_initialize_logging(false)
-           .set_domain_id(domain_id);
+    options.auto_initialize_logging(false).set_domain_id(domain_id);
     context->init(0, nullptr, options);
     return context;
   }
@@ -78,9 +69,27 @@ public:
   {
     rclcpp::NodeOptions options;
     return options.context(context)
-                  .use_global_arguments(false)
-                  .start_parameter_services(false)
-                  .start_parameter_event_publisher(false);
+           .use_global_arguments(false)
+           .start_parameter_services(false)
+           .start_parameter_event_publisher(false);
+  }
+
+  rclcpp::Node::SharedPtr get_node_for_domain(size_t domain_id)
+  {
+    auto domain_id_node_pair = node_map_.find(domain_id);
+
+    // If we don't already have a node for the domain, create one
+    if (node_map_.end() == domain_id_node_pair) {
+      auto context = create_context_with_domain_id(domain_id);
+      auto node_options = create_node_options(context);
+      std::ostringstream oss;
+      oss << "domain_bridge_" << std::to_string(domain_id);
+      auto node = std::make_shared<rclcpp::Node>(oss.str(), node_options);
+      node_map_[domain_id] = node;
+      return node;
+    }
+
+    return domain_id_node_pair->second;
   }
 
   std::shared_ptr<GenericPublisher> create_publisher(
@@ -89,18 +98,20 @@ public:
     const std::string & topic_name,
     const rosidl_message_type_support_t & typesupport_handle)
   {
-    if (map.find(topic_name) != map.end()) {
+    size_t domain_id = node->get_node_options().context()->get_domain_id();
+    auto domain_id_topic_pair = std::make_pair(domain_id, topic_name);
+    if (map.find(domain_id_topic_pair) != map.end()) {
       throw BridgeExistsError(
-        node->get_node_options().context()->get_domain_id(),
-        topic_name
+              node->get_node_options().context()->get_domain_id(),
+              topic_name
       );
     }
-    map[topic_name] = std::make_shared<GenericPublisher>(
+    map[domain_id_topic_pair] = std::make_shared<GenericPublisher>(
       node->get_node_base_interface().get(),
       typesupport_handle,
       topic_name,
       rclcpp::QoS(10));
-    return map[topic_name];
+    return map[domain_id_topic_pair];
   }
 
   void create_subscription(
@@ -110,10 +121,12 @@ public:
     const std::string & topic_name,
     const rosidl_message_type_support_t & typesupport_handle)
   {
-    if (map.find(topic_name) != map.end()) {
+    size_t domain_id = node->get_node_options().context()->get_domain_id();
+    auto domain_id_topic_pair = std::make_pair(domain_id, topic_name);
+    if (map.find(domain_id_topic_pair) != map.end()) {
       throw BridgeExistsError(
-        node->get_node_options().context()->get_domain_id(),
-        topic_name
+              node->get_node_options().context()->get_domain_id(),
+              topic_name
       );
     }
 
@@ -130,80 +143,76 @@ public:
         publisher->publish(serialized_data_ptr);
       });
     node->get_node_topics_interface()->add_subscription(subscription, nullptr);
-    map[topic_name] = subscription;
+    map[domain_id_topic_pair] = subscription;
   }
 
-  void bridge_from_a(const std::string & topic_name, const std::string & type_name) {
+  void bridge_topic(
+    const std::string & topic,
+    const std::string & type,
+    size_t from_domain_id,
+    size_t to_domain_id)
+  {
+    rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
+    rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
+
     // Get typesupport
     auto typesupport_library = rosbag2_cpp::get_typesupport_library(
-      type_name, "rosidl_typesupport_cpp");
+      type, "rosidl_typesupport_cpp");
     auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
-      type_name, "rosidl_typesupport_cpp", typesupport_library);
+      type, "rosidl_typesupport_cpp", typesupport_library);
 
+    // Create publisher for the 'to_domain' and subscription for the 'from_domain'
     // The publisher should be created first so it is available to the subscription callback
     auto publisher = this->create_publisher(
-      this->node_b_, this->publisher_map_b_, topic_name, *typesupport_handle);
+      to_domain_node, this->publisher_map_, topic, *typesupport_handle);
     this->create_subscription(
-      this->node_a_, this->subscription_map_a_, publisher, topic_name, *typesupport_handle);
+      from_domain_node, this->subscription_map_, publisher, topic, *typesupport_handle);
   }
 
-  void bridge_from_b(const std::string & topic_name, const std::string & type_name) {
-    // Get typesupport
-    auto typesupport_library = rosbag2_cpp::get_typesupport_library(
-      type_name, "rosidl_typesupport_cpp");
-    auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
-      type_name, "rosidl_typesupport_cpp", typesupport_library);
-
-    // The publisher should be created first so it is available to the subscription callback
-    auto publisher = this->create_publisher(
-      this->node_a_, this->publisher_map_a_, topic_name, *typesupport_handle);
-    this->create_subscription(
-      this->node_b_, this->subscription_map_b_, publisher, topic_name, *typesupport_handle);
-  }
-
-  void spin() {
-    this->executor_->add_node(this->node_a_);
-    this->executor_->add_node(this->node_b_);
+  void spin()
+  {
+    for (const auto & domain_id_node_pair : this->node_map_) {
+      this->executor_->add_node(domain_id_node_pair.second);
+    }
     this->executor_->spin();
   }
 
-  /// Context for domain A
-  rclcpp::Context::SharedPtr context_a_;
+  /// Map of domain IDs to ROS nodes
+  NodeMap node_map_;
 
-  /// Context for domain B
-  rclcpp::Context::SharedPtr context_b_;
+  /// Map of (domain id, topic name) to publishers
+  PublisherMap publisher_map_;
 
-  /// Node for domain A
-  rclcpp::Node::SharedPtr node_a_;
+  /// Map of (domain_id, topic name) to subscriptions
+  SubscriptionMap subscription_map_;
 
-  /// Node for domain B
-  rclcpp::Node::SharedPtr node_b_;
+  /// Context for executor
+  rclcpp::Context::SharedPtr executor_context_;
 
-  /// Map of topic names to publishers for domain A
-  PublisherMap publisher_map_a_;
-
-  /// Map of topic names to publishers for domain B
-  PublisherMap publisher_map_b_;
-
-  /// Map of topic names to subscriptions for domain A
-  SubscriptionMap subscription_map_a_;
-
-  /// Map of topic names to subscriptions for domain B
-  SubscriptionMap subscription_map_b_;
-
-  /// Common executor for both nodes
+  // TODO(jacobperron): Consider using multiple executors
+  /// Common executor for all nodes
   std::unique_ptr<rclcpp::Executor> executor_;
 };  // class DomainBridgeImpl
 
-DomainBridge::DomainBridge(size_t domain_id_a, size_t domain_id_b)
-  : impl_(std::make_unique<DomainBridgeImpl>(domain_id_a, domain_id_b))
+DomainBridge::DomainBridge()
+: impl_(std::make_unique<DomainBridgeImpl>())
 {}
 
 DomainBridge::~DomainBridge()
 {}
 
-void DomainBridge::spin() {
+void DomainBridge::spin()
+{
   impl_->spin();
+}
+
+void DomainBridge::bridge_topic(
+  const std::string & topic,
+  const std::string & type,
+  size_t from_domain_id,
+  size_t to_domain_id)
+{
+  impl_->bridge_topic(topic, type, from_domain_id, to_domain_id);
 }
 
 }  // namespace domain_bridge

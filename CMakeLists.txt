@@ -60,7 +60,7 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec
 
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
-ament_Export_dependencies(
+ament_export_dependencies(
   rclcpp
   rosbag2_cpp
   rcl
