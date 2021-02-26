@@ -13,6 +13,8 @@
 // limitations under the License.
 //
 // NOTE: This file was directly copied from rosbag2_transport
+// TODO(jacobperron): Replace with upstream implementation when available
+//                     https://github.com/ros2/rclcpp/pull/1452
 
 #include "generic_subscription.hpp"
 

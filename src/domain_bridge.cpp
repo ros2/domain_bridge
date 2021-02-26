@@ -19,6 +19,7 @@ int main(int argc, char ** argv)
   (void)argc;
   (void)argv;
 
+  // TODO(jacobperron): Configure via YAML file
   domain_bridge::DomainBridge domain_bridge;
   domain_bridge.bridge_topic("image", "sensor_msgs/msg/Image", 5, 10);
   domain_bridge.spin();
