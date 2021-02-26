@@ -35,7 +35,7 @@ The same as (1), but for ROS actions.
 
 The bridge should work with any supported ROS type (e.g. .msg, .srv, .action, or .idl).
 Furthermore, the bridge should not have to declare any explicit dependencies on interfaces types (e.g. in code or package.xml).
-Rather, the bridge should dynamically load type support at runtime (and produce an error if support for the requested type does not exist).
+Ideally, the bridge can just deal with serialized data, though it may be necessary to dynamically load type support at runtime.
 
 5. Accurately bridge Quality of Service settings
 
@@ -43,11 +43,17 @@ All ROS communication entities (e.g. publishers and service clients) have [Quali
 The bridge should faithfully map the QoS settings of data coming from one domain into another domain.
 For example, a publisher with reliability policy set to "best effort" should continue to publish as "best effort" in the other domains when bridged.
 
+If there are multiple publishers on the same topic, but with different QoS settings, the bridge should have two streams of data, each with their own QoS settings.
+For example, if there is one publisher using "best effort" and another publisher using "reliable" on the same topic (with the same domain ID) and a bridge is made,
+then the bridge should forward data as "best effort" for the first publisher and as "reliable" for the second publisher into the output domain.
+
 6. Remapping
 
 [Remapping](https://design.ros2.org/articles/static_remapping.html) is a generally useful concept in ROS.
 The bridge should support remapping topic, service, and action names when mapping the name from one domain to another.
 It is possible to bridge different topic names with the same name from different domains, so we should keep this in mind when it comes to remapping names.
+
+For example, users may want to remap topic `/foo` in domain ID `1` to a different name `/bar` in domain ID `2`.
 
 7. Easily configurable
 
