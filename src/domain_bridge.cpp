@@ -12,15 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+
+#include "rclcpp/executors/single_threaded_executor.hpp"
+
 #include "domain_bridge/domain_bridge.hpp"
 
 int main(int argc, char ** argv)
 {
-  (void)argc;
-  (void)argv;
+  rclcpp::init(argc, argv);
 
   // TODO(jacobperron): Configure via YAML file
   domain_bridge::DomainBridge domain_bridge;
   domain_bridge.bridge_topic("image", "sensor_msgs/msg/Image", 5, 10);
-  domain_bridge.spin();
+
+  auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  domain_bridge.add_to_executor(executor);
+  executor->spin();
+
+  rclcpp::shutdown();
+
+  return 0;
 }

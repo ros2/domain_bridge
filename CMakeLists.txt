@@ -22,9 +22,10 @@ find_package(rcutils REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
+  src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/generic_publisher.cpp
   src/${PROJECT_NAME}/generic_subscription.cpp
-  src/${PROJECT_NAME}/domain_bridge.cpp
+  src/${PROJECT_NAME}/topic_bridge_options.cpp
 )
 
 target_include_directories(${PROJECT_NAME} PUBLIC

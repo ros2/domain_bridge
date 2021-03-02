@@ -18,7 +18,13 @@
 #include <memory>
 #include <string>
 
+#include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/visibility_control.hpp"
+
+namespace rclcpp
+{
+class Executor;
+}
 
 namespace domain_bridge
 {
@@ -37,15 +43,17 @@ public:
   DOMAIN_BRIDGE_PUBLIC
   ~DomainBridge();
 
-  /// Start the bridge.
+  /// Add the bridge to an executor.
   /**
-   * Start forwarding ROS traffic between domains.
+   * When the executor is running ROS traffic will be bridged between domains.
    * Only topics registered with \ref bridge_topic() will have their messages forwarded.
    *
-   * This method blocks indefinitely.
+   * This method will add all nodes associated with this bridge to the provided executor.
+   *
+   * \param executor: The executor to add this domain bridge to.
    */
   DOMAIN_BRIDGE_PUBLIC
-  void spin();
+  void add_to_executor(std::shared_ptr<rclcpp::Executor> executor);
 
   /// Bridge a topic from one domain to another.
   /**
@@ -53,13 +61,15 @@ public:
    * \param type: Name of the topic type (e.g. "example_interfaces/msg/String")
    * \param from_domain_id: Domain ID the bridge will use to subscribe to the topic.
    * \param to_domain_id: Domain ID the bridge will use to publish to the topic.
+   * \param options: Options for bridging the topic.
    */
   DOMAIN_BRIDGE_PUBLIC
   void bridge_topic(
     const std::string & topic,
     const std::string & type,
     size_t from_domain_id,
-    size_t to_domain_id);
+    size_t to_domain_id,
+    const TopicBridgeOptions & options = TopicBridgeOptions());
 
 private:
   std::unique_ptr<DomainBridgeImpl> impl_;

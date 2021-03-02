@@ -21,9 +21,10 @@
 #include <utility>
 
 #include "domain_bridge/exceptions.hpp"
+#include "domain_bridge/topic_bridge_options.hpp"
 
 #include "rclcpp/rclcpp.hpp"
-#include "rclcpp/executors/multi_threaded_executor.hpp"
+#include "rclcpp/executor.hpp"
 #include "rcutils/logging_macros.h"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
 
@@ -44,16 +45,10 @@ public:
 
   DomainBridgeImpl()
   {
-    this->executor_context_ = create_context_with_domain_id(1);
-    rclcpp::ExecutorOptions executor_options;
-    executor_options.context = this->executor_context_;
-    this->executor_ = std::make_unique<rclcpp::executors::MultiThreadedExecutor>(executor_options);
   }
 
   ~DomainBridgeImpl()
   {
-    const std::string reason("Domain bridge shutdown");
-    this->executor_context_->shutdown(reason);
   }
 
   rclcpp::Context::SharedPtr create_context_with_domain_id(size_t domain_id)
@@ -150,8 +145,12 @@ public:
     const std::string & topic,
     const std::string & type,
     size_t from_domain_id,
-    size_t to_domain_id)
+    size_t to_domain_id,
+    const TopicBridgeOptions & options)
   {
+    // TODO(jacobperron): Do something with options.callback_group()
+    (void)options;
+
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
 
@@ -169,12 +168,11 @@ public:
       from_domain_node, this->subscription_map_, publisher, topic, *typesupport_handle);
   }
 
-  void spin()
+  void add_to_executor(std::shared_ptr<rclcpp::Executor> executor)
   {
     for (const auto & domain_id_node_pair : this->node_map_) {
-      this->executor_->add_node(domain_id_node_pair.second);
+      executor->add_node(domain_id_node_pair.second);
     }
-    this->executor_->spin();
   }
 
   /// Map of domain IDs to ROS nodes
@@ -185,13 +183,6 @@ public:
 
   /// Map of (domain_id, topic name) to subscriptions
   SubscriptionMap subscription_map_;
-
-  /// Context for executor
-  rclcpp::Context::SharedPtr executor_context_;
-
-  // TODO(jacobperron): Consider using multiple executors
-  /// Common executor for all nodes
-  std::unique_ptr<rclcpp::Executor> executor_;
 };  // class DomainBridgeImpl
 
 DomainBridge::DomainBridge()
@@ -201,18 +192,19 @@ DomainBridge::DomainBridge()
 DomainBridge::~DomainBridge()
 {}
 
-void DomainBridge::spin()
+void DomainBridge::add_to_executor(std::shared_ptr<rclcpp::Executor> executor)
 {
-  impl_->spin();
+  impl_->add_to_executor(executor);
 }
 
 void DomainBridge::bridge_topic(
   const std::string & topic,
   const std::string & type,
   size_t from_domain_id,
-  size_t to_domain_id)
+  size_t to_domain_id,
+  const TopicBridgeOptions & options)
 {
-  impl_->bridge_topic(topic, type, from_domain_id, to_domain_id);
+  impl_->bridge_topic(topic, type, from_domain_id, to_domain_id, options);
 }
 
 }  // namespace domain_bridge
