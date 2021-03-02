@@ -20,6 +20,7 @@
 #include <string>
 #include <utility>
 
+#include "domain_bridge/domain_bridge_options.hpp"
 #include "domain_bridge/exceptions.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 
@@ -43,7 +44,9 @@ public:
   using PublisherMap = std::map<std::pair<size_t, std::string>, std::shared_ptr<GenericPublisher>>;
   using NodeMap = std::map<size_t, std::shared_ptr<rclcpp::Node>>;
 
-  DomainBridgeImpl() = default;
+  explicit DomainBridgeImpl(const DomainBridgeOptions & options)
+  : options_(options)
+  {}
 
   ~DomainBridgeImpl() = default;
 
@@ -74,7 +77,7 @@ public:
       auto context = create_context_with_domain_id(domain_id);
       auto node_options = create_node_options(context);
       std::ostringstream oss;
-      oss << "domain_bridge_" << std::to_string(domain_id);
+      oss << "domain_bridge_" << std::to_string(options_.id()) << "_" << std::to_string(domain_id);
       auto node = std::make_shared<rclcpp::Node>(oss.str(), node_options);
       node_map_[domain_id] = node;
       return node;
@@ -171,6 +174,8 @@ public:
     }
   }
 
+  DomainBridgeOptions options_;
+
   /// Map of domain IDs to ROS nodes
   NodeMap node_map_;
 
@@ -181,11 +186,17 @@ public:
   SubscriptionMap subscription_map_;
 };  // class DomainBridgeImpl
 
-DomainBridge::DomainBridge()
-: impl_(std::make_unique<DomainBridgeImpl>())
+DomainBridge::DomainBridge(const DomainBridgeOptions & options)
+: impl_(std::make_unique<DomainBridgeImpl>(options))
 {}
 
 DomainBridge::~DomainBridge() = default;
+
+DomainBridgeOptions
+DomainBridge::get_domain_bridge_options() const
+{
+  return impl_->options_;
+}
 
 void DomainBridge::add_to_executor(rclcpp::Executor & executor)
 {

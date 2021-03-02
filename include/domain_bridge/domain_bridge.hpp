@@ -20,6 +20,7 @@
 
 #include "rclcpp/executor.hpp"
 
+#include "domain_bridge/domain_bridge_options.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/visibility_control.hpp"
 
@@ -34,11 +35,16 @@ class DomainBridge
 public:
   /// Constructor.
   DOMAIN_BRIDGE_PUBLIC
-  DomainBridge();
+  explicit DomainBridge(const DomainBridgeOptions & options = DomainBridgeOptions());
 
   /// Destructor.
   DOMAIN_BRIDGE_PUBLIC
   ~DomainBridge();
+
+  DOMAIN_BRIDGE_PUBLIC
+  /// Get the options for this domain bridge.
+  DomainBridgeOptions
+  get_domain_bridge_options() const;
 
   /// Add the bridge to an executor.
   /**
