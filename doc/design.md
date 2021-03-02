@@ -47,6 +47,10 @@ If there are multiple publishers on the same topic, but with different QoS setti
 For example, if there is one publisher using "best effort" and another publisher using "reliable" on the same topic (with the same domain ID) and a bridge is made,
 then the bridge should forward data as "best effort" for the first publisher and as "reliable" for the second publisher into the output domain.
 
+Since remotely querying the *history* and *depth* QoS policies is not possible in many implementations (e.g. it is not required by the DDS spec),
+the bridge should offer a way to configure these values explicitly.
+This is important so that users can configure the bridge to avoid exceeding the history queue depth, resulting in lost messages.
+
 6. Remapping
 
 [Remapping](https://design.ros2.org/articles/static_remapping.html) is a generally useful concept in ROS.
@@ -62,6 +66,7 @@ Users should be able to specify the following information at an API level:
 
 - The domain IDs that should be bridged
 - The topic names and types that should be bridged (same for services and actions)
+- History and depth QoS policies for each topic bridged
 - Remappings of topic, service, and action names
 - Optionally, it could be useful to override QoS settings for each entity being bridged.
 
@@ -113,7 +118,6 @@ For each ROS entity, you must specifiy the `type` of the interface, the domain I
 
 Here is an example of a configuration file for bridging multiple topics, a service, and an action:
 
-
 ```yaml
 topics:
   # Bridge "/foo/chatter" topic from doman ID 2 to domain ID 3
@@ -121,16 +125,18 @@ topics:
     type: example_interfaces/msg/String
     from_domain: 2
     to_domain: 3
-  # Bridge "/clock" topic from doman ID 2 to domain ID 3
+  # Bridge "/clock" topic from doman ID 2 to domain ID 3, with depth 1
   - clock:
     type: rosgraph_msgs/msg/Clock
     from_domain: 2
     to_domain: 3
-  # Bridge "/clock" topic from doman ID 2 to domain ID 6
+    depth: 1
+  # Bridge "/clock" topic from doman ID 2 to domain ID 6, with "keep all" history policy
   - clock:
     type: rosgraph_msgs/msg/Clock
     from_domain: 2
     to_domain: 6
+    history: keep_all
 
 services:
   # Bridge "add_two_ints" service from domain ID 4 to domain ID 6
