@@ -24,7 +24,6 @@
 #include <utility>
 
 #include "domain_bridge/domain_bridge_options.hpp"
-#include "domain_bridge/exceptions.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 
 #include "rclcpp/rclcpp.hpp"
