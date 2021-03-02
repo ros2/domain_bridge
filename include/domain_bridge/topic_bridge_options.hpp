@@ -35,7 +35,7 @@ public:
    *    - callback_group = nullptr (node's default)
    */
   DOMAIN_BRIDGE_PUBLIC
-  TopicBridgeOptions();
+  TopicBridgeOptions() = default;
 
   /// Destructor.
   DOMAIN_BRIDGE_PUBLIC
@@ -44,12 +44,12 @@ public:
 
   /// Copy constructor.
   DOMAIN_BRIDGE_PUBLIC
-  TopicBridgeOptions(const TopicBridgeOptions & other);
+  TopicBridgeOptions(const TopicBridgeOptions & other) = default;
 
   /// Assignment operator.
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions &
-  operator=(const TopicBridgeOptions & other);
+  operator=(const TopicBridgeOptions & other) = default;
 
   /// Get callback group associated with the topics pub/sub pair.
   DOMAIN_BRIDGE_PUBLIC

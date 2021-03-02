@@ -26,9 +26,9 @@ int main(int argc, char ** argv)
   domain_bridge::DomainBridge domain_bridge;
   domain_bridge.bridge_topic("image", "sensor_msgs/msg/Image", 5, 10);
 
-  auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  rclcpp::executors::SingleThreadedExecutor executor;
   domain_bridge.add_to_executor(executor);
-  executor->spin();
+  executor.spin();
 
   rclcpp::shutdown();
 

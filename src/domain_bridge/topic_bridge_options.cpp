@@ -21,24 +21,6 @@
 namespace domain_bridge
 {
 
-TopicBridgeOptions::TopicBridgeOptions()
-{
-}
-
-TopicBridgeOptions::TopicBridgeOptions(const TopicBridgeOptions & other)
-{
-  *this = other;
-}
-
-TopicBridgeOptions &
-TopicBridgeOptions::operator=(const TopicBridgeOptions & other)
-{
-  if (this != &other) {
-    this->callback_group_ = other.callback_group_;
-  }
-  return *this;
-}
-
 std::shared_ptr<rclcpp::CallbackGroup>
 TopicBridgeOptions::callback_group() const
 {

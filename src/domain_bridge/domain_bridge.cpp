@@ -43,13 +43,9 @@ public:
   using PublisherMap = std::map<std::pair<size_t, std::string>, std::shared_ptr<GenericPublisher>>;
   using NodeMap = std::map<size_t, std::shared_ptr<rclcpp::Node>>;
 
-  DomainBridgeImpl()
-  {
-  }
+  DomainBridgeImpl() = default;
 
-  ~DomainBridgeImpl()
-  {
-  }
+  ~DomainBridgeImpl() = default;
 
   rclcpp::Context::SharedPtr create_context_with_domain_id(size_t domain_id)
   {
@@ -168,10 +164,10 @@ public:
       from_domain_node, this->subscription_map_, publisher, topic, *typesupport_handle);
   }
 
-  void add_to_executor(std::shared_ptr<rclcpp::Executor> executor)
+  void add_to_executor(rclcpp::Executor & executor)
   {
     for (const auto & domain_id_node_pair : this->node_map_) {
-      executor->add_node(domain_id_node_pair.second);
+      executor.add_node(domain_id_node_pair.second);
     }
   }
 
@@ -189,10 +185,9 @@ DomainBridge::DomainBridge()
 : impl_(std::make_unique<DomainBridgeImpl>())
 {}
 
-DomainBridge::~DomainBridge()
-{}
+DomainBridge::~DomainBridge() = default;
 
-void DomainBridge::add_to_executor(std::shared_ptr<rclcpp::Executor> executor)
+void DomainBridge::add_to_executor(rclcpp::Executor & executor)
 {
   impl_->add_to_executor(executor);
 }

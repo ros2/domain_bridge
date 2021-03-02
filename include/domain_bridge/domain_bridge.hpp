@@ -18,13 +18,10 @@
 #include <memory>
 #include <string>
 
+#include "rclcpp/executor.hpp"
+
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/visibility_control.hpp"
-
-namespace rclcpp
-{
-class Executor;
-}
 
 namespace domain_bridge
 {
@@ -53,7 +50,7 @@ public:
    * \param executor: The executor to add this domain bridge to.
    */
   DOMAIN_BRIDGE_PUBLIC
-  void add_to_executor(std::shared_ptr<rclcpp::Executor> executor);
+  void add_to_executor(rclcpp::Executor & executor);
 
   /// Bridge a topic from one domain to another.
   /**
