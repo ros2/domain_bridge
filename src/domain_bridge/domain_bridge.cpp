@@ -14,8 +14,11 @@
 
 #include "domain_bridge/domain_bridge.hpp"
 
+#include <cstddef>
+#include <iostream>
 #include <map>
 #include <memory>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -31,6 +34,7 @@
 
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
+#include "topic_bridge.hpp"
 
 namespace domain_bridge
 {
@@ -39,10 +43,7 @@ namespace domain_bridge
 class DomainBridgeImpl
 {
 public:
-  using SubscriptionMap =
-    std::map<std::pair<size_t, std::string>, std::shared_ptr<GenericSubscription>>;
-  using PublisherMap = std::map<std::pair<size_t, std::string>, std::shared_ptr<GenericPublisher>>;
-  using NodeMap = std::map<size_t, std::shared_ptr<rclcpp::Node>>;
+  using NodeMap = std::map<std::size_t, std::shared_ptr<rclcpp::Node>>;
 
   explicit DomainBridgeImpl(const DomainBridgeOptions & options)
   : options_(options)
@@ -50,7 +51,7 @@ public:
 
   ~DomainBridgeImpl() = default;
 
-  rclcpp::Context::SharedPtr create_context_with_domain_id(size_t domain_id)
+  rclcpp::Context::SharedPtr create_context_with_domain_id(std::size_t domain_id)
   {
     auto context = std::make_shared<rclcpp::Context>();
     rclcpp::InitOptions options;
@@ -68,7 +69,7 @@ public:
            .start_parameter_event_publisher(false);
   }
 
-  rclcpp::Node::SharedPtr get_node_for_domain(size_t domain_id)
+  rclcpp::Node::SharedPtr get_node_for_domain(std::size_t domain_id)
   {
     auto domain_id_node_pair = node_map_.find(domain_id);
 
@@ -88,46 +89,26 @@ public:
 
   std::shared_ptr<GenericPublisher> create_publisher(
     rclcpp::Node::SharedPtr node,
-    PublisherMap & map,
     const std::string & topic_name,
     const rosidl_message_type_support_t & typesupport_handle,
     rclcpp::CallbackGroup::SharedPtr group)
   {
-    size_t domain_id = node->get_node_options().context()->get_domain_id();
-    auto domain_id_topic_pair = std::make_pair(domain_id, topic_name);
-    if (map.find(domain_id_topic_pair) != map.end()) {
-      throw BridgeExistsError(
-              node->get_node_options().context()->get_domain_id(),
-              topic_name
-      );
-    }
     auto publisher = std::make_shared<GenericPublisher>(
       node->get_node_base_interface().get(),
       typesupport_handle,
       topic_name,
       rclcpp::QoS(10));
-    map[domain_id_topic_pair] = publisher;
     node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
     return publisher;
   }
 
-  void create_subscription(
+  std::shared_ptr<GenericSubscription> create_subscription(
     rclcpp::Node::SharedPtr node,
-    SubscriptionMap & map,
     std::shared_ptr<GenericPublisher> publisher,
     const std::string & topic_name,
     const rosidl_message_type_support_t & typesupport_handle,
     rclcpp::CallbackGroup::SharedPtr group)
   {
-    size_t domain_id = node->get_node_options().context()->get_domain_id();
-    auto domain_id_topic_pair = std::make_pair(domain_id, topic_name);
-    if (map.find(domain_id_topic_pair) != map.end()) {
-      throw BridgeExistsError(
-              node->get_node_options().context()->get_domain_id(),
-              topic_name
-      );
-    }
-
     // Create subscription
     auto subscription = std::make_shared<GenericSubscription>(
       node->get_node_base_interface().get(),
@@ -141,16 +122,34 @@ public:
         publisher->publish(serialized_data_ptr);
       });
     node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
-    map[domain_id_topic_pair] = subscription;
+    return subscription;
   }
 
   void bridge_topic(
     const std::string & topic,
     const std::string & type,
-    size_t from_domain_id,
-    size_t to_domain_id,
+    std::size_t from_domain_id,
+    std::size_t to_domain_id,
     const TopicBridgeOptions & options)
   {
+    TopicBridge topic_bridge = {
+      from_domain_id,
+      to_domain_id,
+      topic,
+      type,
+      nullptr,
+      nullptr
+    };
+
+    // Check if already bridged
+    auto find_result = bridged_topics_.find(topic_bridge);
+    if (find_result != bridged_topics_.end()) {
+      std::cerr << "Topic '" << topic << "' with type '" << type << "'" <<
+        " already bridged from domain " << std::to_string(from_domain_id) <<
+        " to domain " << std::to_string(to_domain_id) << ", ignoring" << std::endl;
+      return;
+    }
+
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
 
@@ -163,21 +162,20 @@ public:
     // Create publisher for the 'to_domain'
     // The publisher should be created first so it is available to the subscription callback
     auto publisher = this->create_publisher(
-      to_domain_node, this->publisher_map_, topic, *typesupport_handle, options.callback_group());
+      to_domain_node, topic, *typesupport_handle, options.callback_group());
 
     // Create subscription for the 'from_domain'
-    this->create_subscription(
-      from_domain_node,
-      this->subscription_map_,
-      publisher,
-      topic,
-      *typesupport_handle,
-      options.callback_group());
+    auto subscription = this->create_subscription(
+      from_domain_node, publisher, topic, *typesupport_handle, options.callback_group());
+
+    topic_bridge.publisher = publisher;
+    topic_bridge.subscription = subscription;
+    bridged_topics_.insert(topic_bridge);
   }
 
   void add_to_executor(rclcpp::Executor & executor)
   {
-    for (const auto & domain_id_node_pair : this->node_map_) {
+    for (const auto & domain_id_node_pair : node_map_) {
       executor.add_node(domain_id_node_pair.second);
     }
   }
@@ -187,11 +185,8 @@ public:
   /// Map of domain IDs to ROS nodes
   NodeMap node_map_;
 
-  /// Map of (domain id, topic name) to publishers
-  PublisherMap publisher_map_;
-
-  /// Map of (domain_id, topic name) to subscriptions
-  SubscriptionMap subscription_map_;
+  /// Set of bridged topics
+  std::set<TopicBridge, TopicBridgeCompare> bridged_topics_;
 };  // class DomainBridgeImpl
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
@@ -214,8 +209,8 @@ void DomainBridge::add_to_executor(rclcpp::Executor & executor)
 void DomainBridge::bridge_topic(
   const std::string & topic,
   const std::string & type,
-  size_t from_domain_id,
-  size_t to_domain_id,
+  std::size_t from_domain_id,
+  std::size_t to_domain_id,
   const TopicBridgeOptions & options)
 {
   impl_->bridge_topic(topic, type, from_domain_id, to_domain_id, options);
