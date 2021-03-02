@@ -90,7 +90,8 @@ public:
     rclcpp::Node::SharedPtr node,
     PublisherMap & map,
     const std::string & topic_name,
-    const rosidl_message_type_support_t & typesupport_handle)
+    const rosidl_message_type_support_t & typesupport_handle,
+    rclcpp::CallbackGroup::SharedPtr group)
   {
     size_t domain_id = node->get_node_options().context()->get_domain_id();
     auto domain_id_topic_pair = std::make_pair(domain_id, topic_name);
@@ -100,12 +101,14 @@ public:
               topic_name
       );
     }
-    map[domain_id_topic_pair] = std::make_shared<GenericPublisher>(
+    auto publisher = std::make_shared<GenericPublisher>(
       node->get_node_base_interface().get(),
       typesupport_handle,
       topic_name,
       rclcpp::QoS(10));
-    return map[domain_id_topic_pair];
+    map[domain_id_topic_pair] = publisher;
+    node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
+    return publisher;
   }
 
   void create_subscription(
@@ -113,7 +116,8 @@ public:
     SubscriptionMap & map,
     std::shared_ptr<GenericPublisher> publisher,
     const std::string & topic_name,
-    const rosidl_message_type_support_t & typesupport_handle)
+    const rosidl_message_type_support_t & typesupport_handle,
+    rclcpp::CallbackGroup::SharedPtr group)
   {
     size_t domain_id = node->get_node_options().context()->get_domain_id();
     auto domain_id_topic_pair = std::make_pair(domain_id, topic_name);
@@ -136,7 +140,7 @@ public:
           msg->get_rcl_serialized_message());
         publisher->publish(serialized_data_ptr);
       });
-    node->get_node_topics_interface()->add_subscription(subscription, nullptr);
+    node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
     map[domain_id_topic_pair] = subscription;
   }
 
@@ -147,9 +151,6 @@ public:
     size_t to_domain_id,
     const TopicBridgeOptions & options)
   {
-    // TODO(jacobperron): Do something with options.callback_group()
-    (void)options;
-
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
 
@@ -159,12 +160,19 @@ public:
     auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
       type, "rosidl_typesupport_cpp", typesupport_library);
 
-    // Create publisher for the 'to_domain' and subscription for the 'from_domain'
+    // Create publisher for the 'to_domain'
     // The publisher should be created first so it is available to the subscription callback
     auto publisher = this->create_publisher(
-      to_domain_node, this->publisher_map_, topic, *typesupport_handle);
+      to_domain_node, this->publisher_map_, topic, *typesupport_handle, options.callback_group());
+
+    // Create subscription for the 'from_domain'
     this->create_subscription(
-      from_domain_node, this->subscription_map_, publisher, topic, *typesupport_handle);
+      from_domain_node,
+      this->subscription_map_,
+      publisher,
+      topic,
+      *typesupport_handle,
+      options.callback_group());
   }
 
   void add_to_executor(rclcpp::Executor & executor)
