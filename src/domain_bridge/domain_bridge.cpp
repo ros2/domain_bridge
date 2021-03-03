@@ -16,7 +16,7 @@
 
 #include <cstddef>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <memory>
 #include <set>
 #include <sstream>
@@ -42,7 +42,7 @@ namespace domain_bridge
 class DomainBridgeImpl
 {
 public:
-  using NodeMap = std::map<std::size_t, std::shared_ptr<rclcpp::Node>>;
+  using NodeMap = std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Node>>;
 
   explicit DomainBridgeImpl(const DomainBridgeOptions & options)
   : options_(options)
