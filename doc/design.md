@@ -72,6 +72,16 @@ Users should be able to specify the following information at an API level:
 
 Not only should the bridge be configurable at an API level, but there should also be a way to configure it without having to change code (e.g. a passed in YAML or XML file).
 
+8. Security
+
+The bridge should not subvert [Secure ROS 2](https://github.com/ros2/sros2) (SROS 2) mechanisms.
+Similarly, SROS 2 should not prevent the domain bridge from working correclty (i.e. the bridge should not break with security enabled).
+
+Consider that it is possible for a user to only secure half of a domain bridge (i.e. only one domain has security enabled).
+This means that a bridged topic, though secure in one domain, is left completely open in another domain.
+Presuming that there is no straight-forward solution to enforcing that both sides of a bridge are secured, the least we can do is make sure users are well-informed of this potential security vulnerability.
+Additionally, tools may be provided to help streamline securing a ROS system with a domain bridge.
+
 ## Approach
 
 The proposed solution involves several nodes in a single bridge process.
@@ -87,7 +97,8 @@ For example, the following diagram illustrates a configuration where the "/chatt
 ### API
 
 A C++ library with a public API is provided for users to call in their own process and extend as they like.
-The public API is expected to evolve over time, but at the very least users should be able to bridge ROS networks primitives
+The public API is expected to evolve over time, but at the very least users should be able to bridge ROS networks primitives.
+
 
 For convenience, a standalone binary executable is also provided for easy integration into ROS systems.
 
@@ -152,6 +163,10 @@ actions:
     from_domain: 2
     to_domain: 3
 ```
+
+### Security
+
+TODO
 
 ## Alternatives
 
