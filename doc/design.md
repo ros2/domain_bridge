@@ -4,7 +4,7 @@ This article documents the design of the domain_bridge.
 
 ## Background
 
-A ROS 2 network can be partitioned by assigning each *node* (more specifically, a *context* associated with the node), a *domain ID*.
+A ROS 2 network can be partitioned by assigning *nodes* (more specifically, *contexts* associated with nodes) different *domain IDs*.
 A domain ID is simply an integer.
 Nodes with different domain IDs cannot directly communicate with each other.
 This is useful for avoiding interference and reducing network traffic, for example.
@@ -19,9 +19,9 @@ The following are a set of requirements we would like our domain bridge to meet:
 
 1. Bridge ROS topics from one domain to another.
 
-This is pretty self-explanatory.
-Given a node *A* on domain *D<sub>A</sub>* and a node *B* on domain *D<sub>B</sub>*, where D<sub>A</sub> != D<sub>B</sub>,
-A and B should be able to communicate with the ROS pub/sub mechanism over one or more topics.
+There should be a way for nodes in different domains to communicate with each other using ROS topics.
+This should be configurable on a per-topic basis.
+I.e. if there is a topic being published on domain *A*, there should be a mechanism to allow for subscriptions to the topic in another domain *B*, where *A* != *B*.
 
 2. Bridge ROS services from one domain to another.
 
