@@ -12,23 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstddef>
+#include <string>
 
 #include "domain_bridge/domain_bridge_options.hpp"
 
 namespace domain_bridge
 {
 
-std::size_t
-DomainBridgeOptions::id() const
+std::string
+DomainBridgeOptions::name() const
 {
-  return this->id_;
+  return this->name_;
 }
 
 DomainBridgeOptions &
-DomainBridgeOptions::id(std::size_t id)
+DomainBridgeOptions::name(std::string name)
 {
-  this->id_ = id;
+  this->name_ = name;
   return *this;
 }
 

@@ -15,7 +15,7 @@
 #ifndef DOMAIN_BRIDGE__DOMAIN_BRIDGE_OPTIONS_HPP_
 #define DOMAIN_BRIDGE__DOMAIN_BRIDGE_OPTIONS_HPP_
 
-#include <cstddef>
+#include <string>
 
 #include "domain_bridge/visibility_control.hpp"
 
@@ -30,7 +30,7 @@ public:
   /**
    *  Default values:
    *
-   *    - domain_bridge_id = 0u
+   *    - name = "domain_bridge"
    */
   DOMAIN_BRIDGE_PUBLIC
   DomainBridgeOptions() = default;
@@ -49,21 +49,21 @@ public:
   DomainBridgeOptions &
   operator=(const DomainBridgeOptions & other) = default;
 
-  /// Get the identifier for the domain bridge.
+  /// Get the name of the domain bridge.
   DOMAIN_BRIDGE_PUBLIC
-  std::size_t
-  id() const;
+  std::string
+  name() const;
 
-  /// Set the identifier for the domain bridge.
+  /// Set the name of the domain bridge.
   /**
-   * The identifier is added to names of nodes created by the domain bridge.
+   * The name is used to prefix names of nodes created by the domain bridge.
    */
   DOMAIN_BRIDGE_PUBLIC
   DomainBridgeOptions &
-  id(std::size_t id);
+  name(std::string name);
 
 private:
-  std::size_t id_{0u};
+  std::string name_{"domain_bridge"};
 };  // class DomainBridgeOptions
 
 }  // namespace domain_bridge

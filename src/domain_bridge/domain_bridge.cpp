@@ -77,7 +77,7 @@ public:
       auto context = create_context_with_domain_id(domain_id);
       auto node_options = create_node_options(context);
       std::ostringstream oss;
-      oss << "domain_bridge_" << std::to_string(options_.id()) << "_" << std::to_string(domain_id);
+      oss << options_.name() << "_" << std::to_string(domain_id);
       auto node = std::make_shared<rclcpp::Node>(oss.str(), node_options);
       node_map_[domain_id] = node;
       return node;
