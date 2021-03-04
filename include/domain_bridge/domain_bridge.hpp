@@ -30,6 +30,36 @@ namespace domain_bridge
 class DomainBridgeImpl;
 
 /// Bridge ROS entities across different domains.
+/**
+ * This class is responsible for forwarding ROS messages across different ROS domains.
+ * Topics can be bridged from one domain to another by calling `bridge_topic()`.
+ *
+ * Internally, the domain bridge creates a ROS node for each domain ID involved in the bridge.
+ * It is up to the user to provide the execution model, which is used for processing subscription
+ * callbacks for example.
+ * A user can add the bridge to an executor of their choice with `add_to_executor()`.
+ * Optionally, the user can configure callback groups per bridged topic via `TopicBridgeOptions`
+ * when calling `bridge_topic()`.
+ *
+ * Example usage:
+ *
+ * ```c++
+ * // Create a domain bridge
+ * domain_bridge::DomainBridge domain_bridge;
+ *
+ * // Bridge one or more topics
+ * domain_bridge.bridge_topic("/clock", "rosgraph_msgs/msg/Clock", 5, 10);
+ * domain_bridge.bridge_topic("image", "sensor_msgs/msg/Image", 5, 10);
+ * // ...
+ *
+ * // Create an executor and add the bridge nodes to it
+ * rclcpp::executors::SingleThreadedExecutor executor;
+ * domain_bridge.add_to_executor(executor);
+ *
+ * // Start executing callbacks, hence forwarding messages across the bridge
+ * executor.spin();
+ * ```
+ */
 class DomainBridge
 {
 public:
