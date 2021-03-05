@@ -32,6 +32,7 @@
 #include "rclcpp/executor.hpp"
 #include "rcutils/logging_macros.h"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
+#include "rmw/types.h"
 
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
@@ -90,9 +91,76 @@ public:
     return domain_id_node_pair->second;
   }
 
+  /// Get the QoS to use for a topic bridge.
+  /**
+   * Queries QoS of existing publishers and returns QoS that is compatibile
+   * with the majority of publishers.
+   * If possible, the returned QoS will exactly match those of the publishers.
+   *
+   * If the existing publishers do not have matching QoS settings, then a warning is emitted.
+   */
+  rclcpp::QoS get_topic_qos(std::string topic, rclcpp::Node::SharedPtr node)
+  {
+    // TODO(jacobperron): replace this with common implementation when it is available.
+    //       See: https://github.com/ros2/rosbag2/issues/601
+
+    // This implementation is inspired by rosbag2_transport:
+    // https://github.com/ros2/rosbag2/blob/master/rosbag2_transport/src/rosbag2_transport/qos.cpp
+
+    // Query QoS info for publishers
+    std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
+      node->get_publishers_info_by_topic(topic);
+    std::size_t num_endpoints = endpoint_info_vec.size();
+
+    // If there are no publishers, return default QoS
+    if (num_endpoints < 1u) {
+      return rclcpp::QoS(10);
+    }
+
+    // Initialize QoS arbitrarily
+    rclcpp::QoS result_qos = endpoint_info_vec[0].qos_profile();
+
+    // Reliability and durability policies can cause trouble with enpoint matching
+    // Count number of "reliable" publishers and number of "transient local" publishers
+    std::size_t reliable_count = 0u;
+    std::size_t transient_local_count = 0u;
+    for (const auto & info : endpoint_info_vec) {
+      const auto & profile = info.qos_profile().get_rmw_qos_profile();
+      if (profile.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
+        reliable_count++;
+      }
+      if (profile.durability == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
+        transient_local_count++;
+      }
+    }
+
+    // If not all publishers have a "reliable" policy, then use a "best effort" policy
+    // and print a warning
+    if (reliable_count != num_endpoints) {
+      result_qos.best_effort();
+      std::cerr << "Some, but not all, publishers on topic '" << topic << "' on domain ID " <<
+        std::to_string(node->get_node_options().context()->get_domain_id()) <<
+        " offer 'reliable' reliability. Falling back to 'best effort' reliability in order "
+        "to connect to all publishers." << std::endl;
+    }
+
+    // If not all publishers have a "transient local" policy, then use a "volatile" policy
+    // and print a warning
+    if (transient_local_count != num_endpoints) {
+      result_qos.durability_volatile();
+      std::cerr << "Some, but not all, publishers on topic '" << topic << "' on domain ID " <<
+        std::to_string(node->get_node_options().context()->get_domain_id()) <<
+        " offer 'transient local' durability. Falling back to 'volatile' durability in order "
+        "to connect to all publishers." << std::endl;
+    }
+
+    return result_qos;
+  }
+
   std::shared_ptr<GenericPublisher> create_publisher(
     rclcpp::Node::SharedPtr node,
     const std::string & topic_name,
+    const rclcpp::QoS & qos,
     const rosidl_message_type_support_t & typesupport_handle,
     rclcpp::CallbackGroup::SharedPtr group)
   {
@@ -100,7 +168,7 @@ public:
       node->get_node_base_interface().get(),
       typesupport_handle,
       topic_name,
-      rclcpp::QoS(10));
+      qos);
     node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
     return publisher;
   }
@@ -109,6 +177,7 @@ public:
     rclcpp::Node::SharedPtr node,
     std::shared_ptr<GenericPublisher> publisher,
     const std::string & topic_name,
+    const rclcpp::QoS & qos,
     const rosidl_message_type_support_t & typesupport_handle,
     rclcpp::CallbackGroup::SharedPtr group)
   {
@@ -117,7 +186,7 @@ public:
       node->get_node_base_interface().get(),
       typesupport_handle,
       topic_name,
-      rclcpp::QoS(10),
+      qos,
       [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
         // Publish message into the other domain
         auto serialized_data_ptr = std::make_shared<rcl_serialized_message_t>(
@@ -148,6 +217,9 @@ public:
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
 
+    // Determine QoS to use for bridge
+    rclcpp::QoS qos = get_topic_qos(topic, from_domain_node);
+
     // Get typesupport
     auto typesupport_library = rosbag2_cpp::get_typesupport_library(
       type, "rosidl_typesupport_cpp");
@@ -157,11 +229,11 @@ public:
     // Create publisher for the 'to_domain'
     // The publisher should be created first so it is available to the subscription callback
     auto publisher = this->create_publisher(
-      to_domain_node, topic, *typesupport_handle, options.callback_group());
+      to_domain_node, topic, qos, *typesupport_handle, options.callback_group());
 
     // Create subscription for the 'from_domain'
     auto subscription = this->create_subscription(
-      from_domain_node, publisher, topic, *typesupport_handle, options.callback_group());
+      from_domain_node, publisher, topic, qos, *typesupport_handle, options.callback_group());
 
     bridged_topics_[topic_bridge] = {publisher, subscription};
   }
