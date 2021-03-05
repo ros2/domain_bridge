@@ -75,7 +75,7 @@ Not only should the bridge be configurable at an API level, but there should als
 8. Security
 
 The bridge should not subvert [Secure ROS 2](https://github.com/ros2/sros2) (SROS 2) mechanisms.
-Similarly, SROS 2 should not prevent the domain bridge from working correclty (i.e. the bridge should not break with security enabled).
+Similarly, SROS 2 should not prevent the domain bridge from working correctly (i.e. the bridge should not break with security enabled).
 
 Consider that it is possible for a user to only secure half of a domain bridge (i.e. only one domain has security enabled).
 This means that a bridged topic, though secure in one domain, is left completely open in another domain.
