@@ -20,9 +20,11 @@ find_package(rclcpp REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/domain_bridge.cpp
+  src/${PROJECT_NAME}/domain_bridge_from_yaml.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
   src/${PROJECT_NAME}/generic_publisher.cpp
   src/${PROJECT_NAME}/generic_subscription.cpp
@@ -38,6 +40,7 @@ ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rcutils
   rosbag2_cpp
+  yaml_cpp_vendor
 )
 
 add_executable(${PROJECT_NAME}_exec
@@ -65,8 +68,8 @@ ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(
   rclcpp
   rosbag2_cpp
-  rcl
   rcutils
+  yaml_cpp_vendor
 )
 
 if(BUILD_TESTING)
