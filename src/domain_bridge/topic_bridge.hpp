@@ -58,20 +58,20 @@ struct TopicBridge
     if (from_domain_id < other.from_domain_id) {
       return true;
     }
-    if (from_domain_id != other.from_domain_id) {
+    if (from_domain_id > other.from_domain_id) {
       return false;
     }
     if (to_domain_id < other.to_domain_id) {
       return true;
     }
-    if (to_domain_id != other.to_domain_id) {
+    if (to_domain_id > other.to_domain_id) {
       return false;
     }
     int name_compare = topic_name.compare(other.topic_name);
     if (name_compare < 0) {
       return true;
     }
-    if (name_compare != 0) {
+    if (name_compare > 0) {
       return false;
     }
     int type_compare = type_name.compare(other.type_name);
