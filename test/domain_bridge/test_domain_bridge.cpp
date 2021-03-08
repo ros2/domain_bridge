@@ -126,6 +126,21 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
         "Topic 'foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
         "domain 1 to domain 2, ignoring\n"));
   }
+  // Same bridge twice, following another bridge
+  // Regression test for https://github.com/ros2/domain_bridge/pull/3
+  {
+    testing::internal::CaptureStderr();
+    domain_bridge::DomainBridge bridge;
+    bridge.bridge_topic("bar", "test_msgs/msg/Strings", 1, 2);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
+    std::string stderr_output = testing::internal::GetCapturedStderr();
+    EXPECT_THAT(
+      stderr_output,
+      ::testing::HasSubstr(
+        "Topic 'foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
+        "domain 1 to domain 2, ignoring\n"));
+  }
 }
 
 TEST_F(TestDomainBridge, add_to_executor_valid)
