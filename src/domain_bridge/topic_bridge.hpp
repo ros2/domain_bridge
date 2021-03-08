@@ -59,13 +59,24 @@ struct TopicBridgeCompare
     if (lhs.from_domain_id < rhs.from_domain_id) {
       return true;
     }
+    if (lhs.from_domain_id != rhs.from_domain_id) {
+      return false;
+    }
     if (lhs.to_domain_id < rhs.to_domain_id) {
       return true;
     }
-    if (lhs.topic_name.compare(rhs.topic_name) < 0) {
+    if (lhs.to_domain_id != rhs.to_domain_id) {
+      return false;
+    }
+    int name_compare = lhs.topic_name.compare(rhs.topic_name);
+    if (name_compare < 0) {
       return true;
     }
-    if (lhs.type_name.compare(rhs.type_name) < 0) {
+    if (name_compare != 0) {
+      return false;
+    }
+    int type_compare = lhs.type_name.compare(rhs.type_name);
+    if (type_compare < 0) {
       return true;
     }
     return false;
