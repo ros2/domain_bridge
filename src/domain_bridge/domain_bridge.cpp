@@ -185,7 +185,7 @@ public:
   NodeMap node_map_;
 
   /// Set of bridged topics
-  std::set<TopicBridge, TopicBridgeCompare> bridged_topics_;
+  std::set<TopicBridge> bridged_topics_;
 };  // class DomainBridgeImpl
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)

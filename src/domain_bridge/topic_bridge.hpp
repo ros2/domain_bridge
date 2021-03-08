@@ -45,37 +45,36 @@ struct TopicBridge
 
   /// The subscription half of the bridge
   std::shared_ptr<GenericSubscription> subscription;
-};
 
-/// Compare two TopicBridge objects
-struct TopicBridgeCompare
-{
-  bool operator()(const TopicBridge & lhs, const TopicBridge & rhs) const
+  /// Less-than operator.
+  /**
+   * Sort by 'from_domain_id',
+   *   then by 'to_domain_id',
+   *   then by 'topic_name',
+   *   then by 'type_name'
+   */
+  bool operator<(const TopicBridge & other) const
   {
-    // Sort by 'from_domain_id',
-    //   then by 'to_domain_id',
-    //   then by 'topic_name',
-    //   then by 'type_name'
-    if (lhs.from_domain_id < rhs.from_domain_id) {
+    if (from_domain_id < other.from_domain_id) {
       return true;
     }
-    if (lhs.from_domain_id != rhs.from_domain_id) {
+    if (from_domain_id != other.from_domain_id) {
       return false;
     }
-    if (lhs.to_domain_id < rhs.to_domain_id) {
+    if (to_domain_id < other.to_domain_id) {
       return true;
     }
-    if (lhs.to_domain_id != rhs.to_domain_id) {
+    if (to_domain_id != other.to_domain_id) {
       return false;
     }
-    int name_compare = lhs.topic_name.compare(rhs.topic_name);
+    int name_compare = topic_name.compare(other.topic_name);
     if (name_compare < 0) {
       return true;
     }
     if (name_compare != 0) {
       return false;
     }
-    int type_compare = lhs.type_name.compare(rhs.type_name);
+    int type_compare = type_name.compare(other.type_name);
     if (type_compare < 0) {
       return true;
     }
