@@ -215,13 +215,7 @@ void DomainBridge::bridge_topic(
   std::size_t to_domain_id,
   const TopicBridgeOptions & options)
 {
-  const TopicBridge topic_bridge = {
-    topic,
-    type,
-    from_domain_id,
-    to_domain_id
-  };
-  impl_->bridge_topic(topic_bridge, options);
+  impl_->bridge_topic({topic, type, from_domain_id, to_domain_id}, options);
 }
 
 void DomainBridge::bridge_topic(
