@@ -16,14 +16,16 @@
 
 #include <cstddef>
 #include <iostream>
-#include <unordered_map>
+#include <map>
 #include <memory>
-#include <set>
 #include <sstream>
 #include <string>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
 #include "domain_bridge/domain_bridge_options.hpp"
+#include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 
 #include "rclcpp/rclcpp.hpp"
@@ -33,7 +35,6 @@
 
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
-#include "topic_bridge.hpp"
 
 namespace domain_bridge
 {
@@ -43,6 +44,9 @@ class DomainBridgeImpl
 {
 public:
   using NodeMap = std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Node>>;
+  using TopicBridgeMap = std::map<
+    TopicBridge,
+    std::pair<std::shared_ptr<GenericPublisher>, std::shared_ptr<GenericSubscription>>>;
 
   explicit DomainBridgeImpl(const DomainBridgeOptions & options)
   : options_(options)
@@ -125,24 +129,16 @@ public:
   }
 
   void bridge_topic(
-    const std::string & topic,
-    const std::string & type,
-    std::size_t from_domain_id,
-    std::size_t to_domain_id,
+    const TopicBridge & topic_bridge,
     const TopicBridgeOptions & options)
   {
-    TopicBridge topic_bridge = {
-      from_domain_id,
-      to_domain_id,
-      topic,
-      type,
-      nullptr,
-      nullptr
-    };
+    const std::string & topic = topic_bridge.topic_name;
+    const std::string & type = topic_bridge.type_name;
+    const std::size_t & from_domain_id = topic_bridge.from_domain_id;
+    const std::size_t & to_domain_id = topic_bridge.to_domain_id;
 
     // Check if already bridged
-    auto find_result = bridged_topics_.find(topic_bridge);
-    if (find_result != bridged_topics_.end()) {
+    if (bridged_topics_.find(topic_bridge) != bridged_topics_.end()) {
       std::cerr << "Topic '" << topic << "' with type '" << type << "'" <<
         " already bridged from domain " << std::to_string(from_domain_id) <<
         " to domain " << std::to_string(to_domain_id) << ", ignoring" << std::endl;
@@ -167,9 +163,7 @@ public:
     auto subscription = this->create_subscription(
       from_domain_node, publisher, topic, *typesupport_handle, options.callback_group());
 
-    topic_bridge.publisher = publisher;
-    topic_bridge.subscription = subscription;
-    bridged_topics_.insert(topic_bridge);
+    bridged_topics_[topic_bridge] = {publisher, subscription};
   }
 
   void add_to_executor(rclcpp::Executor & executor)
@@ -179,13 +173,22 @@ public:
     }
   }
 
+  std::vector<TopicBridge> get_bridged_topics() const
+  {
+    std::vector<TopicBridge> result;
+    for (const auto & bridge : bridged_topics_) {
+      result.push_back(bridge.first);
+    }
+    return result;
+  }
+
   DomainBridgeOptions options_;
 
   /// Map of domain IDs to ROS nodes
   NodeMap node_map_;
 
   /// Set of bridged topics
-  std::set<TopicBridge> bridged_topics_;
+  TopicBridgeMap bridged_topics_;
 };  // class DomainBridgeImpl
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
@@ -212,7 +215,25 @@ void DomainBridge::bridge_topic(
   std::size_t to_domain_id,
   const TopicBridgeOptions & options)
 {
-  impl_->bridge_topic(topic, type, from_domain_id, to_domain_id, options);
+  const TopicBridge topic_bridge = {
+    topic,
+    type,
+    from_domain_id,
+    to_domain_id
+  };
+  impl_->bridge_topic(topic_bridge, options);
+}
+
+void DomainBridge::bridge_topic(
+  const TopicBridge & topic_bridge,
+  const TopicBridgeOptions & options)
+{
+  impl_->bridge_topic(topic_bridge, options);
+}
+
+std::vector<TopicBridge> DomainBridge::get_bridged_topics() const
+{
+  return impl_->get_bridged_topics();
 }
 
 }  // namespace domain_bridge

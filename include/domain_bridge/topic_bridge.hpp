@@ -16,11 +16,7 @@
 #define DOMAIN_BRIDGE__TOPIC_BRIDGE_HPP_
 
 #include <cstddef>
-#include <memory>
 #include <string>
-
-#include "generic_publisher.hpp"
-#include "generic_subscription.hpp"
 
 namespace domain_bridge
 {
@@ -28,23 +24,17 @@ namespace domain_bridge
 /// Info and ROS entities related to a topic bridge
 struct TopicBridge
 {
-  /// Domain ID that the subscription uses
-  std::size_t from_domain_id;
-
-  /// Domain ID that the publisher uses
-  std::size_t to_domain_id;
-
   /// Name of the bridged topic
   std::string topic_name;
 
   /// Name of the message type sent on the topic
   std::string type_name;
 
-  /// The publisher half of the bridge
-  std::shared_ptr<GenericPublisher> publisher;
+  /// Domain ID that the subscription uses
+  std::size_t from_domain_id;
 
-  /// The subscription half of the bridge
-  std::shared_ptr<GenericSubscription> subscription;
+  /// Domain ID that the publisher uses
+  std::size_t to_domain_id;
 
   /// Less-than operator.
   /**
