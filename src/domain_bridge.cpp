@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
 #include <string>
 
 #include "rclcpp/executors/single_threaded_executor.hpp"
@@ -30,11 +29,11 @@ int main(int argc, char ** argv)
     return 1;
   }
   std::string yaml_config = argv[1];
-  std::unique_ptr<domain_bridge::DomainBridge> domain_bridge =
+  domain_bridge::DomainBridge domain_bridge =
     domain_bridge::domain_bridge_from_yaml(yaml_config);
 
   rclcpp::executors::SingleThreadedExecutor executor;
-  domain_bridge->add_to_executor(executor);
+  domain_bridge.add_to_executor(executor);
   executor.spin();
 
   rclcpp::shutdown();

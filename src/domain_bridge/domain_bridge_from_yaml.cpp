@@ -15,7 +15,6 @@
 #include <yaml-cpp/yaml.h>
 
 #include <filesystem>
-#include <memory>
 #include <string>
 
 #include "domain_bridge/domain_bridge.hpp"
@@ -25,7 +24,7 @@
 namespace domain_bridge
 {
 
-std::unique_ptr<DomainBridge> domain_bridge_from_yaml(std::string file_path)
+DomainBridge domain_bridge_from_yaml(std::string file_path)
 {
   // Check if file exists
   if (!std::filesystem::is_regular_file(file_path)) {
@@ -38,7 +37,7 @@ std::unique_ptr<DomainBridge> domain_bridge_from_yaml(std::string file_path)
   if (config["name"]) {
     domain_bridge_options.name(config["name"].as<std::string>());
   }
-  auto domain_bridge = std::make_unique<DomainBridge>(domain_bridge_options);
+  DomainBridge domain_bridge(domain_bridge_options);
 
   if (config["topics"]) {
     if (config["topics"].Type() != YAML::NodeType::Map) {
@@ -65,7 +64,7 @@ std::unique_ptr<DomainBridge> domain_bridge_from_yaml(std::string file_path)
       const std::size_t to_domain_id = topic_info["to_domain"].as<std::size_t>();
 
       // Create topic bridge
-      domain_bridge->bridge_topic(topic, type, from_domain_id, to_domain_id);
+      domain_bridge.bridge_topic(topic, type, from_domain_id, to_domain_id);
     }
   }
 

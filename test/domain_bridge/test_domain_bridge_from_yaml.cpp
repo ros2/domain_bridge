@@ -50,15 +50,15 @@ TEST_F(TestDomainBridgeFromYaml, empty)
   // Empty YAML file
   const std::string yaml_path = (test_yaml_dir_ / std::filesystem::path{"empty.yaml"}).string();
   auto bridge = domain_bridge::domain_bridge_from_yaml(yaml_path);
-  EXPECT_EQ(bridge->get_bridged_topics().size(), 0u);
+  EXPECT_EQ(bridge.get_bridged_topics().size(), 0u);
 }
 
 TEST_F(TestDomainBridgeFromYaml, name)
 {
   const std::string yaml_path = (test_yaml_dir_ / std::filesystem::path{"name.yaml"}).string();
   auto bridge = domain_bridge::domain_bridge_from_yaml(yaml_path);
-  EXPECT_EQ(bridge->get_bridged_topics().size(), 0u);
-  EXPECT_EQ(bridge->get_domain_bridge_options().name(), "domain_bridge_test_name");
+  EXPECT_EQ(bridge.get_bridged_topics().size(), 0u);
+  EXPECT_EQ(bridge.get_domain_bridge_options().name(), "domain_bridge_test_name");
 }
 
 TEST_F(TestDomainBridgeFromYaml, topics)
@@ -71,7 +71,7 @@ TEST_F(TestDomainBridgeFromYaml, topics)
   std::sort(expected.begin(), expected.end());
   const std::string yaml_path = (test_yaml_dir_ / std::filesystem::path{"topics.yaml"}).string();
   auto bridge = domain_bridge::domain_bridge_from_yaml(yaml_path);
-  std::vector<domain_bridge::TopicBridge> bridged_topics = bridge->get_bridged_topics();
+  std::vector<domain_bridge::TopicBridge> bridged_topics = bridge.get_bridged_topics();
   ASSERT_EQ(bridged_topics.size(), expected.size());
   for (std::size_t i = 0u; i < bridged_topics.size(); ++i) {
     EXPECT_EQ(bridged_topics[i].topic_name, expected[i].topic_name);

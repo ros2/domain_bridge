@@ -15,7 +15,6 @@
 #ifndef DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
 #define DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
 
-#include <memory>
 #include <string>
 
 #include "domain_bridge/domain_bridge.hpp"
@@ -67,7 +66,7 @@ public:
  *   for example, if a required key is missing.
  */
 DOMAIN_BRIDGE_PUBLIC
-std::unique_ptr<DomainBridge> domain_bridge_from_yaml(std::string file_path);
+DomainBridge domain_bridge_from_yaml(std::string file_path);
 
 }  // namespace domain_bridge
 

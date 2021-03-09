@@ -69,6 +69,15 @@ public:
   DOMAIN_BRIDGE_PUBLIC
   explicit DomainBridge(const DomainBridgeOptions & options = DomainBridgeOptions());
 
+  /// Move constructor.
+  DOMAIN_BRIDGE_PUBLIC
+  DomainBridge(DomainBridge && other);
+
+  /// Move assignment operator.
+  DOMAIN_BRIDGE_PUBLIC
+  DomainBridge &
+  operator=(DomainBridge && other) = default;
+
   /// Destructor.
   DOMAIN_BRIDGE_PUBLIC
   ~DomainBridge();

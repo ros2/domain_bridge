@@ -195,6 +195,8 @@ DomainBridge::DomainBridge(const DomainBridgeOptions & options)
 : impl_(std::make_unique<DomainBridgeImpl>(options))
 {}
 
+DomainBridge::DomainBridge(DomainBridge && other) = default;
+
 DomainBridge::~DomainBridge() = default;
 
 DomainBridgeOptions
