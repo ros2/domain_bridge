@@ -83,6 +83,13 @@ TEST_F(TestDomainBridgeFromYaml, topics)
 
 TEST_F(TestDomainBridgeFromYaml, invalid)
 {
+  // Non-existent file
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"not_a_file.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::domain_bridge_from_yaml(yaml_path), domain_bridge::YamlParsingError);
+  }
   // Missing 'type' key
   {
     const std::string yaml_path =

@@ -14,6 +14,7 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <filesystem>
 #include <memory>
 #include <string>
 
@@ -26,6 +27,11 @@ namespace domain_bridge
 
 std::unique_ptr<DomainBridge> domain_bridge_from_yaml(std::string file_path)
 {
+  // Check if file exists
+  if (!std::filesystem::is_regular_file(file_path)) {
+    throw YamlParsingError(file_path, "file does not exist");
+  }
+
   YAML::Node config = YAML::LoadFile(file_path);
 
   DomainBridgeOptions domain_bridge_options;
