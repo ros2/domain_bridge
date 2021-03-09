@@ -132,18 +132,18 @@ Here is an example of a configuration file for bridging multiple topics, a servi
 ```yaml
 topics:
   # Bridge "/foo/chatter" topic from doman ID 2 to domain ID 3
-  - foo/chatter:
+  foo/chatter:
     type: example_interfaces/msg/String
     from_domain: 2
     to_domain: 3
   # Bridge "/clock" topic from doman ID 2 to domain ID 3, with depth 1
-  - clock:
+  clock:
     type: rosgraph_msgs/msg/Clock
     from_domain: 2
     to_domain: 3
     depth: 1
   # Bridge "/clock" topic from doman ID 2 to domain ID 6, with "keep all" history policy
-  - clock:
+  clock:
     type: rosgraph_msgs/msg/Clock
     from_domain: 2
     to_domain: 6
@@ -151,14 +151,14 @@ topics:
 
 services:
   # Bridge "add_two_ints" service from domain ID 4 to domain ID 6
-  - add_two_ints:
+  add_two_ints:
     type: example_interfaces/srv/AddTwoInts
     from_domain: 4
     to_domain: 6
 
 actions:
   # Bridge "fibonacci" action from domain ID 2 to domain ID 3
-  - fibonacci:
+  fibonacci:
     type: example_interfaces/action/Fibonacci
     from_domain: 2
     to_domain: 3
