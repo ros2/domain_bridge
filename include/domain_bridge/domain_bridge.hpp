@@ -108,7 +108,7 @@ public:
 
   /// Bridge a topic from one domain to another.
   /**
-   * \param topic_bridge: Struct containing info about the topic to brige.
+   * \param topic_bridge: Struct containing info about the topic to bridge.
    * \param options: Options for bridging the topic.
    */
   DOMAIN_BRIDGE_PUBLIC

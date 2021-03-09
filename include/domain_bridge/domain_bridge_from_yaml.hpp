@@ -33,14 +33,14 @@ public:
   {}
 };
 
-/// Create domain bridge from a YAML file.
+/// Create a DomainBridge from a YAML file.
 /**
  * The YAML file may contain the following optional keys:
  *
  * - name: Name of the domain bridge
- * - topics: A map of topic names to a map of topoic bridge info
+ * - topics: A map of topic names to a map of topic bridge information
  *
- * For each topic bridge, the follow keys are required:
+ * For each topic bridge, the follow information is required, in the form of YAML keys:
  *
  * - type: Message type to bridge
  * - from_domain: Subscribe to the topic on this domain ID
