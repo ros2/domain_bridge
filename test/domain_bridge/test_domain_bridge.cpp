@@ -15,8 +15,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "rclcpp/context.hpp"
 #include "rclcpp/executors/single_threaded_executor.hpp"
@@ -60,42 +62,53 @@ TEST_F(TestDomainBridge, get_options)
 
 TEST_F(TestDomainBridge, bridge_topic_valid)
 {
-  // Nominal test
+  // Individual parameters
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+  }
+  // Struct parameter
+  {
+    domain_bridge::DomainBridge bridge;
+    domain_bridge::TopicBridge topic_bridge = {
+      "foo",
+      "test_msgs/msg/BasicTypes",
+      1u,
+      2u
+    };
+    bridge.bridge_topic(topic_bridge);
   }
   // Same domain ID
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 1);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 1u);
   }
   // Topic with namespace
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo/bar/baz", "test_msgs/msg/BasicTypes", 1, 2);
+    bridge.bridge_topic("foo/bar/baz", "test_msgs/msg/BasicTypes", 1u, 2u);
   }
   // Multiple topics
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
-    bridge.bridge_topic("bar", "test_msgs/msg/BasicTypes", 1, 2);
-    bridge.bridge_topic("baz", "test_msgs/msg/BasicTypes", 1, 2);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic("bar", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic("baz", "test_msgs/msg/BasicTypes", 1u, 2u);
   }
   // Same topic, different domains
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 3);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 2, 1);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 3u);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 2u, 1u);
   }
   // Same topic, different types
   // This use-case isn't clearly supported by ROS 2, see https://github.com/ros2/ros2/issues/1095
   // {
   //   domain_bridge::DomainBridge bridge;
-  //   bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
-  //   bridge.bridge_topic("foo", "test_msgs/msg/Nested", 1, 2);
-  //   bridge.bridge_topic("foo", "test_msgs/msg/Constants", 1, 2);
+  //   bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+  //   bridge.bridge_topic("foo", "test_msgs/msg/Nested", 1u, 2u);
+  //   bridge.bridge_topic("foo", "test_msgs/msg/Constants", 1u, 2u);
   // }
 }
 
@@ -105,20 +118,21 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
   {
     domain_bridge::DomainBridge bridge;
     EXPECT_THROW(
-      bridge.bridge_topic("Not a v@lid topic name!", "test_msgs/msg/BasicTypes", 1, 2),
+      bridge.bridge_topic("Not a v@lid topic name!", "test_msgs/msg/BasicTypes", 1u, 2u),
       rclcpp::exceptions::InvalidTopicNameError);
   }
   // Invalid type name
   {
     domain_bridge::DomainBridge bridge;
-    EXPECT_THROW(bridge.bridge_topic("foo", "not a valid message type", 1, 2), std::runtime_error);
+    EXPECT_THROW(
+      bridge.bridge_topic("foo", "not a valid message type", 1u, 2u), std::runtime_error);
   }
   // Same bridge twice
   {
     testing::internal::CaptureStderr();
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
     std::string stderr_output = testing::internal::GetCapturedStderr();
     EXPECT_THAT(
       stderr_output,
@@ -131,9 +145,9 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
   {
     testing::internal::CaptureStderr();
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("bar", "test_msgs/msg/Strings", 1, 2);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1, 2);
+    bridge.bridge_topic("bar", "test_msgs/msg/Strings", 1u, 2u);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
     std::string stderr_output = testing::internal::GetCapturedStderr();
     EXPECT_THAT(
       stderr_output,
@@ -157,8 +171,8 @@ TEST_F(TestDomainBridge, add_to_executor_valid)
     bridge.bridge_topic(
       "foo",
       "test_msgs/msg/BasicTypes",
-      1,
-      2);
+      1u,
+      2u);
     rclcpp::executors::SingleThreadedExecutor executor;
     bridge.add_to_executor(executor);
   }
@@ -172,8 +186,8 @@ TEST_F(TestDomainBridge, add_to_executor_invalid)
     bridge.bridge_topic(
       "foo",
       "test_msgs/msg/BasicTypes",
-      1,
-      2);
+      1u,
+      2u);
     rclcpp::executors::SingleThreadedExecutor executor;
     bridge.add_to_executor(executor);
     EXPECT_THROW(bridge.add_to_executor(executor), std::runtime_error);
@@ -184,11 +198,58 @@ TEST_F(TestDomainBridge, add_to_executor_invalid)
     bridge.bridge_topic(
       "foo",
       "test_msgs/msg/BasicTypes",
-      1,
-      2);
+      1u,
+      2u);
     rclcpp::executors::SingleThreadedExecutor executor1;
     rclcpp::executors::SingleThreadedExecutor executor2;
     bridge.add_to_executor(executor1);
     EXPECT_THROW(bridge.add_to_executor(executor2), std::runtime_error);
+  }
+}
+
+TEST_F(TestDomainBridge, get_bridged_topics)
+{
+  // Empty
+  {
+    domain_bridge::DomainBridge bridge;
+    auto result = bridge.get_bridged_topics();
+    EXPECT_EQ(result.size(), 0u);
+  }
+  // One topic
+  {
+    domain_bridge::DomainBridge bridge;
+    bridge.bridge_topic({"foo", "test_msgs/msg/BasicTypes", 1u, 2u});
+    auto result = bridge.get_bridged_topics();
+    ASSERT_EQ(result.size(), 1u);
+    EXPECT_EQ(result[0].topic_name, "foo");
+    EXPECT_EQ(result[0].type_name, "test_msgs/msg/BasicTypes");
+    EXPECT_EQ(result[0].from_domain_id, 1u);
+    EXPECT_EQ(result[0].to_domain_id, 2u);
+  }
+  // Several topics
+  {
+    domain_bridge::DomainBridge bridge;
+    std::vector<domain_bridge::TopicBridge> input = {
+      {"foo", "test_msgs/msg/BasicTypes", 3u, 2u},
+      {"foo", "test_msgs/msg/BasicTypes", 1u, 2u},
+      {"foo", "test_msgs/msg/BasicTypes", 2u, 1u},
+      {"foo", "test_msgs/msg/BasicTypes", 2u, 2u},
+      {"baz", "test_msgs/msg/Strings", 1u, 2u},
+      {"bar", "test_msgs/msg/BasicTypes", 1u, 2u},
+      {"foo", "test_msgs/msg/BasicTypes", 1u, 2u}  // duplicate
+    };
+    for (const auto & topic_bridge : input) {
+      bridge.bridge_topic(topic_bridge);
+    }
+    auto result = bridge.get_bridged_topics();
+    ASSERT_EQ(result.size(), 6u);  // duplicate entry should not appear
+    // Expect result to be in sorted order
+    std::sort(input.begin(), input.end() - 1);  // - 1 to ignore duplicate
+    for (std::size_t i = 0u; i < result.size(); ++i) {
+      EXPECT_EQ(result[i].topic_name, input[i].topic_name);
+      EXPECT_EQ(result[i].type_name, input[i].type_name);
+      EXPECT_EQ(result[i].from_domain_id, input[i].from_domain_id);
+      EXPECT_EQ(result[i].to_domain_id, input[i].to_domain_id);
+    }
   }
 }

@@ -17,10 +17,12 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "rclcpp/executor.hpp"
 
 #include "domain_bridge/domain_bridge_options.hpp"
+#include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/visibility_control.hpp"
 
@@ -67,6 +69,15 @@ public:
   DOMAIN_BRIDGE_PUBLIC
   explicit DomainBridge(const DomainBridgeOptions & options = DomainBridgeOptions());
 
+  /// Move constructor.
+  DOMAIN_BRIDGE_PUBLIC
+  DomainBridge(DomainBridge && other);
+
+  /// Move assignment operator.
+  DOMAIN_BRIDGE_PUBLIC
+  DomainBridge &
+  operator=(DomainBridge && other) = default;
+
   /// Destructor.
   DOMAIN_BRIDGE_PUBLIC
   ~DomainBridge();
@@ -103,6 +114,23 @@ public:
     size_t from_domain_id,
     size_t to_domain_id,
     const TopicBridgeOptions & options = TopicBridgeOptions());
+
+  /// Bridge a topic from one domain to another.
+  /**
+   * \param topic_bridge: Struct containing info about the topic to bridge.
+   * \param options: Options for bridging the topic.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  void bridge_topic(
+    const TopicBridge & topic_bridge,
+    const TopicBridgeOptions & options = TopicBridgeOptions());
+
+  /// Get bridged topics.
+  /**
+   * \return Topic bridges created by `bridge_topic()`.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  std::vector<TopicBridge> get_bridged_topics() const;
 
 private:
   std::unique_ptr<DomainBridgeImpl> impl_;

@@ -1,4 +1,5 @@
 find_package(ament_cmake_gmock REQUIRED)
+find_package(ament_cmake_gtest REQUIRED)
 find_package(test_msgs REQUIRED)
 
 ament_add_gmock(test_domain_bridge
@@ -10,3 +11,20 @@ if(TARGET test_domain_bridge)
   )
   target_link_libraries(test_domain_bridge ${PROJECT_NAME})
 endif()
+
+ament_add_gmock(test_domain_bridge_from_yaml
+  domain_bridge/test_domain_bridge_from_yaml.cpp
+  WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/domain_bridge"
+)
+if(TARGET test_domain_bridge_from_yaml)
+  ament_target_dependencies(test_domain_bridge_from_yaml
+    "rclcpp"
+  )
+  target_link_libraries(test_domain_bridge_from_yaml ${PROJECT_NAME})
+endif()
+
+# Install test files to build directory
+install(
+  DIRECTORY "domain_bridge/config"
+  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
+)

@@ -12,19 +12,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <memory>
+#include <string>
 
 #include "rclcpp/executors/single_threaded_executor.hpp"
 
 #include "domain_bridge/domain_bridge.hpp"
+#include "domain_bridge/domain_bridge_from_yaml.hpp"
 
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
 
-  // TODO(jacobperron): Configure via YAML file
-  domain_bridge::DomainBridge domain_bridge;
-  domain_bridge.bridge_topic("image", "sensor_msgs/msg/Image", 5, 10);
+  if (argc != 2) {
+    std::cerr << "Expected one argument" << std::endl <<
+      "Usage: domain_bridge [YAML_CONFIG]" << std::endl;
+    return 1;
+  }
+  std::string yaml_config = argv[1];
+  domain_bridge::DomainBridge domain_bridge =
+    domain_bridge::domain_bridge_from_yaml(yaml_config);
 
   rclcpp::executors::SingleThreadedExecutor executor;
   domain_bridge.add_to_executor(executor);
