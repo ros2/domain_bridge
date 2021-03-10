@@ -15,6 +15,7 @@
 #ifndef DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
 #define DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
 
+#include <filesystem>
 #include <string>
 
 #include "domain_bridge/domain_bridge.hpp"
@@ -27,8 +28,8 @@ class YamlParsingError : public std::runtime_error
 {
 public:
   DOMAIN_BRIDGE_PUBLIC
-  YamlParsingError(const std::string file_path, const std::string message)
-  : std::runtime_error("error parsing the file '" + file_path + "': " + message)
+  YamlParsingError(const std::filesystem::path file_path, const std::string message)
+  : std::runtime_error("error parsing the file '" + file_path.string() + "': " + message)
   {}
 };
 
@@ -66,7 +67,7 @@ public:
  *   for example, if a required key is missing.
  */
 DOMAIN_BRIDGE_PUBLIC
-DomainBridge domain_bridge_from_yaml(std::string file_path);
+DomainBridge domain_bridge_from_yaml(std::filesystem::path file_path);
 
 }  // namespace domain_bridge
 

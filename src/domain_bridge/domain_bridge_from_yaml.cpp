@@ -24,7 +24,7 @@
 namespace domain_bridge
 {
 
-DomainBridge domain_bridge_from_yaml(std::string file_path)
+DomainBridge domain_bridge_from_yaml(std::filesystem::path file_path)
 {
   // Check if file exists
   if (!std::filesystem::is_regular_file(file_path)) {
