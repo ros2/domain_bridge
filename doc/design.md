@@ -123,29 +123,41 @@ TODO
 The [YAML](https://yaml.org/) language was chosen as an easy way to externally configure the domain bridge.
 YAML is relatively simple to read for humans and computers alike and is commonly used in other places of the ROS ecosystem (e.g. ROS parameters).
 
-The bridge will look for three keys, `topics`, `services`, and `actions`, each of which contains a list of objects.
-The key for each object is the input name of the ROS entity (topic, service, or action name).
-For each ROS entity, you must specifiy the `type` of the interface, the domain ID where input data will come from (`from_domain`), and the domain ID for where to bridge (`to_domain`).
+The name of the bridge can be set with the optional key, `name`.
+The bridge name is used naming nodes and logging, for example.
+
+Default domain IDs for bridged entities can be set as top-level keys:
+
+- `from_domain`, data will be bridged from this domain ID by default.
+- `to_domain`, data will be bridged to this domain ID by default.
+
+The `topics` key is used to specify what topics to bridge.
+It expects a map of topic names to topic-specific configuration key-value pairs.
+List of supported configurations pairs:
+
+- `type` (required), the ROS message type for the topic.
+- `from_domain` (optional), overrides the default `from_domain`.
+- `to_domain` (optional), overrides the default `to_domain`.
+
+Similar to topics, services and action to bridge may be specified with the `services` and `actions` keys respectively.
 
 Here is an example of a configuration file for bridging multiple topics, a service, and an action:
 
 ```yaml
+name: my_domain_bridge
+from_domain: 2
+to_domain: 3
 topics:
   # Bridge "/foo/chatter" topic from doman ID 2 to domain ID 3
   foo/chatter:
     type: example_interfaces/msg/String
-    from_domain: 2
-    to_domain: 3
   # Bridge "/clock" topic from doman ID 2 to domain ID 3, with depth 1
   clock:
     type: rosgraph_msgs/msg/Clock
-    from_domain: 2
-    to_domain: 3
     depth: 1
   # Bridge "/clock" topic from doman ID 2 to domain ID 6, with "keep all" history policy
   clock:
     type: rosgraph_msgs/msg/Clock
-    from_domain: 2
     to_domain: 6
     history: keep_all
 
@@ -157,11 +169,10 @@ services:
     to_domain: 6
 
 actions:
-  # Bridge "fibonacci" action from domain ID 2 to domain ID 3
+  # Bridge "fibonacci" action from domain ID 1 to domain ID 3
   fibonacci:
     type: example_interfaces/action/Fibonacci
-    from_domain: 2
-    to_domain: 3
+    from_domain: 1
 ```
 
 ### Security
