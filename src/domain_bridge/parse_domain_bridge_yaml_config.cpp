@@ -17,14 +17,13 @@
 #include <filesystem>
 #include <string>
 
-#include "domain_bridge/domain_bridge.hpp"
-#include "domain_bridge/domain_bridge_from_yaml.hpp"
-#include "domain_bridge/domain_bridge_options.hpp"
+#include "domain_bridge/domain_bridge_config.hpp"
+#include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
 
 namespace domain_bridge
 {
 
-DomainBridge domain_bridge_from_yaml(std::filesystem::path file_path)
+DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_path)
 {
   // Check if file exists
   if (!std::filesystem::is_regular_file(file_path)) {
@@ -33,42 +32,67 @@ DomainBridge domain_bridge_from_yaml(std::filesystem::path file_path)
 
   YAML::Node config = YAML::LoadFile(file_path);
 
-  DomainBridgeOptions domain_bridge_options;
+  DomainBridgeConfig domain_bridge_config;
   if (config["name"]) {
-    domain_bridge_options.name(config["name"].as<std::string>());
+    domain_bridge_config.options.name(config["name"].as<std::string>());
   }
-  DomainBridge domain_bridge(domain_bridge_options);
+
+  // Check for any default domain IDs
+  bool is_default_from_domain = false;
+  bool is_default_to_domain = false;
+  std::size_t default_from_domain = 0u;
+  std::size_t default_to_domain = 0u;
+  if (config["from_domain"]) {
+    default_from_domain = config["from_domain"].as<std::size_t>();
+    is_default_from_domain = true;
+  }
+  if (config["to_domain"]) {
+    default_to_domain = config["to_domain"].as<std::size_t>();
+    is_default_to_domain = true;
+  }
 
   if (config["topics"]) {
     if (config["topics"].Type() != YAML::NodeType::Map) {
       throw YamlParsingError(file_path, "expected map value for 'topics'");
     }
     for (const auto & topic_node : config["topics"]) {
-      // Parse required keys for a topic bridge
+      // Parse keys for a topic bridge
       const std::string topic = topic_node.first.as<std::string>();
+
       auto topic_info = topic_node.second;
       if (topic_info.Type() != YAML::NodeType::Map) {
         throw YamlParsingError(file_path, "expected map value for each topic");
       }
+
       if (!topic_info["type"]) {
         throw YamlParsingError(file_path, "missing 'type' for topic '" + topic + "'");
       }
       const std::string type = topic_info["type"].as<std::string>();
-      if (!topic_info["from_domain"]) {
-        throw YamlParsingError(file_path, "missing 'from_domain' for topic '" + topic + "'");
-      }
-      const std::size_t from_domain_id = topic_info["from_domain"].as<std::size_t>();
-      if (!topic_info["to_domain"]) {
-        throw YamlParsingError(file_path, "missing 'to_domain' for topic '" + topic + "'");
-      }
-      const std::size_t to_domain_id = topic_info["to_domain"].as<std::size_t>();
 
-      // Create topic bridge
-      domain_bridge.bridge_topic(topic, type, from_domain_id, to_domain_id);
+      std::size_t from_domain_id = default_from_domain;
+      if (topic_info["from_domain"]) {
+        from_domain_id = topic_info["from_domain"].as<std::size_t>();
+      } else {
+        if (!is_default_from_domain) {
+          throw YamlParsingError(file_path, "missing 'from_domain' for topic '" + topic + "'");
+        }
+      }
+
+      std::size_t to_domain_id = default_to_domain;
+      if (topic_info["to_domain"]) {
+        to_domain_id = topic_info["to_domain"].as<std::size_t>();
+      } else {
+        if (!is_default_to_domain) {
+          throw YamlParsingError(file_path, "missing 'to_domain' for topic '" + topic + "'");
+        }
+      }
+
+      // Add topic bridge to config
+      domain_bridge_config.topics.push_back({{topic, type, from_domain_id, to_domain_id}, {}});
     }
   }
 
-  return domain_bridge;
+  return domain_bridge_config;
 }
 
 }  // namespace domain_bridge

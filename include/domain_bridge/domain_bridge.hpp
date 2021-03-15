@@ -21,6 +21,7 @@
 
 #include "rclcpp/executor.hpp"
 
+#include "domain_bridge/domain_bridge_config.hpp"
 #include "domain_bridge/domain_bridge_options.hpp"
 #include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
@@ -68,6 +69,13 @@ public:
   /// Constructor.
   DOMAIN_BRIDGE_PUBLIC
   explicit DomainBridge(const DomainBridgeOptions & options = DomainBridgeOptions());
+
+  /// Constructor from DomainBridgeConfig.
+  /**
+   * Constructor that also creates bridges based on the passed configuration.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  explicit DomainBridge(const DomainBridgeConfig & config);
 
   /// Move constructor.
   DOMAIN_BRIDGE_PUBLIC

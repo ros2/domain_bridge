@@ -195,6 +195,14 @@ DomainBridge::DomainBridge(const DomainBridgeOptions & options)
 : impl_(std::make_unique<DomainBridgeImpl>(options))
 {}
 
+DomainBridge::DomainBridge(const DomainBridgeConfig & config)
+: impl_(std::make_unique<DomainBridgeImpl>(config.options))
+{
+  for (const auto & topic_bridge_pair : config.topics) {
+    bridge_topic(topic_bridge_pair.first, topic_bridge_pair.second);
+  }
+}
+
 DomainBridge::DomainBridge(DomainBridge && other) = default;
 
 DomainBridge::~DomainBridge() = default;

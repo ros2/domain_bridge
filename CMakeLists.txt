@@ -24,10 +24,10 @@ find_package(yaml_cpp_vendor REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/domain_bridge.cpp
-  src/${PROJECT_NAME}/domain_bridge_from_yaml.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
   src/${PROJECT_NAME}/generic_publisher.cpp
   src/${PROJECT_NAME}/generic_subscription.cpp
+  src/${PROJECT_NAME}/parse_domain_bridge_yaml_config.cpp
   src/${PROJECT_NAME}/topic_bridge_options.cpp
 )
 
