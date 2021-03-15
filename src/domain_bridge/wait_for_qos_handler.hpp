@@ -102,15 +102,20 @@ public:
     // Create a thread that waits for a publisher to become available
     auto invoke_callback_when_qos_ready = [this, topic, node, callback]()
       {
+        auto event = node->get_graph_event();
         while (!this->shutting_down_.load()) {
-          // TODO(jacobperron): Use graph events
+          // Wait for graph event
+          // Note, in case new publishers don't trigger a graph event we add a
+          // timeout so that we can still poll periodically for new publishers
+          node->wait_for_graph_change(event, std::chrono::seconds(1));
+          event->check_and_clear();
+          // Check if QoS is ready
           auto opt_qos = this->get_topic_qos(topic, node);
           if (opt_qos) {
             const QosMatchInfo & qos = opt_qos.value();
             callback(qos);
             return;
           }
-          std::this_thread::sleep_for(std::chrono::seconds(1));
         }
       };
     auto waiting_thread = std::make_shared<std::thread>(invoke_callback_when_qos_ready);
