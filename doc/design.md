@@ -131,13 +131,14 @@ Consider the following scenario:
 1. Publisher *A* publishes on topic "chatter" with a QoS reliability setting of *reliable*.
 2. Publisher *B* publishes on topic "chatter" with a QoS reliability setting of *best effort*.
 3. In order to receive a message from *B*, we must create a subscription with a QoS reliability setting of *best effort*.
-4. The subscription will also receive messages from *A*, since *best effort* subscriptions also match with *reliable* publishers.
+4. The subscription will also receive messages from *A*, since *best effort* subscriptions also matches with *reliable* publishers.
 
 If we cannot distinguish whether a message came from publisher *A* or publisher *B*, then we cannot know what QoS settings to use for the message when publishing into another domain.
 
 Instead, the proposed approach will do as best it can to ensure all messages make it across the bridge.
 The bridge will evaluate the QoS settings of all publishers and modifiy the QoS settings of the bridges subscription and publisher
 such that it matches the majority of the available publishers for a given topic.
+For example, given publisher *A* and publisher *B* from the aforementioned scenario, the bridge would select a reliability setting of best effort since it matches with both publishers.
 
 The bridge will decide on the QoS settings as soon as one or more publishers is available.
 This means it is possible that publishers joining after the topic bridge is created may have compatibility issues, and fail to have their messages bridged.
@@ -224,8 +225,8 @@ For example, the bridge could continuously monitor for new publishers and re-cre
 Though, it is possible that some messages may be missed during the re-creation of the subscription.
 
 Pros:
-- Better suited to systems where publishers are created/destroyed during runtime
+- Better suited to systems where publishers with different QoS settings are created/destroyed during runtime
 
 Cons:
-- Not obvious how to handle missing out on messages during subscription re-creation
+- Not obvious how to handle missing messages during subscription re-creation
 - Substantially more complex to implement.
