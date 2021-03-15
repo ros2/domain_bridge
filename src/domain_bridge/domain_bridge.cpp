@@ -14,12 +14,7 @@
 
 #include "domain_bridge/domain_bridge.hpp"
 
-// Silly cpplint thinks this is a C system header
-#include <optional>
-
-#include <atomic>
 #include <cstddef>
-#include <functional>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -37,12 +32,12 @@
 #include "rclcpp/executor.hpp"
 #include "rclcpp/expand_topic_or_service_name.hpp"
 #include "rclcpp/rclcpp.hpp"
-#include "rcutils/logging_macros.h"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
 #include "rmw/types.h"
 
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
+#include "wait_for_qos_handler.hpp"
 
 namespace domain_bridge
 {
@@ -62,13 +57,7 @@ public:
   : options_(options)
   {}
 
-  ~DomainBridgeImpl()
-  {
-    shutting_down_.store(true);
-    for (const auto & t : waiting_threads_) {
-      t->join();
-    }
-  }
+  ~DomainBridgeImpl() = default;
 
   rclcpp::Context::SharedPtr create_context_with_domain_id(std::size_t domain_id)
   {
@@ -117,74 +106,6 @@ public:
       type, "rosidl_typesupport_cpp");
   }
 
-  /// Get the QoS to use for a topic bridge.
-  /**
-   * Queries QoS of existing publishers and returns QoS that is compatibile
-   * with the majority of publishers.
-   * If possible, the returned QoS will exactly match those of the publishers.
-   *
-   * If the existing publishers do not have matching QoS settings, then a warning is emitted.
-   *
-   * If there are no publishers, then no QoS is returned (i.e. the optional object is not set).
-   */
-  std::optional<rclcpp::QoS> get_topic_qos(std::string topic, rclcpp::Node::SharedPtr node)
-  {
-    // TODO(jacobperron): replace this with common implementation when it is available.
-    //       See: https://github.com/ros2/rosbag2/issues/601
-
-    // This implementation is inspired by rosbag2_transport:
-    // https://github.com/ros2/rosbag2/blob/master/rosbag2_transport/src/rosbag2_transport/qos.cpp
-
-    // Query QoS info for publishers
-    std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
-      node->get_publishers_info_by_topic(topic);
-    std::size_t num_endpoints = endpoint_info_vec.size();
-
-    // If there are no publishers, return default QoS
-    if (num_endpoints < 1u) {
-      return {};
-    }
-
-    // Initialize QoS arbitrarily
-    rclcpp::QoS result_qos = endpoint_info_vec[0].qos_profile();
-
-    // Reliability and durability policies can cause trouble with enpoint matching
-    // Count number of "reliable" publishers and number of "transient local" publishers
-    std::size_t reliable_count = 0u;
-    std::size_t transient_local_count = 0u;
-    for (const auto & info : endpoint_info_vec) {
-      const auto & profile = info.qos_profile().get_rmw_qos_profile();
-      if (profile.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
-        reliable_count++;
-      }
-      if (profile.durability == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
-        transient_local_count++;
-      }
-    }
-
-    // If not all publishers have a "reliable" policy, then use a "best effort" policy
-    // and print a warning
-    if (reliable_count > 0u && reliable_count != num_endpoints) {
-      result_qos.best_effort();
-      std::cerr << "Some, but not all, publishers on topic '" << topic << "' on domain ID " <<
-        std::to_string(node->get_node_options().context()->get_domain_id()) <<
-        " offer 'reliable' reliability. Falling back to 'best effort' reliability in order "
-        "to connect to all publishers." << std::endl;
-    }
-
-    // If not all publishers have a "transient local" policy, then use a "volatile" policy
-    // and print a warning
-    if (transient_local_count > 0u && transient_local_count != num_endpoints) {
-      result_qos.durability_volatile();
-      std::cerr << "Some, but not all, publishers on topic '" << topic << "' on domain ID " <<
-        std::to_string(node->get_node_options().context()->get_domain_id()) <<
-        " offer 'transient local' durability. Falling back to 'volatile' durability in order "
-        "to connect to all publishers." << std::endl;
-    }
-
-    return result_qos;
-  }
-
   std::shared_ptr<GenericPublisher> create_publisher(
     rclcpp::Node::SharedPtr node,
     const std::string & topic_name,
@@ -225,37 +146,6 @@ public:
     return subscription;
   }
 
-  void register_on_publisher_qos_ready_callback(
-    std::string topic,
-    rclcpp::Node::SharedPtr node,
-    std::function<void(const rclcpp::QoS)> callback)
-  {
-    // If the QoS is already avaiable, trigger the callback immediately
-    auto opt_qos = this->get_topic_qos(topic, node);
-    if (opt_qos) {
-      const rclcpp::QoS & qos = opt_qos.value();
-      callback(qos);
-      return;
-    }
-
-    // Create a thread that waits for a publisher to become availble
-    auto invoke_callback_when_qos_ready = [this, topic, node, callback]()
-      {
-        while (!this->shutting_down_.load()) {
-          // TODO(jacobperron): Use graph events
-          auto opt_qos = this->get_topic_qos(topic, node);
-          if (opt_qos) {
-            const rclcpp::QoS & qos = opt_qos.value();
-            callback(qos);
-            return;
-          }
-          std::this_thread::sleep_for(std::chrono::seconds(1));
-        }
-      };
-    auto waiting_thread = std::make_shared<std::thread>(invoke_callback_when_qos_ready);
-    waiting_threads_.push_back(waiting_thread);
-  }
-
   void bridge_topic(
     const TopicBridge & topic_bridge,
     const TopicBridgeOptions & topic_options)
@@ -289,8 +179,13 @@ public:
     // Register a callback to be triggered when QoS settings are available for one or more
     // publishers on the 'from' side of the bridge
     // The callback may be triggered immediately if a publisher is available
-    auto create_bridge = [ = ](const rclcpp::QoS & qos)
+    auto create_bridge = [ = ](const QosMatchInfo & qos_match)
       {
+        // Print any match warnings
+        for (const auto & warning : qos_match.warnings) {
+          std::cerr << warning << std::endl;
+        }
+
         // Get typesupport handle
         auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
           type, "rosidl_typesupport_cpp", loaded_typesupports_[type]);
@@ -298,20 +193,24 @@ public:
         // Create publisher for the 'to_domain'
         // The publisher should be created first so it is available to the subscription callback
         auto publisher = this->create_publisher(
-          to_domain_node, topic, qos, *typesupport_handle, topic_options.callback_group());
+          to_domain_node,
+          topic, qos_match.qos,
+          *typesupport_handle,
+          topic_options.callback_group());
 
         // Create subscription for the 'from_domain'
         auto subscription = this->create_subscription(
           from_domain_node,
           publisher,
           topic,
-          qos,
+          qos_match.qos,
           *typesupport_handle,
           topic_options.callback_group());
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
-    register_on_publisher_qos_ready_callback(topic, from_domain_node, create_bridge);
+    wait_for_qos_handler_.register_on_publisher_qos_ready_callback(
+      topic, from_domain_node, create_bridge);
   }
 
   void add_to_executor(rclcpp::Executor & executor)
@@ -338,14 +237,11 @@ public:
   /// Set of bridged topics
   TopicBridgeMap bridged_topics_;
 
-  // Cache of typesupport libraries
+  /// Cache of typesupport libraries
   TypesupportMap loaded_typesupports_;
 
-  /// Threads used for waiting on publishers to become available
-  std::vector<std::shared_ptr<std::thread>> waiting_threads_;
-
-  /// Flag to tell waiting threads we're shutting down
-  std::atomic_bool shutting_down_{false};
+  /// QoS event handler
+  WaitForQosHandler wait_for_qos_handler_;
 };  // class DomainBridgeImpl
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
