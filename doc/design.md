@@ -43,9 +43,11 @@ All ROS communication entities (e.g. publishers and service clients) have [Quali
 The bridge should faithfully map the QoS settings of data coming from one domain into another domain.
 For example, a publisher with reliability policy set to "best effort" should continue to publish as "best effort" in the other domains when bridged.
 
-If there are multiple publishers on the same topic, but with different QoS settings, the bridge should have two streams of data, each with their own QoS settings.
+If there are multiple publishers on the same topic, but with different QoS settings, it would be nice if the bridge could preserve each stream of data.
 For example, if there is one publisher using "best effort" and another publisher using "reliable" on the same topic (with the same domain ID) and a bridge is made,
 then the bridge should forward data as "best effort" for the first publisher and as "reliable" for the second publisher into the output domain.
+Unforunately, this may not be possible due to technical limitations so we leave this as a soft requirement.
+Refer to the *QoS mapping* section of the proposed approach below for a more detailed discussion.
 
 Since remotely querying the *history* and *depth* QoS policies is not possible in many implementations (e.g. it is not required by the DDS spec),
 the bridge should offer a way to configure these values explicitly.
@@ -99,7 +101,6 @@ For example, the following diagram illustrates a configuration where the "/chatt
 A C++ library with a public API is provided for users to call in their own process and extend as they like.
 The public API is expected to evolve over time, but at the very least users should be able to bridge ROS networks primitives.
 
-
 For convenience, a standalone binary executable is also provided for easy integration into ROS systems.
 
 ### Supporting generic types
@@ -112,7 +113,41 @@ In fact, the generic publisher and subscription implementation is being moved to
 
 ### QoS mapping
 
-TODO
+The QoS settings of a publisher can be queried by the bridge.
+With this information, the bridge can create a subscription using the same QoS settings for receiving data.
+The bridge can also create a publisher for the domain being bridged with the same QoS settings.
+In this way, for the single publisher case, the QoS settings are preserved from one domain to another domain.
+
+We must consider the scenario when the domain bridge starts *after* the publisher of a bridged topic becomes available.
+In this case, the bridge cannot know what QoS settings to use for the bridged topic.
+The solution is to have the bridge wait until a publisher becomes available before creating it's own subscription and publisher for that topic.
+
+#### Multiple publishers
+
+As mentioned in the requirements, if there are multiple publishers on the same topic, it would be nice if the bridge could preserve multiple streams of data, each with their own QoS settings.
+Unforunately, this is technically challenging because it is difficult to associate a ROS message received by a subscription with the publisher that originally published the message.
+Consider the following scenario:
+
+1. Publisher *A* publishes on topic "chatter" with a QoS reliability setting of *reliable*.
+2. Publisher *B* publishes on topic "chatter" with a QoS reliability setting of *best effort*.
+3. In order to receive a message from *B*, we must create a subscription with a QoS reliability setting of *best effort*.
+4. The subscription will also receive messages from *A*, since *best effort* subscriptions also match with *reliable* publishers.
+
+If we cannot distinguish whether a message came from publisher *A* or publisher *B*, then we cannot know what QoS settings to use for the message when publishing into another domain.
+
+Instead, the proposed approach will do as best it can to ensure all messages make it across the bridge.
+The bridge will evaluate the QoS settings of all publishers and modifiy the QoS settings of the bridges subscription and publisher
+such that it matches the majority of the available publishers for a given topic.
+
+The bridge will decide on the QoS settings as soon as one or more publishers is available.
+This means it is possible that publishers joining after the topic bridge is created may have compatibility issues, and fail to have their messages bridged.
+For example, in the following scenario, messages coming from publisher *B* will not be bridged:
+
+1. Publisher *A* for topic "chatter" with a QoS reliability setting of *reliable* is created.
+2. A topic bridge is created for topic "chatter".
+3. Publisher *B* for topic "chatter" with a QoS reliability setting of *best effort* is created.
+
+We consider having multiple publishers with different QoS policies on the same topic to be rare in practice, and so do not try to handle the above scenario in the proposed approach.
 
 ### Remapping
 
@@ -181,3 +216,16 @@ Pros:
 Cons:
 - Requires generating/building SOSS type support for every interface being bridged.
 - Slightly less performant due to extra data marshaling.
+
+### Handling multiple publishers
+
+It's possible that the bridge could dynamically adjust to new publishers joining the network for an existing topic bridge.
+For example, the bridge could continuously monitor for new publishers and re-create it's subscription and publisher to reflect any necessary changes to QoS settings.
+Though, it is possible that some messages may be missed during the re-creation of the subscription.
+
+Pros:
+- Better suited to systems where publishers are created/destroyed during runtime
+
+Cons:
+- Not obvious how to handle missing out on messages during subscription re-creation
+- Substantially more complex to implement.
