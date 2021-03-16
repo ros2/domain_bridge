@@ -117,10 +117,23 @@ The QoS settings of a publisher can be queried by the bridge.
 With this information, the bridge can create a subscription using the same QoS settings for receiving data.
 The bridge can also create a publisher for the domain being bridged with the same QoS settings.
 In this way, for the single publisher case, the QoS settings are preserved from one domain to another domain.
+However, there are issues related to the *liveliness* policy as well as multiple publishers per topic that are discussed below.
 
 We must consider the scenario when the domain bridge starts *after* the publisher of a bridged topic becomes available.
 In this case, the bridge cannot know what QoS settings to use for the bridged topic.
 The solution is to have the bridge wait until a publisher becomes available before creating it's own subscription and publisher for that topic.
+
+#### Liveliness
+
+The liveliness QoS policy can either be set to "automatic" or "manual by topic".
+If it is "automatic", the system will use the published messages as a heartbeat to consider if the publishers node is alive.
+If it is "manual by topic", the node needs to manually call a publisher API to assert it is alive.
+
+This poses a problem for the domain bridge.
+If the liveliness of a publisher is "manual by topic", then the bridge cannot mimic the QoS behavior into another domain.
+It would require the bridge to know when the original publisher is asserting its liveliness (i.e. calling the publisher API).
+Since there is no mechanism in ROS 2 to get this information at the subscription site, the bridge cannot support "manual by topic" liveliness.
+Therefore, the bridge will always use "automatic" liveliness, regardless of the original publishers policy.
 
 #### Multiple publishers
 
@@ -139,6 +152,9 @@ Instead, the proposed approach will do as best it can to ensure all messages mak
 The bridge will evaluate the QoS settings of all publishers and modifiy the QoS settings of the bridges subscription and publisher
 such that it matches the majority of the available publishers for a given topic.
 For example, given publisher *A* and publisher *B* from the aforementioned scenario, the bridge would select a reliability setting of best effort since it matches with both publishers.
+
+For *deadline* and *lifespan* policies, the bridge will use the max value given the policy value for all publishers.
+For example, if a publisher *A* has a larger deadline than publisher *B* (and *A* and *B* publish to the same topic), then the bridge will use the deadline value of publisher *A*.
 
 The bridge will decide on the QoS settings as soon as one or more publishers is available.
 This means it is possible that publishers joining after the topic bridge is created may have compatibility issues, and fail to have their messages bridged.

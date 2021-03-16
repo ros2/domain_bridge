@@ -37,12 +37,8 @@ namespace domain_bridge
  */
 struct QosMatchInfo
 {
-  explicit QosMatchInfo(const rclcpp::QoS & init_qos)
-  : qos(init_qos)
-  {}
-
   /// A matching QoS
-  rclcpp::QoS qos;
+  rclcpp::QoS qos{10};  // the depth value should be overridden later
 
   /// Any warning messages about the matching QoS
   std::vector<std::string> warnings;
@@ -152,20 +148,34 @@ private:
       return {};
     }
 
-    // Initialize QoS arbitrarily
-    QosMatchInfo result_qos(endpoint_info_vec[0].qos_profile());
+    // Initialize QoS
+    QosMatchInfo result_qos;
+    // Default reliability and durability to value of first endpoint
+    result_qos.qos.reliability(endpoint_info_vec[0].qos_profile().reliability());
+    result_qos.qos.durability(endpoint_info_vec[0].qos_profile().durability());
+    // Always use automatic liveliness
+    result_qos.qos.liveliness(rclcpp::LivelinessPolicy::Automatic);
 
     // Reliability and durability policies can cause trouble with enpoint matching
     // Count number of "reliable" publishers and number of "transient local" publishers
     std::size_t reliable_count = 0u;
     std::size_t transient_local_count = 0u;
+    // For duration-based policies, note the largest value to ensure matching all publishers
+    rclcpp::Duration max_deadline(0, 0u);
+    rclcpp::Duration max_lifespan(0, 0u);
     for (const auto & info : endpoint_info_vec) {
-      const auto & profile = info.qos_profile().get_rmw_qos_profile();
-      if (profile.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
+      const auto & profile = info.qos_profile();
+      if (profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) {
         reliable_count++;
       }
-      if (profile.durability == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
+      if (profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) {
         transient_local_count++;
+      }
+      if (profile.deadline() > max_deadline) {
+        max_deadline = profile.deadline();
+      }
+      if (profile.lifespan() > max_lifespan) {
+        max_lifespan = profile.lifespan();
       }
     }
 
@@ -190,6 +200,9 @@ private:
         "to connect to all publishers.";
       result_qos.warnings.push_back(warning);
     }
+
+    result_qos.qos.deadline(max_deadline);
+    result_qos.qos.lifespan(max_lifespan);
 
     return result_qos;
   }

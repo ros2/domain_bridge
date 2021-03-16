@@ -170,7 +170,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
 {
   const std::string topic_name("test_topic_exists_multiple_publishers");
 
-  // Create two publisher on domain 1
+  // Create two publishers on domain 1
   auto node_1 = std::make_shared<rclcpp::Node>(
     "test_topic_exists_multiple_publishers_node_1", node_options_1_);
   rclcpp::QoS qos(1);
@@ -194,7 +194,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
   // Assert the QoS of the bridged publishers matches both publishers
-  // I.e. it should have bes teffort reliability and volatile durability
+  // I.e. it should have best effort reliability and volatile durability
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
@@ -218,4 +218,68 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_does_not_exist)
   auto node_2 = std::make_shared<rclcpp::Node>(
     "test_topic_does_not_exist_node_2", node_options_2_);
   ASSERT_FALSE(wait_for_publisher(node_2, topic_name, std::chrono::seconds(1)));
+}
+
+TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
+{
+  const std::string topic_name("test_always_automatic_liveliness");
+
+  // Create a publisher on domain 1 with liveliness set to "manual by topic"
+  auto node_1 = std::make_shared<rclcpp::Node>(
+    "test_always_automatic_liveliness_node_1", node_options_1_);
+  rclcpp::QoS qos(1);
+  qos.liveliness(rclcpp::LivelinessPolicy::ManualByTopic);
+  auto pub = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
+
+  // Bridge the publisher topic to domain 2
+  domain_bridge::DomainBridge bridge;
+  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+
+  // Wait for bridge publisher to appear on domain 2
+  auto node_2 = std::make_shared<rclcpp::Node>(
+    "test_always_automatic_liveliness_node_2", node_options_2_);
+  ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
+
+  // Assert the liveliness policy is "automatic", not "manual by topic"
+  std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
+    node_2->get_publishers_info_by_topic(topic_name);
+  ASSERT_EQ(endpoint_info_vec.size(), 1u);
+  const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
+  EXPECT_EQ(bridged_qos.liveliness(), rclcpp::LivelinessPolicy::Automatic);
+}
+
+TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
+{
+  const std::string topic_name("test_max_of_duration_policy");
+
+  // Create two publishers on domain 1
+  // The first deadline will be greater than the second deadline
+  // The second lifespan will be greater than the first lifespan
+  auto node_1 = std::make_shared<rclcpp::Node>(
+    "test_max_of_duration_policy_node_1", node_options_1_);
+  rclcpp::QoS qos_1(1);
+  qos_1.deadline(rclcpp::Duration(554, 321u))
+  .lifespan(rclcpp::Duration(123, 456u));
+  rclcpp::QoS qos_2(1);
+  qos_2.deadline(rclcpp::Duration(123, 456u))
+  .lifespan(rclcpp::Duration(554, 321u));
+  auto pub_1 = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos_1);
+  auto pub_2 = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos_2);
+
+  // Bridge the publisher topic to domain 2
+  domain_bridge::DomainBridge bridge;
+  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+
+  // Wait for bridge publisher to appear on domain 2
+  auto node_2 = std::make_shared<rclcpp::Node>(
+    "test_max_of_duration_policy_node_2", node_options_2_);
+  ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
+
+  // Assert max of the two deadline and lifespan policies are used for the bridge QoS
+  std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
+    node_2->get_publishers_info_by_topic(topic_name);
+  ASSERT_EQ(endpoint_info_vec.size(), 1u);
+  const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
+  EXPECT_EQ(bridged_qos.deadline(), rclcpp::Duration(554, 321u));
+  EXPECT_EQ(bridged_qos.lifespan(), rclcpp::Duration(554, 321u));
 }
