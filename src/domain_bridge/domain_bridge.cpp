@@ -179,8 +179,12 @@ public:
     // Register a callback to be triggered when QoS settings are available for one or more
     // publishers on the 'from' side of the bridge
     // The callback may be triggered immediately if a publisher is available
-    auto create_bridge = [ = ](const QosMatchInfo & qos_match)
+    auto create_bridge =
+      [this, topic, topic_bridge, topic_options, from_domain_node, to_domain_node]
+        (const QosMatchInfo & qos_match)
       {
+        const std::string & type = topic_bridge.type_name;
+
         // Print any match warnings
         for (const auto & warning : qos_match.warnings) {
           std::cerr << warning << std::endl;
