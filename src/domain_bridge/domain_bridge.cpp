@@ -192,7 +192,7 @@ public:
 
         // Get typesupport handle
         auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
-          type, "rosidl_typesupport_cpp", loaded_typesupports_[type]);
+          type, "rosidl_typesupport_cpp", loaded_typesupports_.at(type));
 
         // Create publisher for the 'to_domain'
         // The publisher should be created first so it is available to the subscription callback
