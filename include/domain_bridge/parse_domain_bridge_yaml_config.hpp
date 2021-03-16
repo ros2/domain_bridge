@@ -39,16 +39,16 @@ public:
  *
  * - name: Name of the domain bridge
  * - from_domain: The default 'from_domain' used for bridged topics.
- *     If omitted, then each topic bridge must specify it's own value.
+ *     If omitted, then each topic bridge must specify its own value.
  * - to_domain: The default 'to_domain' used for bridged topics
  *     If omitted, then each topic bridge must specify it's own value.
  * - topics: A map of topic names to a map of topic bridge information
  *
- * For each topic bridge, the follow keys are valid:
+ * For each topic bridge, the following keys are valid:
  *
- * - type: Message type to bridge (required)
- * - from_domain: Subscribe to the topic on this domain ID (optional)
- * - to_domain: Publish to the topic on this domain ID (optional)
+ * - type: Message type to bridge
+ * - from_domain: Subscribe to the topic on this domain ID
+ * - to_domain: Publish to the topic on this domain ID
  *
  * For example,
  *
