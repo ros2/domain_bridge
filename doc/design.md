@@ -46,7 +46,7 @@ For example, a publisher with reliability policy set to "best effort" should con
 If there are multiple publishers on the same topic, but with different QoS settings, it would be nice if the bridge could preserve each stream of data.
 For example, if there is one publisher using "best effort" and another publisher using "reliable" on the same topic (with the same domain ID) and a bridge is made,
 then the bridge should forward data as "best effort" for the first publisher and as "reliable" for the second publisher into the output domain.
-Unforunately, this may not be possible due to technical limitations so we leave this as a soft requirement.
+Unfortunately, this may not be possible due to technical limitations so we leave this as a soft requirement.
 Refer to the *QoS mapping* section of the proposed approach below for a more detailed discussion.
 
 Since remotely querying the *history* and *depth* QoS policies is not possible in many implementations (e.g. it is not required by the DDS spec),
@@ -125,7 +125,7 @@ The solution is to have the bridge wait until a publisher becomes available befo
 #### Multiple publishers
 
 As mentioned in the requirements, if there are multiple publishers on the same topic, it would be nice if the bridge could preserve multiple streams of data, each with their own QoS settings.
-Unforunately, this is technically challenging because it is difficult to associate a ROS message received by a subscription with the publisher that originally published the message.
+Unfortunately, this is technically challenging because it is difficult to associate a ROS message received by a subscription with the publisher that originally published the message.
 Consider the following scenario:
 
 1. Publisher *A* publishes on topic "chatter" with a QoS reliability setting of *reliable*.
