@@ -124,7 +124,7 @@ The [YAML](https://yaml.org/) language was chosen as an easy way to externally c
 YAML is relatively simple to read for humans and computers alike and is commonly used in other places of the ROS ecosystem (e.g. ROS parameters).
 
 The name of the bridge can be set with the optional key, `name`.
-The bridge name is used naming nodes and logging, for example.
+The bridge name is used for naming nodes and logging, for example.
 
 Default domain IDs for bridged entities can be set as top-level keys:
 
