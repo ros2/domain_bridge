@@ -147,7 +147,7 @@ private:
       node->get_publishers_info_by_topic(topic);
     std::size_t num_endpoints = endpoint_info_vec.size();
 
-    // If there are no publishers, return default QoS
+    // If there are no publishers, return an empty optional
     if (num_endpoints < 1u) {
       return {};
     }
