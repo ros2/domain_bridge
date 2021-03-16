@@ -63,6 +63,10 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
+install(DIRECTORY examples
+  DESTINATION share/${PROJECT_NAME}
+)
+
 ament_export_include_directories(include)
 ament_export_libraries(${PROJECT_NAME})
 ament_export_dependencies(
