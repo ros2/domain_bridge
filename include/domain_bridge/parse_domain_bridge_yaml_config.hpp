@@ -49,6 +49,22 @@ public:
  * - type: Message type to bridge
  * - from_domain: Subscribe to the topic on this domain ID
  * - to_domain: Publish to the topic on this domain ID
+ * - qos: QoS options.
+ *
+ * QoS options are a map of policy kinds to policy values.
+ * If an option for a policy is not provided then a default value is used (\see QosOptions).
+ * For each QoS option provided, it will override the default policy.
+ *
+ * Supported QoS options:
+ *
+ * - reliability: must be 'reliable' or 'best_effort'
+ * - durability: must be 'volatile' or 'transient_local'
+ * - history: must be 'keep_last' or 'keep_all'
+ * - depth: a positive integer
+ * - deadline: an integer representing number of nanoseconds (negative for "infinite"),
+ *             or the string 'auto' to automatically match the value of a publisher.
+ * - lifespan: an integer representing number of nanoseconds (negative for "infinite"),
+ *             or the string 'auto' to automatically match the value of a publisher.
  *
  * For example,
  *
@@ -63,6 +79,14 @@ public:
  *     type: rosgraph_msgs/msg/Clock
  *     # Override the default 'to_domain' above
  *     to_domain: 4
+ *   foo/bar:
+ *     type: example_interfaces/msg/Empty
+ *     # Override reliability, history, and depth
+ *     # Let durability policy be automatically determined
+ *     qos:
+ *       reliability: best_effort
+ *       history: keep_last
+ *       depth: 42
  * ```
  *
  * \param file_path: Path to the YAML file.

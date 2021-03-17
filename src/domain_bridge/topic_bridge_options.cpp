@@ -24,13 +24,26 @@ namespace domain_bridge
 std::shared_ptr<rclcpp::CallbackGroup>
 TopicBridgeOptions::callback_group() const
 {
-  return this->callback_group_;
+  return callback_group_;
 }
 
 TopicBridgeOptions &
 TopicBridgeOptions::callback_group(std::shared_ptr<rclcpp::CallbackGroup> group)
 {
-  this->callback_group_ = group;
+  callback_group_ = group;
+  return *this;
+}
+
+QosOptions
+TopicBridgeOptions::qos_options() const
+{
+  return qos_options_;
+}
+
+TopicBridgeOptions &
+TopicBridgeOptions::qos_options(const QosOptions & qos_options)
+{
+  qos_options_ = qos_options;
   return *this;
 }
 
