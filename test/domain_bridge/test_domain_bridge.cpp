@@ -137,7 +137,7 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
     EXPECT_THAT(
       stderr_output,
       ::testing::HasSubstr(
-        "Topic 'foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
+        "Topic '/foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
         "domain 1 to domain 2, ignoring\n"));
   }
   // Same bridge twice, following another bridge
@@ -152,7 +152,7 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
     EXPECT_THAT(
       stderr_output,
       ::testing::HasSubstr(
-        "Topic 'foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
+        "Topic '/foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
         "domain 1 to domain 2, ignoring\n"));
   }
 }

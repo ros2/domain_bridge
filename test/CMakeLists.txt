@@ -20,6 +20,17 @@ if(TARGET test_parse_domain_bridge_yaml_config)
   target_link_libraries(test_parse_domain_bridge_yaml_config ${PROJECT_NAME})
 endif()
 
+ament_add_gmock(test_qos_matching
+  domain_bridge/test_qos_matching.cpp
+)
+if(TARGET test_qos_matching)
+  ament_target_dependencies(test_qos_matching
+    "rclcpp"
+    "test_msgs"
+  )
+  target_link_libraries(test_qos_matching ${PROJECT_NAME})
+endif()
+
 # Install test files to build directory
 install(
   DIRECTORY "domain_bridge/config"
