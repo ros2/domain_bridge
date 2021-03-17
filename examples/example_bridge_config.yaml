@@ -9,6 +9,11 @@ topics:
   # Bridge "/chatter" topic from doman ID 2 to domain ID 3
   chatter:
     type: example_interfaces/msg/String
+    # Override QoS reliablity setting to be best effort
+    # This affects the domain bridge subscription and publisher
+    # This does NOT effect the other "chatter" bridge below, which is for a different domain
+    qos:
+      reliability: best_effort
   # Also bridge "/chatter" topic from doman ID 2 to domain ID 4
   chatter:
     type: example_interfaces/msg/String

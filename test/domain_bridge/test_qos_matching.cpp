@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <limits>
 #include <memory>
 #include <string>
 #include <vector>
@@ -120,8 +121,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
   EXPECT_EQ(bridged_qos.reliability(), qos.reliability());
   EXPECT_EQ(bridged_qos.durability(), qos.durability());
   EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
-  EXPECT_EQ(bridged_qos.deadline(), qos.deadline());
-  EXPECT_EQ(bridged_qos.lifespan(), qos.lifespan());
+  // Deadline and lifespan default to max
+  auto max_duration = rclcpp::Duration::from_nanoseconds(std::numeric_limits<int64_t>::max());
+  EXPECT_EQ(bridged_qos.deadline(), max_duration);
+  EXPECT_EQ(bridged_qos.lifespan(), max_duration);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
@@ -162,8 +165,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
   EXPECT_EQ(bridged_qos.reliability(), qos.reliability());
   EXPECT_EQ(bridged_qos.durability(), qos.durability());
   EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
-  EXPECT_EQ(bridged_qos.deadline(), qos.deadline());
-  EXPECT_EQ(bridged_qos.lifespan(), qos.lifespan());
+  // Deadline and lifespan default to max
+  auto max_duration = rclcpp::Duration::from_nanoseconds(std::numeric_limits<int64_t>::max());
+  EXPECT_EQ(bridged_qos.deadline(), max_duration);
+  EXPECT_EQ(bridged_qos.lifespan(), max_duration);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers)
@@ -202,8 +207,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   EXPECT_EQ(bridged_qos.reliability(), rclcpp::ReliabilityPolicy::BestEffort);
   EXPECT_EQ(bridged_qos.durability(), rclcpp::DurabilityPolicy::Volatile);
   EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
-  EXPECT_EQ(bridged_qos.deadline(), qos.deadline());
-  EXPECT_EQ(bridged_qos.lifespan(), qos.lifespan());
+  // Deadline and lifespan default to max
+  auto max_duration = rclcpp::Duration::from_nanoseconds(std::numeric_limits<int64_t>::max());
+  EXPECT_EQ(bridged_qos.deadline(), max_duration);
+  EXPECT_EQ(bridged_qos.lifespan(), max_duration);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_does_not_exist)
@@ -267,8 +274,14 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
   auto pub_2 = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos_2);
 
   // Bridge the publisher topic to domain 2
+  // Enable auto-matching for deadline and lifespan
+  domain_bridge::TopicBridgeOptions bridge_options;
+  domain_bridge::QosOptions qos_options;
+  qos_options.deadline_auto().lifespan_auto();
+  bridge_options.qos_options(qos_options);
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);
 
   // Wait for bridge publisher to appear on domain 2
   auto node_2 = std::make_shared<rclcpp::Node>(

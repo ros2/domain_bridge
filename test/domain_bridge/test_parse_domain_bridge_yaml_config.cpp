@@ -92,6 +92,42 @@ TEST_F(TestParseDomainBridgeYamlConfig, default_domain_ids)
   }
 }
 
+TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
+{
+  std::vector<domain_bridge::TopicBridgeOptions> expected = {
+    domain_bridge::TopicBridgeOptions(),
+    domain_bridge::TopicBridgeOptions().qos_options(
+      domain_bridge::QosOptions()
+      .reliability(rclcpp::ReliabilityPolicy::BestEffort)
+      .durability(rclcpp::DurabilityPolicy::TransientLocal)
+      .history(rclcpp::HistoryPolicy::KeepAll)
+      .depth(42u)
+      .deadline(123456)
+      .lifespan_auto()),
+    domain_bridge::TopicBridgeOptions().qos_options(
+      domain_bridge::QosOptions()
+      .deadline_auto()
+      .lifespan(-5))
+  };
+  const std::string yaml_path =
+    (test_yaml_dir_ / std::filesystem::path{"topic_options.yaml"}).string();
+  auto config = domain_bridge::parse_domain_bridge_yaml_config(yaml_path);
+  ASSERT_EQ(config.topics.size(), expected.size());
+  for (std::size_t i = 0u; i < config.topics.size(); ++i) {
+    EXPECT_EQ(config.topics[i].second.callback_group(), expected[i].callback_group());
+    EXPECT_EQ(
+      config.topics[i].second.qos_options().reliability(),
+      expected[i].qos_options().reliability());
+    EXPECT_EQ(
+      config.topics[i].second.qos_options().durability(),
+      expected[i].qos_options().durability());
+    EXPECT_EQ(
+      config.topics[i].second.qos_options().history(), expected[i].qos_options().history());
+    EXPECT_EQ(
+      config.topics[i].second.qos_options().depth(), expected[i].qos_options().depth());
+  }
+}
+
 TEST_F(TestParseDomainBridgeYamlConfig, invalid)
 {
   // Non-existent file
@@ -126,6 +162,41 @@ TEST_F(TestParseDomainBridgeYamlConfig, invalid)
   {
     const std::string yaml_path =
       (test_yaml_dir_ / std::filesystem::path{"topics_as_list.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
+  }
+  // 'qos' has wrong type
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"qos_as_list.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
+  }
+  // Invalid reliability value
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"invalid_reliability.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
+  }
+  // Invalid durability value
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"invalid_durability.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
+  }
+  // Invalid history value
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"invalid_history.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
+  }
+  // Invalid depth value
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"invalid_depth.yaml"}).string();
     EXPECT_THROW(
       domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
   }
