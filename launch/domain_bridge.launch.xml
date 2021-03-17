@@ -1,0 +1,27 @@
+<launch>
+  <arg name="config"
+       description="Path to YAML configuration"/>
+  <arg name="from_domain"
+       description="Override any 'from_domain' entries in the YAML file"
+       default="" />
+  <arg name="to_domain"
+       description="Override any 'to_domain' entries in the YAML file"
+       default="" />
+
+  <!-- Enable 'from' option if a value for 'from_domain' is provided -->
+  <let name="from_domain_opt" value="" />
+  <let if="$(eval '\'$(var from_domain)\' != \'\'')"
+       name="from_domain_opt" value="--from" />
+
+  <!-- Enable 'to' option if a value for 'to_domain' is provided -->
+  <let name="to_domain_opt" value="" />
+  <let if="$(eval '\'$(var to_domain)\' != \'\'')"
+       name="to_domain_opt" value="--to" />
+
+  <executable name="domain_bridge"
+              cmd="$(exec-in-pkg domain_bridge domain_bridge)
+                   $(var from_domain_opt) $(var from_domain)
+                   $(var to_domain_opt) $(var to_domain)
+                   $(var config)"
+              output="both" />
+</launch>

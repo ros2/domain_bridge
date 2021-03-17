@@ -61,18 +61,23 @@ ros2 run domain_bridge domain_bridge --help
 
 ### Launch
 
-You can also use the [example launch file](TODO):
+You can also use the example launch script, which takes a required launch argument `config`:
 
 ```xml
-ros2 launch domain_bridge domain_bridge.launch.xml config:=path/to/config.yaml
+ros2 launch domain_bridge domain_bridge.launch.xml config:=examples/example_bridge_config.yaml
 ```
 
-Or, include it in your own launch file:
+You can also override domain IDs with optional launch arguments `from_domain` and `to_domain`.
+
+Here is an example of including the domain bridge launch script into your own:
 
 ```xml
 <launch>
-  <include file="$(find-pkg-share domain_birdge)/launch/domain_bridge.launch.xml">
-    <arg name="config" value="path/to/config.yaml" />
+  <include file="$(find-pkg-share domain_bridge)/launch/domain_bridge.launch.xml">
+    <arg name="config" value="$(find-pkg-share domain_bridge)/examples/example_bridge_config.yaml" />
+    <!-- Optionally override domain IDs -->
+    <arg name="from_domain" value="42" />
+    <arg name="to_domain" value="43" />
   </include>
 </launch>
 ```
