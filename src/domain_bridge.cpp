@@ -17,7 +17,7 @@
 #include "rclcpp/executors/single_threaded_executor.hpp"
 
 #include "domain_bridge/domain_bridge.hpp"
-#include "domain_bridge/domain_bridge_from_yaml.hpp"
+#include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
 
 int main(int argc, char ** argv)
 {
@@ -29,8 +29,10 @@ int main(int argc, char ** argv)
     return 1;
   }
   std::string yaml_config = argv[1];
-  domain_bridge::DomainBridge domain_bridge =
-    domain_bridge::domain_bridge_from_yaml(yaml_config);
+  domain_bridge::DomainBridgeConfig domain_bridge_config =
+    domain_bridge::parse_domain_bridge_yaml_config(yaml_config);
+
+  domain_bridge::DomainBridge domain_bridge(domain_bridge_config);
 
   rclcpp::executors::SingleThreadedExecutor executor;
   domain_bridge.add_to_executor(executor);

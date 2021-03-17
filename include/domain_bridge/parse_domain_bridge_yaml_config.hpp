@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
-#define DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
+#ifndef DOMAIN_BRIDGE__PARSE_DOMAIN_BRIDGE_YAML_CONFIG_HPP_
+#define DOMAIN_BRIDGE__PARSE_DOMAIN_BRIDGE_YAML_CONFIG_HPP_
 
 #include <filesystem>
 #include <string>
 
-#include "domain_bridge/domain_bridge.hpp"
+#include "domain_bridge/domain_bridge_config.hpp"
 #include "domain_bridge/visibility_control.hpp"
 
 namespace domain_bridge
@@ -33,14 +33,18 @@ public:
   {}
 };
 
-/// Create a DomainBridge from a YAML file.
+/// Create a DomainBridgeConfig object from a YAML file.
 /**
  * The YAML file may contain the following optional keys:
  *
  * - name: Name of the domain bridge
+ * - from_domain: The default 'from_domain' used for bridged topics.
+ *     If omitted, then each topic bridge must specify its own value.
+ * - to_domain: The default 'to_domain' used for bridged topics
+ *     If omitted, then each topic bridge must specify it's own value.
  * - topics: A map of topic names to a map of topic bridge information
  *
- * For each topic bridge, the follow information is required, in the form of YAML keys:
+ * For each topic bridge, the following keys are valid:
  *
  * - type: Message type to bridge
  * - from_domain: Subscribe to the topic on this domain ID
@@ -50,25 +54,25 @@ public:
  *
  * ```yaml
  * name: my_bridge
+ * from_domain: 2
+ * to_domain: 3
  * topics:
  *   chatter:
  *     type: example_interfaces/msg/String
- *     from_domain: 2
- *     to_domain: 3
  *   clock:
  *     type: rosgraph_msgs/msg/Clock
- *     from_domain: 2
- *     to_domain: 3
+ *     # Override the default 'to_domain' above
+ *     to_domain: 4
  * ```
  *
  * \param file_path: Path to the YAML file.
- * \return A pointer to an initialized DomainBridge that was configured based on input YAML file.
+ * \return A DomainBridgeConfig object populated according to the input YAML file.
  * \throws domain_bridge::YamlParsingError if there was an error parsing the YAML file,
  *   for example, if a required key is missing.
  */
 DOMAIN_BRIDGE_PUBLIC
-DomainBridge domain_bridge_from_yaml(std::filesystem::path file_path);
+DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_path);
 
 }  // namespace domain_bridge
 
-#endif  // DOMAIN_BRIDGE__DOMAIN_BRIDGE_FROM_YAML_HPP_
+#endif  // DOMAIN_BRIDGE__PARSE_DOMAIN_BRIDGE_YAML_CONFIG_HPP_
