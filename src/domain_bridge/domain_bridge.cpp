@@ -185,6 +185,26 @@ public:
       {
         const std::string & type = topic_bridge.type_name;
 
+        // Apply QoS overrides
+        const auto & qos_options = topic_options.qos_options();
+        rclcpp::QoS qos(qos_options.depth());
+        qos.history(qos_options.history());
+        if (qos_options.reliability()) {
+          qos.reliability(qos_options.reliability().value());
+        } else {
+          qos.reliability(qos_match.qos.reliability());
+        }
+        if (qos_options.durability()) {
+          qos.durability(qos_options.durability().value());
+        } else {
+          qos.durability(qos_match.qos.durability());
+        }
+
+        qos.deadline(qos_match.qos.deadline());
+        qos.lifespan(qos_match.qos.lifespan());
+        qos.liveliness(qos_match.qos.liveliness());
+        qos.liveliness_lease_duration(qos_match.qos.liveliness_lease_duration());
+
         // Print any match warnings
         for (const auto & warning : qos_match.warnings) {
           std::cerr << warning << std::endl;
@@ -198,7 +218,8 @@ public:
         // The publisher should be created first so it is available to the subscription callback
         auto publisher = this->create_publisher(
           to_domain_node,
-          topic, qos_match.qos,
+          topic,
+          qos,
           *typesupport_handle,
           topic_options.callback_group());
 
@@ -207,7 +228,7 @@ public:
           from_domain_node,
           publisher,
           topic,
-          qos_match.qos,
+          qos,
           *typesupport_handle,
           topic_options.callback_group());
 

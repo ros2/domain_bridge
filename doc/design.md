@@ -190,8 +190,17 @@ List of supported configurations pairs:
 - `type` (required), the ROS message type for the topic.
 - `from_domain` (optional), overrides the default `from_domain`.
 - `to_domain` (optional), overrides the default `to_domain`.
+- `qos` (optional), a map of QoS policies names to values.
+  Any values provided in this map will override values set by the automatic QoS matching mechanism.
 
 Similar to topics, services and action to bridge may be specified with the `services` and `actions` keys respectively.
+
+The `qos` map accepts the following key-value pairs:
+
+- `reliability`, can be `reliable` or `best_effort` (default: matches publishers).
+- `durability`, can be `volatile` or `transient_local` (default: matches publishers).
+- `history`, can be `keep_last` or `keep_all` (default: `keep_last`).
+- `depth`, only applies if `history` is `keep_last`. Must be an integer (default: `10`).
 
 Here is an example of a configuration file for bridging multiple topics, a service, and an action:
 
@@ -201,17 +210,23 @@ from_domain: 2
 to_domain: 3
 topics:
   # Bridge "/foo/chatter" topic from doman ID 2 to domain ID 3
+  # Automatically detect QoS settings and default to 'keep_last' history with depth 10
   foo/chatter:
     type: example_interfaces/msg/String
-  # Bridge "/clock" topic from doman ID 2 to domain ID 3, with depth 1
+  # Bridge "/clock" topic from doman ID 2 to domain ID 3,
+  # Override durability to be 'volatile' and override depth to be 1
   clock:
     type: rosgraph_msgs/msg/Clock
-    depth: 1
-  # Bridge "/clock" topic from doman ID 2 to domain ID 6, with "keep all" history policy
+    qos:
+      durability: volatile
+      depth: 1
+  # Bridge "/clock" topic from doman ID 2 to domain ID 6
+  # Automatically detect QoS settings and override history to 'keep_all'
   clock:
     type: rosgraph_msgs/msg/Clock
     to_domain: 6
-    history: keep_all
+    qos:
+      history: keep_all
 
 services:
   # Bridge "add_two_ints" service from domain ID 4 to domain ID 6
