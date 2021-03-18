@@ -21,8 +21,11 @@
 #include <atomic>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "rclcpp/node.hpp"
@@ -63,7 +66,9 @@ public:
   {
     shutting_down_.store(true);
     for (const auto & t : waiting_threads_) {
-      t->join();
+      // Notify and join
+      t.second.second->notify_all();
+      t.second.first->join();
     }
   }
 
@@ -88,15 +93,31 @@ public:
     std::function<void(const QosMatchInfo)> callback)
   {
     // If the QoS is already avaiable, trigger the callback immediately
-    auto opt_qos = this->get_topic_qos(topic, node);
+    auto opt_qos = get_topic_qos(topic, node);
     if (opt_qos) {
       const QosMatchInfo & qos = opt_qos.value();
       callback(qos);
       return;
     }
 
+    {
+      std::lock_guard<std::mutex> lock(waiting_map_mutex_);
+      waiting_map_[node].push_back({topic, callback});
+
+      // If we already have a thread for this node, then notify that there is a new callback
+      auto existing_thread = waiting_threads_.find(node);
+      if (existing_thread != waiting_threads_.end()) {
+        existing_thread->second.second->notify_all();
+        return;
+      }
+    }
+
+    // If we made it this far, there doesn't exist a thread for waiting so we'll create one
+    // First, create a condition variable to notify the waiting thread when to wake up
+    auto cv = std::make_shared<std::condition_variable>();
+
     // Create a thread that waits for a publisher to become available
-    auto invoke_callback_when_qos_ready = [this, topic, node, callback]()
+    auto invoke_callback_when_qos_ready = [this, node, cv]()
       {
         auto event = node->get_graph_event();
         while (!this->shutting_down_.load()) {
@@ -105,20 +126,47 @@ public:
           // timeout so that we can still poll periodically for new publishers
           node->wait_for_graph_change(event, std::chrono::seconds(1));
           event->check_and_clear();
-          // Check if QoS is ready
-          auto opt_qos = this->get_topic_qos(topic, node);
-          if (opt_qos) {
-            const QosMatchInfo & qos = opt_qos.value();
-            callback(qos);
-            return;
+          // Check if QoS is ready for any of the topics
+          {
+            std::unique_lock<std::mutex> lock(waiting_map_mutex_);
+            auto & topic_callback_vec = waiting_map_.at(node);
+            for (auto it = topic_callback_vec.begin(); it != topic_callback_vec.end(); ++it) {
+              const std::string & topic = it->first;
+              const auto callback = it->second;
+              auto opt_qos = this->get_topic_qos(topic, node);
+              if (opt_qos) {
+                const QosMatchInfo & qos = opt_qos.value();
+                callback(qos);
+                topic_callback_vec.erase(it--);
+              }
+            }
+            // If there are no more publishers to wait on,
+            // remove the entry from the map and terminate the thread
+            if (topic_callback_vec.size() == 0u) {
+              waiting_map_.erase(waiting_map_.find(node));
+            }
+
+            // It's only worth continuing if we have callbacks to handle,
+            // or we're shutting down
+            cv->wait(
+              lock,
+              [this, &topic_callback_vec]
+              {return topic_callback_vec.size() > 0u || this->shutting_down_.load();});
           }
         }
       };
     auto waiting_thread = std::make_shared<std::thread>(invoke_callback_when_qos_ready);
-    waiting_threads_.push_back(waiting_thread);
+    waiting_threads_[node] = {waiting_thread, cv};
   }
 
 private:
+  using ThreadMap = std::unordered_map<
+    std::shared_ptr<rclcpp::Node>,
+    std::pair<std::shared_ptr<std::thread>, std::shared_ptr<std::condition_variable>>>;
+  using WaitingMap = std::unordered_map<
+    std::shared_ptr<rclcpp::Node>,
+    std::vector<std::pair<std::string, std::function<void (const QosMatchInfo)>>>>;
+
   /// Get QoS settings that best match all available publishers.
   /**
    * Queries QoS of existing publishers and returns QoS that is compatibile
@@ -130,7 +178,7 @@ private:
    *
    * If there are no publishers, then no QoS is returned (i.e. the optional object is not set).
    */
-  std::optional<QosMatchInfo> get_topic_qos(std::string topic, rclcpp::Node::SharedPtr node)
+  std::optional<QosMatchInfo> get_topic_qos(std::string topic, rclcpp::Node::SharedPtr node) const
   {
     // TODO(jacobperron): replace this with common implementation when it is available.
     //       See: https://github.com/ros2/rosbag2/issues/601
@@ -211,7 +259,16 @@ private:
   std::atomic_bool shutting_down_{false};
 
   /// Threads used for waiting on publishers to become available
-  std::vector<std::shared_ptr<std::thread>> waiting_threads_;
+  ThreadMap waiting_threads_;
+
+  /// Waiting data shared by threads
+  /**
+   * Mapping nodes to (topic, callback) pairs.
+   */
+  WaitingMap waiting_map_;
+
+  /// Mutex for waiting_map_
+  std::mutex waiting_map_mutex_;
 };  // class WaitForQosHandler
 
 }  // namespace domain_bridge
