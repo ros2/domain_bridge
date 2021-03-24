@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <cstdio>
+#include <sstream>
 #include <string>
 
 #include "rclcpp/executors/single_threaded_executor.hpp"
@@ -61,8 +61,9 @@ int main(int argc, char ** argv)
   const char * to_domain_opt = rcutils_cli_get_option(argv, argv + argc, "--to");
   std::size_t from_domain = 0u;
   if (from_domain_opt) {
-    int res = sscanf(from_domain_opt, "%zu", &from_domain);
-    if (res != 1) {
+    std::istringstream iss(from_domain_opt);
+    iss >> from_domain;
+    if (iss.fail() || !iss.eof()) {
       std::cerr << "error: Failed to parse FROM_DOMAIN_ID '" <<
         from_domain_opt << "'" << std::endl;
       return 1;
@@ -70,8 +71,9 @@ int main(int argc, char ** argv)
   }
   std::size_t to_domain = 0u;
   if (to_domain_opt) {
-    int res = sscanf(to_domain_opt, "%zu", &to_domain);
-    if (res != 1) {
+    std::istringstream iss(to_domain_opt);
+    iss >> to_domain;
+    if (iss.fail() || !iss.eof()) {
       std::cerr << "error: Failed to parse TO_DOMAIN_ID '" <<
         to_domain_opt << "'" << std::endl;
       return 1;

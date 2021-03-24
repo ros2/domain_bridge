@@ -113,13 +113,13 @@ class TestDomainBridge(unittest.TestCase):
 
     def test_bridge_invalid_from_domain(self, proc_info):
         with self.launch_domain_bridge(
-            arguments=['--from', '.42', self.example_yaml_path]
+            arguments=['--from', '42.0', self.example_yaml_path]
         ) as command:
             assert command.wait_for_shutdown(timeout=3)
         assert command.exit_code != launch_testing.asserts.EXIT_OK
         assert launch_testing.tools.expect_output(
             expected_lines=[
-                "error: Failed to parse FROM_DOMAIN_ID '.42'",
+                "error: Failed to parse FROM_DOMAIN_ID '42.0'",
             ],
             text=command.output,
             strict=False
