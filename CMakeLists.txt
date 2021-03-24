@@ -63,7 +63,7 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
-install(DIRECTORY examples
+install(DIRECTORY examples launch
   DESTINATION share/${PROJECT_NAME}
 )
 
