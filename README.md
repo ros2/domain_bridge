@@ -5,8 +5,6 @@ Bridges ROS communication between different ROS domain IDs.
 
 See the [design document](docs/design.md) for more details about how the bridge works.
 
-**NOTE: the following sections are aspirational and are a work-in-progress.**
-
 ## Prerequisites
 
 - [ROS 2](https://index.ros.org/doc/ros2/Installation) (Galactic or newer)
@@ -37,13 +35,28 @@ colcon build
 
 ## Usage
 
-
 ### CLI
 
-There is a standalone executable that can be configured via a YAML file:
+There is a standalone executable that can be configured via a YAML file.
+
+You must provide the path to a YAML configuration file as the last argument to the executable.
+For example,
 
 ```sh
-ros2 run domain_bridge domain_bridge path/to/config.yaml
+ros2 run domain_bridge domain_bridge examples/example_bridge_config.yaml
+```
+
+There are also options to override the domain IDs set for all entities in the YAML config,
+for example,
+
+```sh
+ros2 run domain_bridge domain_bridge --from 7 --to 8 examples/example_bridge_config.yaml
+```
+
+Use the `--help` option for more usage information:
+
+```sh
+ros2 run domain_bridge domain_bridge --help
 ```
 
 ### Launch

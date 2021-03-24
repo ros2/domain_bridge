@@ -1,0 +1,15 @@
+# Name of the domain bridge, used for node naming and logging
+name: my_bridge
+from_domain: 2
+to_domain: 3
+topics:
+  # Bridge "/clock" topic from doman ID 2 to domain ID 3
+  clock:
+    type: rosgraph_msgs/msg/Clock
+  # Bridge "/chatter" topic from doman ID 2 to domain ID 3
+  chatter:
+    type: example_interfaces/msg/String
+  # Also bridge "/chatter" topic from doman ID 2 to domain ID 4
+  chatter:
+    type: example_interfaces/msg/String
+    to_domain: 4
