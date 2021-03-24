@@ -166,7 +166,7 @@ public:
             // or we're shutting down
             cv->wait(
               lock,
-              [this, &topic_callback_vec, event]
+              [this, &topic_callback_vec]
               {return (topic_callback_vec.size() > 0u) || this->shutting_down_;});
           }
         }
