@@ -21,4 +21,5 @@ jobs:
       with:
         package-name: domain_bridge
         target-ros2-distro: rolling
-        vcs-repo-file-url: ""
+        # Needed until the next Rolling sync
+        vcs-repo-file-url: "${{ github.workspace }}/.github/workflows/ci.repos"
