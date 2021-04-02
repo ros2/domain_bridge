@@ -36,8 +36,8 @@ public:
    *    - durability = nullopt_t (detect automatically)
    *    - history = rclcpp::HistoryPolicy::KeepLast
    *    - depth = 10
-   *    - deadline = -1 (infinite)
-   *    - lifespan = -1 (infinite)
+   *    - deadline = 0 (RMW default)
+   *    - lifespan = 0 (RMW default)
    */
   DOMAIN_BRIDGE_PUBLIC
   QosOptions() = default;
@@ -107,6 +107,7 @@ public:
   /// Set deadline.
   /**
    * \param deadline: number of nanoseconds.
+   *   If zero, then use the RMW default policy.
    *   If negative, then it is treated an "infinite" (max number of nanoseconds).
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -129,6 +130,7 @@ public:
   /// Set lifespan in nanoseconds.
   /**
    * \param lifespan: number of nanoseconds.
+   *   If zero, then use the RMW default policy.
    *   If negative, then it is treated an "infinite" (max number of nanoseconds).
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -145,8 +147,8 @@ private:
   std::optional<rclcpp::DurabilityPolicy> durability_;
   rclcpp::HistoryPolicy history_{rclcpp::HistoryPolicy::KeepLast};
   std::size_t depth_{10};
-  std::optional<std::int64_t> deadline_{-1};
-  std::optional<std::int64_t> lifespan_{-1};
+  std::optional<std::int64_t> deadline_{0};
+  std::optional<std::int64_t> lifespan_{0};
 };  // class QosOptions
 
 }  // namespace domain_bridge

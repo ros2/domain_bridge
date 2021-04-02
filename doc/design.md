@@ -127,13 +127,13 @@ The solution is to have the bridge wait until a publisher becomes available befo
 
 Due to possible delays induced by the bridge, it is possible that the original deadline of a publisher may not be met when forwarding to a different domain.
 Furthermore, if deadline is important for the user application, then it is probably better for them to set manually on the bridge.
-Therefore, by default the bridge will assume a maximum value for deadline, but allow users to opt-in to matching the publisher value or setting the value manually.
+Therefore, by default the bridge will assume the RMW defined default value for deadline (typically implying "no deadline"), but allow users to opt-in to matching the publisher value or setting the value manually.
 
 #### Lifespan
 
 The lifespan policy is closely coupled with the history policy.
 Since the bridge is not able to automatically detect the history policy of publishers, it is safer to let the user configure lifespan given their application-specific knowledge.
-For similar reasons as the deadline policy, by default the bridge will assume a maximum value for the lifespan policy.
+For similar reasons as the deadline policy, by default the bridge will assume the RMW defined default value for the lifespan policy.
 Likewise, users can opt-in to matching the publisher value or setting the value manually.
 
 #### Liveliness
