@@ -128,26 +128,26 @@ The solution is to have the bridge wait until a publisher becomes available befo
 Due to possible delays induced by the bridge, it is possible that the original deadline of a publisher may not be met when forwarding to a different domain.
 If a deadline is important for the user application, then it should be set manually on the bridge.
 Therefore, by default, the bridge will use the RMW-defined default value for deadline (typically implying "no deadline").
-Users may set the value manually or configure the bridge to use the original publishers value.
+Users may set the value manually or configure the bridge to use the original publisher's value.
 
 #### Lifespan
 
 The lifespan policy is closely coupled with the history policy.
 Since the bridge is not able to automatically detect the history policy of publishers, it is safer to let the user configure lifespan given their application-specific knowledge.
 For similar reasons as the deadline policy, by default the bridge will use the RMW-defined default value for the lifespan policy.
-Likewise, users can set the value manually or configure the bridge to use the original publishers value.
+Likewise, users can set the value manually or configure the bridge to use the original publisher's value.
 
 #### Liveliness
 
 The liveliness QoS policy can either be set to "automatic" or "manual by topic".
-If it is "automatic", the system will use the published messages as a heartbeat to consider if the publishers node is alive.
+If it is "automatic", the system will use the published messages as a heartbeat to consider if the publisher's node is alive.
 If it is "manual by topic", the node needs to manually call a publisher API to assert it is alive.
 
 This poses a problem for the domain bridge.
 If the liveliness of a publisher is "manual by topic", then the bridge cannot mimic the QoS behavior into another domain.
 It would require the bridge to know when the original publisher is asserting its liveliness (i.e. calling the publisher API).
 Since there is no mechanism in ROS 2 to get this information at the subscription site, the bridge cannot support "manual by topic" liveliness.
-Therefore, the bridge will always use "automatic" liveliness, regardless of the original publishers policy.
+Therefore, the bridge will always use "automatic" liveliness, regardless of the original publisher's policy.
 
 #### Multiple publishers
 
