@@ -2,6 +2,12 @@
 Changelog for package domain_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.2.0 (2021-04-08)
+------------------
+* Stop installing test resources (`#17 <https://github.com/ros2/domain_bridge/issues/17>`_)
+* Add explicit link against stdc++fs (`#16 <https://github.com/ros2/domain_bridge/issues/16>`_)
+* Contributors: Scott K Logan
+
 0.1.0 (2021-04-05)
 ------------------
 * Change default value of deadline and lifespan (`#15 <https://github.com/ros2/domain_bridge/issues/15>`_)
