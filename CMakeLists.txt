@@ -37,6 +37,10 @@ target_include_directories(${PROJECT_NAME} PUBLIC
   $<INSTALL_INTERFACE:include>
 )
 
+if(CMAKE_COMPILER_IS_GNUCXX)
+  target_link_libraries(${PROJECT_NAME} stdc++fs)
+endif()
+
 ament_target_dependencies(${PROJECT_NAME}
   rclcpp
   rcutils
