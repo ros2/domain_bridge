@@ -37,9 +37,3 @@ add_launch_test(
   test_domain_bridge.launch.py
   WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}_exec>"
 )
-
-# Install test files to build directory
-install(
-  DIRECTORY "domain_bridge/config"
-  DESTINATION "${CMAKE_CURRENT_BINARY_DIR}"
-)
