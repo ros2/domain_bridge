@@ -3,7 +3,7 @@
 A ROS 2 domain bridge.
 Bridges ROS communication between different ROS domain IDs.
 
-See the [design document](docs/design.md) for more details about how the bridge works.
+See the [design document](doc/design.md) for more details about how the bridge works.
 
 ## Prerequisites
 
