@@ -77,7 +77,7 @@ public:
 
   /// Get remap name.
   DOMAIN_BRIDGE_PUBLIC
-  std::string
+  const std::string &
   remap_name() const;
 
   /// Set remap name.

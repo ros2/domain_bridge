@@ -48,7 +48,7 @@ TopicBridgeOptions::qos_options(const QosOptions & qos_options)
   return *this;
 }
 
-std::string
+const std::string &
 TopicBridgeOptions::remap_name() const
 {
   return remap_name_;
