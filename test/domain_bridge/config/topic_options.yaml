@@ -3,7 +3,7 @@ to_domain: 7
 topics:
   foo:
     type: test_msgs/msg/Empty
-    # No QoS policies provided
+    # No options
   bar:
     type: test_msgs/msg/BasicTypes
     # QoS policy overrides
@@ -14,9 +14,11 @@ topics:
       depth: 42
       deadline: 123456
       lifespan: auto
+    remap: bar/remapped
   baz:
     type: test_msgs/msg/Empty
     # Trying other values for deadline and lifespan
     qos:
       deadline: auto
       lifespan: -5
+    remap: ''

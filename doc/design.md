@@ -182,7 +182,16 @@ We consider having multiple publishers with different QoS policies on the same t
 
 ### Remapping
 
-TODO
+When bridging topics, users can optionally give a name to remap the topic to in the destination domain.
+
+Users can apply indpendent remaps for each domain a topic is bridged to.
+E.g. A topic can be bridged and remapped to a domain *B* and independently bridged and remapped to another domain *C*.
+
+A remap can be provided exactly once for each unique bridge.
+I.e. users can not remap a topic from a domain *A* to another domain *B* more than once.
+
+Remap names support the node name substitution symbol (`~`).
+If this substition appears in a remap name, then it is replaced by the name of the domain bridge.
 
 ### Configuration
 

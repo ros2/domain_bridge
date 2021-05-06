@@ -50,6 +50,7 @@ public:
  * - from_domain: Subscribe to the topic on this domain ID
  * - to_domain: Publish to the topic on this domain ID
  * - qos: QoS options.
+ * - remap: Remap topic name to this name in 'to_domain'.
  *
  * QoS options are a map of policy kinds to policy values.
  * If an option for a policy is not provided then a default value is used (\see QosOptions).
@@ -87,6 +88,10 @@ public:
  *       reliability: best_effort
  *       history: keep_last
  *       depth: 42
+ *   chitter:
+ *     type: example_interfaces/msg/String
+ *     # Remap 'chitter' topic to 'chatter'
+ *     remap: chatter
  * ```
  *
  * \param file_path: Path to the YAML file.
