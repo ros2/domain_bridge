@@ -210,6 +210,9 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
 
       // Parse topic bridge options
       TopicBridgeOptions options;
+      if (topic_info["remap"]) {
+        options.remap_name(topic_info["remap"].as<std::string>());
+      }
       options.qos_options(parse_qos_options(topic_info, file_path));
 
       // Add topic bridge to config

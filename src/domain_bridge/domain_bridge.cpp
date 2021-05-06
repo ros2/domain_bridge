@@ -155,6 +155,14 @@ public:
     const std::string & topic = rclcpp::expand_topic_or_service_name(
       topic_bridge.topic_name, options_.name(), "/");
 
+    // If a remap name is provided, then validate it
+    // otherwise "remap" to the same name
+    std::string topic_remapped = topic;
+    if (!topic_options.remap_name().empty()) {
+      topic_remapped = rclcpp::expand_topic_or_service_name(
+        topic_options.remap_name(), options_.name(), "/");
+    }
+
     const std::string & type = topic_bridge.type_name;
     const std::size_t & from_domain_id = topic_bridge.from_domain_id;
     const std::size_t & to_domain_id = topic_bridge.to_domain_id;
@@ -181,7 +189,7 @@ public:
     // publishers on the 'from' side of the bridge
     // The callback may be triggered immediately if a publisher is available
     auto create_bridge =
-      [this, topic, topic_bridge, topic_options, from_domain_node, to_domain_node]
+      [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
         (const QosMatchInfo & qos_match)
       {
         const std::string & type = topic_bridge.type_name;
@@ -239,7 +247,7 @@ public:
         // The publisher should be created first so it is available to the subscription callback
         auto publisher = this->create_publisher(
           to_domain_node,
-          topic,
+          topic_remapped,
           qos,
           *typesupport_handle,
           topic_options.callback_group());

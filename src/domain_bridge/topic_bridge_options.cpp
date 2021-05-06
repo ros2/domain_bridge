@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <memory>
+#include <string>
 
 #include "rclcpp/callback_group.hpp"
 
@@ -44,6 +45,19 @@ TopicBridgeOptions &
 TopicBridgeOptions::qos_options(const QosOptions & qos_options)
 {
   qos_options_ = qos_options;
+  return *this;
+}
+
+const std::string &
+TopicBridgeOptions::remap_name() const
+{
+  return remap_name_;
+}
+
+TopicBridgeOptions &
+TopicBridgeOptions::remap_name(const std::string & remap_name)
+{
+  remap_name_ = remap_name;
   return *this;
 }
 

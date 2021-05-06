@@ -21,38 +21,11 @@
 
 #include "rclcpp/context.hpp"
 #include "rclcpp/node.hpp"
-// #include "rclcpp/executors/single_threaded_executor.hpp"
 #include "test_msgs/msg/basic_types.hpp"
 
 #include "domain_bridge/domain_bridge.hpp"
 
-/// Wait for a publisher to be available (or not)
-/*
- * \return true if the wait was successful, false if a timeout occured.
- */
-bool wait_for_publisher(
-  std::shared_ptr<rclcpp::Node> node,
-  const std::string & topic_name,
-  std::chrono::nanoseconds timeout = std::chrono::seconds(3),
-  std::chrono::nanoseconds sleep_period = std::chrono::milliseconds(100))
-{
-  auto start = std::chrono::steady_clock::now();
-  std::chrono::microseconds time_slept(0);
-  auto predicate = [&node, &topic_name]() -> bool {
-      // A publisher is available if the count is greater than 0
-      return node->count_publishers(topic_name) > 0;
-    };
-
-  while (!predicate() &&
-    time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout))
-  {
-    rclcpp::Event::SharedPtr graph_event = node->get_graph_event();
-    node->wait_for_graph_change(graph_event, sleep_period);
-    time_slept = std::chrono::duration_cast<std::chrono::microseconds>(
-      std::chrono::steady_clock::now() - start);
-  }
-  return predicate();
-}
+#include "wait_for_publisher.hpp"
 
 class TestDomainBridgeQosMatching : public ::testing::Test
 {

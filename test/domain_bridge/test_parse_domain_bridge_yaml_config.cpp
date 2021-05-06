@@ -103,11 +103,13 @@ TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
       .history(rclcpp::HistoryPolicy::KeepAll)
       .depth(42u)
       .deadline(123456)
-      .lifespan_auto()),
+      .lifespan_auto())
+    .remap_name("bar/remapped"),
     domain_bridge::TopicBridgeOptions().qos_options(
       domain_bridge::QosOptions()
       .deadline_auto()
       .lifespan(-5))
+    .remap_name("")
   };
   const std::string yaml_path =
     (test_yaml_dir_ / std::filesystem::path{"topic_options.yaml"}).string();
@@ -125,6 +127,7 @@ TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
       config.topics[i].second.qos_options().history(), expected[i].qos_options().history());
     EXPECT_EQ(
       config.topics[i].second.qos_options().depth(), expected[i].qos_options().depth());
+    EXPECT_EQ(config.topics[i].second.remap_name(), expected[i].remap_name());
   }
 }
 

@@ -32,6 +32,18 @@ if(TARGET test_qos_matching)
   target_link_libraries(test_qos_matching ${PROJECT_NAME})
 endif()
 
+ament_add_gmock(test_remap_name
+  domain_bridge/test_remap_name.cpp
+)
+if(TARGET test_remap_name)
+  ament_target_dependencies(test_remap_name
+    "rclcpp"
+    "test_msgs"
+  )
+  target_link_libraries(test_remap_name ${PROJECT_NAME})
+endif()
+
+
 # Test executable
 add_launch_test(
   test_domain_bridge.launch.py

@@ -16,6 +16,7 @@
 #define DOMAIN_BRIDGE__TOPIC_BRIDGE_OPTIONS_HPP_
 
 #include <memory>
+#include <string>
 
 #include "rclcpp/callback_group.hpp"
 
@@ -35,6 +36,7 @@ public:
    *
    *    - callback_group = nullptr (node's default)
    *    - qos_options = default (see QosOptions for more information)
+   *    - remap_name = "" (no remap)
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions() = default;
@@ -73,10 +75,25 @@ public:
   TopicBridgeOptions &
   qos_options(const QosOptions & qos_options);
 
+  /// Get remap name.
+  DOMAIN_BRIDGE_PUBLIC
+  const std::string &
+  remap_name() const;
+
+  /// Set remap name.
+  /**
+   * An empty string implies no remap.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  remap_name(const std::string & remap_name);
+
 private:
   std::shared_ptr<rclcpp::CallbackGroup> callback_group_{nullptr};
 
   QosOptions qos_options_;
+
+  std::string remap_name_;
 };  // class TopicBridgeOptions
 
 }  // namespace domain_bridge

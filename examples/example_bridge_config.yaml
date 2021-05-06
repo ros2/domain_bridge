@@ -18,3 +18,7 @@ topics:
   chatter:
     type: example_interfaces/msg/String
     to_domain: 4
+  # Bridge "/chatter" topic from doman ID 2 to domain ID 3, but as "/chitter"
+  chatter:
+    type: example_interfaces/msg/String
+    remap: chitter
