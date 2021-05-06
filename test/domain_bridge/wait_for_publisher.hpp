@@ -26,7 +26,7 @@
 /*
  * \return true if the wait was successful, false if a timeout occured.
  */
-bool wait_for_publisher(
+inline bool wait_for_publisher(
   rclcpp::Node::SharedPtr node,
   const std::string & topic_name,
   std::chrono::nanoseconds timeout = std::chrono::seconds(3),
@@ -39,14 +39,17 @@ bool wait_for_publisher(
       return node->count_publishers(topic_name) > 0;
     };
 
-  while (!predicate() &&
-    time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout))
-  {
+  do {
+    if (predicate()) {
+      return true;
+    }
     rclcpp::Event::SharedPtr graph_event = node->get_graph_event();
     node->wait_for_graph_change(graph_event, sleep_period);
     time_slept = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start);
-  }
+  } while (!predicate() &&
+    time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout));
+
   return predicate();
 }
 
