@@ -184,7 +184,7 @@ We consider having multiple publishers with different QoS policies on the same t
 
 When bridging topics, users can optionally give a name to remap the topic to in the destination domain.
 
-Users can apply indpendent remaps for each domain a topic is bridged to.
+Users can apply independent remaps for each domain that a topic is bridged to.
 E.g. A topic can be bridged and remapped to a domain *B* and independently bridged and remapped to another domain *C*.
 
 A remap can be provided exactly once for each unique bridge.
@@ -215,6 +215,7 @@ List of supported configurations pairs:
 - `to_domain` (optional), overrides the default `to_domain`.
 - `qos` (optional), a map of QoS policies names to values.
   Any values provided in this map will override values set by the automatic QoS matching mechanism.
+- `remap` (optional), remap the topic to this name in the destination domain (`to_domain`).
 
 Similar to topics, services and action to bridge may be specified with the `services` and `actions` keys respectively.
 
@@ -256,6 +257,10 @@ topics:
     to_domain: 6
     qos:
       history: keep_all
+  # Bridge "/chitter" topic from domain ID 2 to domain ID 3 with the name "/chatter"
+  chitter:
+    type: example_interfaces/msg/String
+    remap: chatter
 
 services:
   # Bridge "add_two_ints" service from domain ID 4 to domain ID 6
