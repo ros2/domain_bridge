@@ -152,7 +152,10 @@ public:
                 if (!context->is_valid()) {
                   return;
                 }
-                throw ex;
+                // Otherwise, don't crash if there was a hiccup querying the topic endpoint
+                // Log an error instead
+                std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
+                  std::endl;
               }
 
               if (opt_qos) {
