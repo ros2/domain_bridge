@@ -69,6 +69,15 @@ public:
   void handle_loaned_message(
     void * loaned_message, const rclcpp::MessageInfo & message_info) override;
 
+  // Post-Galactic, handle_serialized_message is a pure virtual function in
+  // rclcpp::SubscriptionBase, so we must override it.  However, in order to
+  // make this change compatible with both Galactic and later, we leave off
+  // the 'override' flag.
+  void
+  handle_serialized_message(
+    const std::shared_ptr<rclcpp::SerializedMessage> & serialized_message,
+    const rclcpp::MessageInfo & message_info);
+
   // Same as return_serialized_message() as the subscription is to serialized_messages only
   void return_message(std::shared_ptr<void> & message) override;
 

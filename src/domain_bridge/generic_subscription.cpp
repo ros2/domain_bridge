@@ -79,6 +79,14 @@ void GenericSubscription::handle_loaned_message(
   (void) message_info;
 }
 
+void GenericSubscription::handle_serialized_message(
+  const std::shared_ptr<rclcpp::SerializedMessage> & serialized_message,
+  const rclcpp::MessageInfo & message_info)
+{
+  (void) serialized_message;
+  (void) message_info;
+}
+
 void GenericSubscription::return_message(std::shared_ptr<void> & message)
 {
   auto typed_message = std::static_pointer_cast<rclcpp::SerializedMessage>(message);
