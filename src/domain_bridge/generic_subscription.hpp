@@ -69,6 +69,11 @@ public:
   void handle_loaned_message(
     void * loaned_message, const rclcpp::MessageInfo & message_info) override;
 
+  void
+  handle_serialized_message(
+    const std::shared_ptr<rclcpp::SerializedMessage> & serialized_message,
+    const rclcpp::MessageInfo & message_info) override;
+
   // Same as return_serialized_message() as the subscription is to serialized_messages only
   void return_message(std::shared_ptr<void> & message) override;
 
