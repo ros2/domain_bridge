@@ -2,6 +2,14 @@
 Changelog for package domain_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.3.0 (2021-05-20)
+------------------
+* Override handle_serialized_message (`#21 <https://github.com/ros2/domain_bridge/issues/21>`_)
+* Do not crash if there's an error querying endpoint info (`#20 <https://github.com/ros2/domain_bridge/issues/20>`_)
+* Add topic remapping (`#19 <https://github.com/ros2/domain_bridge/issues/19>`_)
+* Fix doc link in readme (`#18 <https://github.com/ros2/domain_bridge/issues/18>`_)
+* Contributors: Chris Lalancette, Jacob Perron, Tully Foote
+
 0.2.0 (2021-04-08)
 ------------------
 * Stop installing test resources (`#17 <https://github.com/ros2/domain_bridge/issues/17>`_)
