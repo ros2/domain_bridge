@@ -253,3 +253,17 @@ TEST_F(TestDomainBridge, get_bridged_topics)
     }
   }
 }
+
+TEST_F(TestDomainBridge, remap_topic_name_invalid)
+{
+  const std::string topic_name("test_remap_topic_invalid_before");
+  const std::string remap_name("test_remap_topic_1nv@lid_after");
+
+  domain_bridge::DomainBridge bridge;
+  domain_bridge::TopicBridgeOptions topic_bridge_options;
+  topic_bridge_options.remap_name(remap_name);
+  EXPECT_THROW(
+    bridge.bridge_topic(
+      topic_name, "test_msgs/msg/BasicTypes", 0, 2, topic_bridge_options),
+    rclcpp::exceptions::InvalidTopicNameError);
+}
