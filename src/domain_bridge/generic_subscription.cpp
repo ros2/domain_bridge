@@ -67,9 +67,9 @@ std::shared_ptr<rclcpp::SerializedMessage> GenericSubscription::create_serialize
 void GenericSubscription::handle_message(
   std::shared_ptr<void> & message, const rclcpp::MessageInfo & message_info)
 {
+  (void) message;
   (void) message_info;
-  auto typed_message = std::static_pointer_cast<rclcpp::SerializedMessage>(message);
-  callback_(typed_message);
+  throw std::runtime_error{"unexpected callback being called"};
 }
 
 void GenericSubscription::handle_loaned_message(
@@ -77,14 +77,16 @@ void GenericSubscription::handle_loaned_message(
 {
   (void) message;
   (void) message_info;
+  throw std::runtime_error{"unexpected callback being called"};
 }
 
 void GenericSubscription::handle_serialized_message(
   const std::shared_ptr<rclcpp::SerializedMessage> & serialized_message,
   const rclcpp::MessageInfo & message_info)
 {
-  (void) serialized_message;
-  (void) message_info;
+  (void)message_info;
+  auto typed_message = std::static_pointer_cast<rclcpp::SerializedMessage>(serialized_message);
+  callback_(typed_message);
 }
 
 void GenericSubscription::return_message(std::shared_ptr<void> & message)
