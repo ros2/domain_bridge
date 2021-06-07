@@ -20,7 +20,11 @@ find_package(rclcpp REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
+# Only needed to be able to modify connext qos settings
+find_package(rti_connext_dds_cmake_module REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
+
+rti_find_connextpro()
 
 add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/domain_bridge.cpp
@@ -54,6 +58,11 @@ set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME
 
 target_link_libraries(${PROJECT_NAME}_exec
   ${PROJECT_NAME}
+  RTIConnextDDS::c_api
+)
+
+ament_target_dependencies(${PROJECT_NAME}_exec
+  rcpputils
 )
 
 install(DIRECTORY include/
