@@ -22,9 +22,13 @@ find_package(rcutils REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+# Only needed to be able to modify connext qos settings
+find_package(rti_connext_dds_cmake_module REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 find_package(zstd_vendor REQUIRED)
 find_package(zstd REQUIRED)
+
+rti_find_connextpro()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   msg/CompressedMsg.msg
@@ -70,6 +74,10 @@ set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME
 
 target_link_libraries(${PROJECT_NAME}_exec
   ${PROJECT_NAME}_lib
+  RTIConnextDDS::c_api)
+
+  ament_target_dependencies(${PROJECT_NAME}_exec
+  rcpputils_
 )
 
 install(DIRECTORY include/

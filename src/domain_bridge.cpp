@@ -16,10 +16,30 @@
 #include <string>
 
 #include "rclcpp/executors/single_threaded_executor.hpp"
+#include "rcpputils/scope_exit.hpp"
 #include "rcutils/cmdline_parser.h"
+#include "rcutils/env.h"
 
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
+
+
+#ifndef _WIN32
+# pragma GCC diagnostic push
+# pragma GCC diagnostic ignored "-Wpedantic"
+# pragma GCC diagnostic ignored "-Wunused-parameter"
+# ifdef __clang__
+#  pragma clang diagnostic ignored "-Wdeprecated-register"
+#  pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
+# endif
+#endif
+#include "ndds/ndds_c.h"
+// #include <ndds/ndds_namespace_cpp.h>
+// #include <ndds/ndds_requestreply_cpp.h>
+#ifndef _WIN32
+# pragma GCC diagnostic pop
+#endif
+
 
 void help()
 {
@@ -38,6 +58,14 @@ void help()
     std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
+
+bool
+set_default_qos_library(DDS_DomainParticipantFactory * dpf);
+
+const char *
+get_domain_profile_prefix();
+
+static DDS_DomainParticipantQos g_default_dpqos;
 
 int main(int argc, char ** argv)
 {
@@ -93,8 +121,28 @@ int main(int argc, char ** argv)
       topic_option_pair.first.to_domain_id = to_domain;
     }
   }
-
+  DDS_DomainParticipantFactory * dpf = DDS_DomainParticipantFactory_get_instance();
+  const char * prefix = get_domain_profile_prefix();
+  if (set_default_qos_library(dpf) && prefix) {
+    if (DDS_DomainParticipantFactory_get_default_participant_qos(dpf, &g_default_dpqos) != DDS_RETCODE_OK) {
+      throw std::runtime_error("failed to get default participang qos");
+    }
+    domain_bridge_config.options.on_new_domain_callback([dpf, prefix](size_t domain_id) {
+      auto profile_name = std::string(prefix) + "_" + std::to_string(domain_id);
+      if (
+        DDS_DomainParticipantFactory_set_default_participant_qos_with_profile(
+          dpf, nullptr, profile_name.c_str())
+        != DDS_RETCODE_OK)
+      {
+        RCLCPP_INFO(
+          rclcpp::get_logger("domain_bridge"),
+          "failed to set rti connext profile '%s' for domain '%zu'",
+          profile_name.c_str(), domain_id);
+      }
+    });
+  }
   domain_bridge::DomainBridge domain_bridge(domain_bridge_config);
+  DDS_DomainParticipantFactory_set_default_participant_qos(dpf, &g_default_dpqos);
 
   rclcpp::executors::SingleThreadedExecutor executor;
   domain_bridge.add_to_executor(executor);
@@ -103,4 +151,70 @@ int main(int argc, char ** argv)
   rclcpp::shutdown();
 
   return 0;
+}
+
+const char *
+get_domain_profile_prefix()
+{
+  const char * qos_profile_library_name = nullptr;
+  const char * error = rcutils_get_env(
+    "DOMAIN_BRIDGE_CONNEXT_DDS_QOS_PROFILE_PREFIX", &qos_profile_library_name);
+  if (error) {
+    throw std::runtime_error(std::string("rcutils_get_env() failed: ") + error);
+  }
+  if (qos_profile_library_name && 0 == strcmp("", qos_profile_library_name)) {
+    return nullptr;
+  }
+  return qos_profile_library_name;
+}
+
+bool
+set_default_qos_library(DDS_DomainParticipantFactory * dpf)
+{
+  const char * qos_profile_library_name = nullptr;
+  const char * error = rcutils_get_env(
+    "DOMAIN_BRIDGE_CONNEXT_DDS_QOS_LIBRARY_NAME", &qos_profile_library_name);
+  if (error) {
+    throw std::runtime_error(std::string("rcutils_get_env() failed: ") + error);
+  }
+  if (qos_profile_library_name && 0 == strcmp("", qos_profile_library_name)) {
+    qos_profile_library_name = nullptr;
+  }
+
+  DDS_StringSeq qos_libraries;
+  rcpputils::scope_exit([qos_libraries = &qos_libraries]() {
+    DDS_StringSeq_finalize(qos_libraries);
+  });
+  if (!qos_profile_library_name) {
+    // environment variable is empty
+    if (DDS_RETCODE_OK != DDS_DomainParticipantFactory_get_qos_profile_libraries(dpf, &qos_libraries)) {
+      throw std::runtime_error("failed to get qos profile libraries");
+    }
+    // If only one non-builtin qos profile library was loaded, use that one.
+    if (DDS_StringSeq_get_length(&qos_libraries) > 3) {
+      return false;
+    }
+    for (int i = 0; i < DDS_StringSeq_get_length(&qos_libraries); i++) {
+      const char * item = DDS_StringSeq_get(&qos_libraries, i);
+      if (
+        strcmp("BuiltinQosLib", item) != 0 &&
+        strcmp("BuiltinQosLibExp", item) != 0)
+      {
+        if (!qos_profile_library_name) {
+          qos_profile_library_name = item;
+        } else {
+          // More than one QoS profile library was loaded, do not set
+          qos_profile_library_name = nullptr;
+          break;
+        }
+      }
+    }
+  }
+  if (qos_profile_library_name) {
+    if (DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_library(dpf, qos_profile_library_name)) {
+      throw std::runtime_error(std::string("failed to set default library: ") + error);
+    }
+    return true;
+  }
+  return false;
 }
