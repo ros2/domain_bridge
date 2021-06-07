@@ -139,6 +139,9 @@ public:
 
     // If we don't already have a node for the domain, create one
     if (node_map_.end() == domain_id_node_pair) {
+      if (options_.on_new_domain_callback_) {
+        options_.on_new_domain_callback_(domain_id);
+      }
       auto context = create_context_with_domain_id(domain_id);
       auto node_options = create_node_options(context);
       std::ostringstream oss;
