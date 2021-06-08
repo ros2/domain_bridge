@@ -21,7 +21,7 @@
 namespace domain_bridge
 {
 
-std::string
+const std::string &
 DomainBridgeOptions::name() const
 {
   return this->name_;

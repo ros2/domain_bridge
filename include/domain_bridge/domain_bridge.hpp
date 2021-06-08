@@ -31,6 +31,7 @@ namespace domain_bridge
 {
 
 class DomainBridgeImpl;
+class ServiceBridgeImpl;
 
 /// Bridge ROS entities across different domains.
 /**
@@ -133,6 +134,16 @@ public:
     const TopicBridge & topic_bridge,
     const TopicBridgeOptions & options = TopicBridgeOptions());
 
+  /// Bridge a service from one domain to another.
+  /**
+   * \param service_bridge: Struct containing info about the service to bridge.
+   * \param options: Options for bridging the topic.
+   */
+  template<typename ServiceT>
+  void bridge_service(
+    const TopicBridge & topic_bridge,
+    const TopicBridgeOptions & options = TopicBridgeOptions());
+
   /// Get bridged topics.
   /**
    * \return Topic bridges created by `bridge_topic()`.
@@ -142,8 +153,12 @@ public:
 
 private:
   std::unique_ptr<DomainBridgeImpl> impl_;
+  std::unique_ptr<ServiceBridgeImpl> service_bridge_impl_;
 };  // class DomainBridge
 
 }  // namespace domain_bridge
+
+// Implementation of the bridge_service() template method.
+#include "domain_bridge/service_bridge_impl.inc"
 
 #endif  // DOMAIN_BRIDGE__DOMAIN_BRIDGE_HPP_

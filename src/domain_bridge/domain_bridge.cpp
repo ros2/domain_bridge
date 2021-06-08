@@ -414,6 +414,20 @@ public:
   std::unique_ptr<ZSTD_CCtx, size_t (*)(ZSTD_CCtx *)> cctx_{nullptr, &ZSTD_freeCCtx};
 };  // class DomainBridgeImpl
 
+namespace detail
+{
+  rclcpp::Node::SharedPtr
+  get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id)
+  {
+    return impl.get_node_for_domain(domain_id);
+  }
+
+  const std::string &
+  get_node_name(const DomainBridgeImpl & impl) {
+    return impl.options_.name();
+  }
+}  // namespace detail
+
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
 : impl_(std::make_unique<DomainBridgeImpl>(options))
 {}
