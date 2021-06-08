@@ -429,11 +429,13 @@ namespace detail
 }  // namespace detail
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
-: impl_(std::make_unique<DomainBridgeImpl>(options))
+: impl_(std::make_unique<DomainBridgeImpl>(options)),
+  service_bridge_impl_(std::make_unique<ServiceBridgeImpl>())
 {}
 
 DomainBridge::DomainBridge(const DomainBridgeConfig & config)
-: impl_(std::make_unique<DomainBridgeImpl>(config.options))
+: impl_(std::make_unique<DomainBridgeImpl>(config.options)),
+  service_bridge_impl_(std::make_unique<ServiceBridgeImpl>())
 {
   for (const auto & topic_bridge_pair : config.topics) {
     bridge_topic(topic_bridge_pair.first, topic_bridge_pair.second);

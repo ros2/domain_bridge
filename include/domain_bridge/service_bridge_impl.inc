@@ -62,10 +62,11 @@ class HackedService
 : public rclcpp::Service<ServiceT>,
   public std::enable_shared_from_this<HackedService<ServiceT>>
 {
+public:
   using CallbackT = std::function<void(
     std::shared_ptr<HackedService<ServiceT>>,
     const std::shared_ptr<rmw_request_id_t> &,
-    const std::shared_ptr<typename ServiceT::Response> &)>;
+    const std::shared_ptr<typename ServiceT::Request> &)>;
 
   HackedService(
     std::shared_ptr<rcl_node_t> node_handle,
@@ -105,9 +106,10 @@ create_hacked_service(
   typename HackedService<ServiceT>::CallbackT callback,
   rclcpp::CallbackGroup::SharedPtr group)
 {
+  rcl_service_options_t service_options = rcl_service_get_default_options();
   auto serv = std::make_shared<HackedService<ServiceT>>(
     node->get_node_base_interface()->get_shared_rcl_node_handle(),
-    service_name, std::move(callback), rcl_service_get_default_options());
+    service_name, std::move(callback), service_options);
   auto serv_base_ptr = std::static_pointer_cast<rclcpp::ServiceBase>(serv);
   node->get_node_services_interface()->add_service(serv_base_ptr, group);
   return serv;
@@ -157,9 +159,6 @@ DomainBridge::bridge_service(
     return;
   }
 
-  // Create a null entry to avoid duplicate bridges
-  service_bridge_impl_->bridged_services_[service_bridge];
-
   rclcpp::Node::SharedPtr from_domain_node = detail::get_node_for_domain(*impl_, from_domain_id);
   rclcpp::Node::SharedPtr to_domain_node = detail::get_node_for_domain(*impl_, to_domain_id);
 
@@ -175,6 +174,8 @@ DomainBridge::bridge_service(
       const std::shared_ptr<rmw_request_id_t> & request_header,
       const std::shared_ptr<typename ServiceT::Request> & request) -> void
     {
+      // TODO(ivanpauno): What do we do if there's no service server available?
+      // This is a general problem in ROS 2, we don't have a clean way of communicating a service error ....
       auto result = client->async_send_request(
         request, [me = std::move(me), request_header](typename rclcpp::Client<ServiceT>::SharedFuture future_response)
       {
@@ -183,13 +184,13 @@ DomainBridge::bridge_service(
         // See if we can improve rclcpp service API.
 
         auto response = future_response.get();
-        me->send_response(request_header, response);
+        me->send_response(*request_header, *response);
       });
     };
 
   // Create a service for the 'to_domain'
   // The client should be created first so it is available to the service callback
-  auto service = detail::create_hacked_service(
+  auto service = detail::create_hacked_service<ServiceT>(
     to_domain_node,
     service_remapped,
     handle_request,
