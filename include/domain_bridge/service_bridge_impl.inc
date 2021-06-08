@@ -58,9 +58,12 @@ namespace detail
  * TODO(ivanpauno): There should be first class support for this in rclcpp.
  */
 template<typename ServiceT>
-class HackedService : public rclcpp::Service<ServiceT> {
+class HackedService
+: public rclcpp::Service<ServiceT>,
+  public std::enable_shared_from_this<HackedService<ServiceT>>
+{
   using CallbackT = std::function<void(
-    const HackedService<ServiceT> &,
+    std::shared_ptr<HackedService<ServiceT>>,
     const std::shared_ptr<rmw_request_id_t> &,
     const std::shared_ptr<typename ServiceT::Response> &)>;
 
@@ -85,7 +88,7 @@ class HackedService : public rclcpp::Service<ServiceT> {
     // send_response(*request_header, *response);
     // ***
     // The hack: forget about sending a response immediately.
-    callback_(*this, request_header, typed_request);
+    callback_(this->shared_from_this(), request_header, typed_request);
   }
 private:
   // any_callback_ is private in service, we will use our own callback implementation.
@@ -168,23 +171,19 @@ DomainBridge::bridge_service(
 
   auto handle_request =
     [client](
-      const detail::HackedService<ServiceT> & me,
+      std::shared_ptr<detail::HackedService<ServiceT>> me,
       const std::shared_ptr<rmw_request_id_t> & request_header,
       const std::shared_ptr<typename ServiceT::Request> & request) -> void
     {
       auto result = client->async_send_request(
-        request, [&me, request_header](typename rclcpp::Client<ServiceT>::SharedFuture future_response)
+        request, [me = std::move(me), request_header](typename rclcpp::Client<ServiceT>::SharedFuture future_response)
       {
         // TODO(ivanpauno): Why do we get a future instead of the response directly here?
         // That doesn't seem to make any sense.
         // See if we can improve rclcpp service API.
 
         auto response = future_response.get();
-
-        // TODO(ivanpauno): The fact that we're capturing the service by reference is a big footgun,
-        // and it's probably wrong.
-        // Use a custom functor type to avoid the issue.
-        me.send_response(request_header, response);
+        me->send_response(request_header, response);
       });
     };
 
