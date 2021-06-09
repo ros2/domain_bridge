@@ -211,7 +211,10 @@ set_default_qos_library(DDS_DomainParticipantFactory * dpf)
         if (!qos_profile_library_name) {
           qos_profile_library_name = item;
         } else {
-          // More than one QoS profile library was loaded, do not set
+          RCLCPP_INFO(
+            rclcpp::get_logger("domain_bridge"),
+            "found more than one RTI Connext qos library available, specify the desired library "
+            "name in the 'DOMAIN_BRIDGE_CONNEXT_DDS_QOS_LIBRARY_NAME' environment variable");
           qos_profile_library_name = nullptr;
           break;
         }
