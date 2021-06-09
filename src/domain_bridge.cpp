@@ -135,18 +135,37 @@ int main(int argc, char ** argv)
       {
         auto profile_name = std::string(prefix) + "_" + std::to_string(domain_id);
         if (
-          DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_participant_qos_with_profile(
+          DDS_RETCODE_OK == DDS_DomainParticipantFactory_set_default_participant_qos_with_profile(
             dpf, nullptr, profile_name.c_str()))
         {
-          RCLCPP_INFO(
+          return;
+        }
+        RCLCPP_INFO(
+          rclcpp::get_logger("domain_bridge"),
+          "failed to set rti connext profile '%s' for domain '%zu' "
+          ", the default profile will be used",
+          profile_name.c_str(), domain_id);
+        // reset to the default profile
+        if (
+          DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_participant_qos(
+            dpf, &g_default_dpqos))
+        {
+          RCLCPP_ERROR(
             rclcpp::get_logger("domain_bridge"),
-            "failed to set rti connext profile '%s' for domain '%zu'",
-            profile_name.c_str(), domain_id);
+            "failed to set reset the rti connext profile participant profile to the default");
         }
       });
   }
   domain_bridge::DomainBridge domain_bridge(domain_bridge_config);
-  DDS_DomainParticipantFactory_set_default_participant_qos(dpf, &g_default_dpqos);
+  // reset again to the default profile
+  if (
+    DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_participant_qos(
+      dpf, &g_default_dpqos))
+  {
+    RCLCPP_ERROR(
+      rclcpp::get_logger("domain_bridge"),
+      "failed to set reset the rti connext profile participant profile to the default");
+  }
 
   rclcpp::executors::SingleThreadedExecutor executor;
   domain_bridge.add_to_executor(executor);
