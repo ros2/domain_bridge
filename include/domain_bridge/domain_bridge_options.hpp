@@ -75,6 +75,7 @@ public:
   DOMAIN_BRIDGE_PUBLIC
   DomainBridgeOptions &
   on_new_domain_callback(std::function<void(size_t)> callback);
+
 private:
   std::string name_{"domain_bridge"};
   std::function<void(size_t)> on_new_domain_callback_;

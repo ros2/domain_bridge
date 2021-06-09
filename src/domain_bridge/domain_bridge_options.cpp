@@ -16,6 +16,7 @@
 
 #include <functional>
 #include <string>
+#include <utility>
 
 namespace domain_bridge
 {

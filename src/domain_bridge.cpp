@@ -124,22 +124,26 @@ int main(int argc, char ** argv)
   DDS_DomainParticipantFactory * dpf = DDS_DomainParticipantFactory_get_instance();
   const char * prefix = get_domain_profile_prefix();
   if (set_default_qos_library(dpf) && prefix) {
-    if (DDS_DomainParticipantFactory_get_default_participant_qos(dpf, &g_default_dpqos) != DDS_RETCODE_OK) {
+    if (
+      DDS_DomainParticipantFactory_get_default_participant_qos(
+        dpf, &g_default_dpqos) != DDS_RETCODE_OK)
+    {
       throw std::runtime_error("failed to get default participang qos");
     }
-    domain_bridge_config.options.on_new_domain_callback([dpf, prefix](size_t domain_id) {
-      auto profile_name = std::string(prefix) + "_" + std::to_string(domain_id);
-      if (
-        DDS_DomainParticipantFactory_set_default_participant_qos_with_profile(
-          dpf, nullptr, profile_name.c_str())
-        != DDS_RETCODE_OK)
+    domain_bridge_config.options.on_new_domain_callback(
+      [dpf, prefix](size_t domain_id)
       {
-        RCLCPP_INFO(
-          rclcpp::get_logger("domain_bridge"),
-          "failed to set rti connext profile '%s' for domain '%zu'",
-          profile_name.c_str(), domain_id);
-      }
-    });
+        auto profile_name = std::string(prefix) + "_" + std::to_string(domain_id);
+        if (
+          DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_participant_qos_with_profile(
+            dpf, nullptr, profile_name.c_str()))
+        {
+          RCLCPP_INFO(
+            rclcpp::get_logger("domain_bridge"),
+            "failed to set rti connext profile '%s' for domain '%zu'",
+            profile_name.c_str(), domain_id);
+        }
+      });
   }
   domain_bridge::DomainBridge domain_bridge(domain_bridge_config);
   DDS_DomainParticipantFactory_set_default_participant_qos(dpf, &g_default_dpqos);
@@ -182,12 +186,16 @@ set_default_qos_library(DDS_DomainParticipantFactory * dpf)
   }
 
   DDS_StringSeq qos_libraries;
-  rcpputils::scope_exit([qos_libraries = &qos_libraries]() {
-    DDS_StringSeq_finalize(qos_libraries);
-  });
+  rcpputils::scope_exit(
+    [qos_libraries = &qos_libraries]() {
+      DDS_StringSeq_finalize(qos_libraries);
+    });
   if (!qos_profile_library_name) {
     // environment variable is empty
-    if (DDS_RETCODE_OK != DDS_DomainParticipantFactory_get_qos_profile_libraries(dpf, &qos_libraries)) {
+    if (
+      DDS_RETCODE_OK != DDS_DomainParticipantFactory_get_qos_profile_libraries(
+        dpf, &qos_libraries))
+    {
       throw std::runtime_error("failed to get qos profile libraries");
     }
     // If only one non-builtin qos profile library was loaded, use that one.
@@ -211,7 +219,10 @@ set_default_qos_library(DDS_DomainParticipantFactory * dpf)
     }
   }
   if (qos_profile_library_name) {
-    if (DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_library(dpf, qos_profile_library_name)) {
+    if (
+      DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_library(
+        dpf, qos_profile_library_name))
+    {
       throw std::runtime_error(std::string("failed to set default library: ") + error);
     }
     return true;
