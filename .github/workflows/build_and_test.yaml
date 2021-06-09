@@ -16,6 +16,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: ros-tooling/setup-ros@v0.1
       with:
+        install-connext: true
         required-ros-distributions: rolling
     - uses: ros-tooling/action-ros-ci@v0.1
       with:
