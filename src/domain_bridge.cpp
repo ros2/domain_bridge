@@ -65,8 +65,6 @@ set_default_qos_library(DDS_DomainParticipantFactory * dpf);
 const char *
 get_domain_profile_prefix();
 
-static DDS_DomainParticipantQos g_default_dpqos;
-
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
@@ -123,13 +121,16 @@ int main(int argc, char ** argv)
   }
   DDS_DomainParticipantFactory * dpf = DDS_DomainParticipantFactory_get_instance();
   const char * prefix = get_domain_profile_prefix();
+  static DDS_DomainParticipantQos default_dpqos = DDS_DomainParticipantQos_INITIALIZER;
+  bool reset_participant_profile = false;
   if (set_default_qos_library(dpf) && prefix) {
     if (
       DDS_DomainParticipantFactory_get_default_participant_qos(
-        dpf, &g_default_dpqos) != DDS_RETCODE_OK)
+        dpf, &default_dpqos) != DDS_RETCODE_OK)
     {
       throw std::runtime_error("failed to get default participang qos");
     }
+    reset_participant_profile = true;
     domain_bridge_config.options.on_new_domain_callback(
       [dpf, prefix](size_t domain_id)
       {
@@ -145,10 +146,9 @@ int main(int argc, char ** argv)
           "failed to set rti connext profile '%s' for domain '%zu' "
           ", the default profile will be used",
           profile_name.c_str(), domain_id);
-        // reset to the default profile
         if (
           DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_participant_qos(
-            dpf, &g_default_dpqos))
+            dpf, &default_dpqos))
         {
           RCLCPP_ERROR(
             rclcpp::get_logger("domain_bridge"),
@@ -157,10 +157,10 @@ int main(int argc, char ** argv)
       });
   }
   domain_bridge::DomainBridge domain_bridge(domain_bridge_config);
-  // reset again to the default profile
   if (
+    reset_participant_profile &&
     DDS_RETCODE_OK != DDS_DomainParticipantFactory_set_default_participant_qos(
-      dpf, &g_default_dpqos))
+      dpf, &default_dpqos))
   {
     RCLCPP_ERROR(
       rclcpp::get_logger("domain_bridge"),
