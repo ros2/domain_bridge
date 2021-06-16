@@ -25,6 +25,7 @@
 #include "domain_bridge/domain_bridge_options.hpp"
 #include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
+#include "domain_bridge/service_bridge_options.hpp"
 #include "domain_bridge/visibility_control.hpp"
 
 namespace domain_bridge
@@ -141,8 +142,10 @@ public:
    */
   template<typename ServiceT>
   void bridge_service(
-    const TopicBridge & topic_bridge,
-    const TopicBridgeOptions & options = TopicBridgeOptions());
+    const std::string & service,
+    size_t from_domain_id,
+    size_t to_domain_id,
+    const ServiceBridgeOptions & options = ServiceBridgeOptions());
 
   /// Get bridged topics.
   /**

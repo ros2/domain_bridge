@@ -36,6 +36,8 @@ namespace domain_bridge
 struct ServiceBridgeImpl
 {
   using ServiceBridgeMap = std::map<
+    // This is an implementation detail, but we could something different than the `TopicBridge`
+    // class to make the code more clear.
     TopicBridge,
     std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
 
@@ -130,30 +132,34 @@ get_node_name(const DomainBridgeImpl & impl);
 template<typename ServiceT>
 void
 DomainBridge::bridge_service(
-  const TopicBridge & service_bridge,
-  const TopicBridgeOptions & options)
+  const std::string & service_name,
+  size_t from_domain_id,
+  size_t to_domain_id,
+  const ServiceBridgeOptions & options)
 {
   const auto & node_name = detail::get_node_name(*impl_);
   // Validate service name
-  const std::string & service_name = rclcpp::expand_topic_or_service_name(
-    service_bridge.topic_name, node_name, "/", true);
+  const std::string & resolved_service_name = rclcpp::expand_topic_or_service_name(
+    service_name, node_name, "/", true);
 
   // If a remap name is provided, then validate it
   // otherwise "remap" to the same name
-  std::string service_remapped = service_name;
+  std::string service_remapped = resolved_service_name;
   if (!options.remap_name().empty()) {
     service_remapped = rclcpp::expand_topic_or_service_name(
       options.remap_name(), node_name, "/", true);
   }
 
-  const std::size_t & from_domain_id = service_bridge.from_domain_id;
-  const std::size_t & to_domain_id = service_bridge.to_domain_id;
+  TopicBridge service_bridge;
+  service_bridge.topic_name = resolved_service_name;
+  service_bridge.from_domain_id = from_domain_id;
+  service_bridge.to_domain_id = to_domain_id;
 
   // Check if already bridged
   if (service_bridge_impl_->bridged_services_.find(service_bridge) !=
     service_bridge_impl_->bridged_services_.end())
   {
-    std::cerr << "Service '" << service_name << "'" << " already bridged from domain " <<
+    std::cerr << "Service '" << resolved_service_name << "'" << " already bridged from domain " <<
       std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) <<
       ", ignoring" << std::endl;
     return;
@@ -164,7 +170,7 @@ DomainBridge::bridge_service(
 
   // Create a client for the 'from_domain'
   auto client = from_domain_node->create_client<ServiceT>(
-    service_name,
+    resolved_service_name,
     rmw_qos_profile_services_default,
     options.callback_group());
 
