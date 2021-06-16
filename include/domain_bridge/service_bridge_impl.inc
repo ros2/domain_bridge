@@ -36,9 +36,7 @@ namespace domain_bridge
 struct ServiceBridgeImpl
 {
   using ServiceBridgeMap = std::map<
-    // This is an implementation detail, but we could something different than the `TopicBridge`
-    // class to make the code more clear.
-    TopicBridge,
+    std::tuple<std::string, size_t, size_t>,  // service_name, from_domain_id, to_domain_id
     std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
 
   /// Set of bridged topics
@@ -150,10 +148,11 @@ DomainBridge::bridge_service(
       options.remap_name(), node_name, "/", true);
   }
 
-  TopicBridge service_bridge;
-  service_bridge.topic_name = resolved_service_name;
-  service_bridge.from_domain_id = from_domain_id;
-  service_bridge.to_domain_id = to_domain_id;
+  std::tuple<std::string, size_t, size_t> service_bridge = {
+    resolved_service_name,
+    from_domain_id,
+    to_domain_id
+  };
 
   // Check if already bridged
   if (service_bridge_impl_->bridged_services_.find(service_bridge) !=
