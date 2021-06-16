@@ -32,12 +32,12 @@
 
 #include "rclcpp/executor.hpp"
 #include "rclcpp/expand_topic_or_service_name.hpp"
+#include "rclcpp/generic_publisher.hpp"
+#include "rclcpp/generic_subscription.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
 #include "rmw/types.h"
 
-#include "generic_publisher.hpp"
-#include "generic_subscription.hpp"
 #include "wait_for_qos_handler.hpp"
 
 namespace domain_bridge
@@ -50,7 +50,8 @@ public:
   using NodeMap = std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Node>>;
   using TopicBridgeMap = std::map<
     TopicBridge,
-    std::pair<std::shared_ptr<GenericPublisher>, std::shared_ptr<GenericSubscription>>>;
+    std::pair<std::shared_ptr<rclcpp::GenericPublisher>,
+    std::shared_ptr<rclcpp::GenericSubscription>>>;
   using TypesupportMap = std::unordered_map<
     std::string, std::shared_ptr<rcpputils::SharedLibrary>>;
 
@@ -107,41 +108,33 @@ public:
       type, "rosidl_typesupport_cpp");
   }
 
-  std::shared_ptr<GenericPublisher> create_publisher(
+  std::shared_ptr<rclcpp::GenericPublisher> create_publisher(
     rclcpp::Node::SharedPtr node,
     const std::string & topic_name,
+    const std::string & type,
     const rclcpp::QoS & qos,
-    const rosidl_message_type_support_t & typesupport_handle,
     rclcpp::CallbackGroup::SharedPtr group)
   {
-    auto publisher = std::make_shared<GenericPublisher>(
-      node->get_node_base_interface().get(),
-      typesupport_handle,
-      topic_name,
-      qos);
+    auto publisher = node->create_generic_publisher(topic_name, type, qos);
     node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
     return publisher;
   }
 
-  std::shared_ptr<GenericSubscription> create_subscription(
+  std::shared_ptr<rclcpp::GenericSubscription> create_subscription(
     rclcpp::Node::SharedPtr node,
-    std::shared_ptr<GenericPublisher> publisher,
+    std::shared_ptr<rclcpp::GenericPublisher> publisher,
     const std::string & topic_name,
+    const std::string & type,
     const rclcpp::QoS & qos,
-    const rosidl_message_type_support_t & typesupport_handle,
     rclcpp::CallbackGroup::SharedPtr group)
   {
-    // Create subscription
-    auto subscription = std::make_shared<GenericSubscription>(
-      node->get_node_base_interface().get(),
-      typesupport_handle,
+    auto subscription = node->create_generic_subscription(
       topic_name,
+      type,
       qos,
       [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
         // Publish message into the other domain
-        auto serialized_data_ptr = std::make_shared<rcl_serialized_message_t>(
-          msg->get_rcl_serialized_message());
-        publisher->publish(serialized_data_ptr);
+        publisher->publish(*msg);
       });
     node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
     return subscription;
@@ -239,17 +232,13 @@ public:
           std::cerr << warning << std::endl;
         }
 
-        // Get typesupport handle
-        auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
-          type, "rosidl_typesupport_cpp", loaded_typesupports_.at(type));
-
         // Create publisher for the 'to_domain'
         // The publisher should be created first so it is available to the subscription callback
         auto publisher = this->create_publisher(
           to_domain_node,
           topic_remapped,
+          type,
           qos,
-          *typesupport_handle,
           topic_options.callback_group());
 
         // Create subscription for the 'from_domain'
@@ -257,8 +246,8 @@ public:
           from_domain_node,
           publisher,
           topic,
+          type,
           qos,
-          *typesupport_handle,
           topic_options.callback_group());
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
