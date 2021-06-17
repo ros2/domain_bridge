@@ -58,13 +58,13 @@ class SerializedPublisher
 {
 public:
   template<typename MessageT, typename AllocatorT>
-  SerializedPublisher(std::shared_ptr<rclcpp::Publisher<MessageT, AllocatorT>> impl)  // NOLINT, intentionally implicit
+  explicit SerializedPublisher(std::shared_ptr<rclcpp::Publisher<MessageT, AllocatorT>> impl)
   : impl_(std::move(impl)),
     publish_method_pointer_(static_cast<decltype(publish_method_pointer_)>(
         &rclcpp::Publisher<MessageT, AllocatorT>::publish))
   {}
 
-  SerializedPublisher(std::shared_ptr<rclcpp::GenericPublisher> impl)  // NOLINT, intentionally implicit
+  explicit SerializedPublisher(std::shared_ptr<rclcpp::GenericPublisher> impl)
   : impl_(std::move(impl)),
     publish_method_pointer_(static_cast<decltype(publish_method_pointer_)>(
         &rclcpp::GenericPublisher::publish))
