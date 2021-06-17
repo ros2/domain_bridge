@@ -50,8 +50,9 @@ public:
   using NodeMap = std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Node>>;
   using TopicBridgeMap = std::map<
     TopicBridge,
-    std::pair<std::shared_ptr<rclcpp::GenericPublisher>,
-    std::shared_ptr<rclcpp::GenericSubscription>>>;
+    std::pair<
+      std::shared_ptr<rclcpp::GenericPublisher>,
+      std::shared_ptr<rclcpp::GenericSubscription>>>;
   using TypesupportMap = std::unordered_map<
     std::string, std::shared_ptr<rcpputils::SharedLibrary>>;
 
@@ -113,10 +114,9 @@ public:
     const std::string & topic_name,
     const std::string & type,
     const rclcpp::QoS & qos,
-    rclcpp::CallbackGroup::SharedPtr group)
+    rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> & options)
   {
-    auto publisher = node->create_generic_publisher(topic_name, type, qos);
-    node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
+    auto publisher = node->create_generic_publisher(topic_name, type, qos, options);
     return publisher;
   }
 
@@ -126,7 +126,7 @@ public:
     const std::string & topic_name,
     const std::string & type,
     const rclcpp::QoS & qos,
-    rclcpp::CallbackGroup::SharedPtr group)
+    rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> & options)
   {
     auto subscription = node->create_generic_subscription(
       topic_name,
@@ -135,8 +135,8 @@ public:
       [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
         // Publish message into the other domain
         publisher->publish(*msg);
-      });
-    node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
+      },
+      options);
     return subscription;
   }
 
@@ -232,6 +232,12 @@ public:
           std::cerr << warning << std::endl;
         }
 
+        rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> publisher_options;
+        rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> subscription_options;
+
+        publisher_options.callback_group = topic_options.callback_group();
+        subscription_options.callback_group = topic_options.callback_group();
+
         // Create publisher for the 'to_domain'
         // The publisher should be created first so it is available to the subscription callback
         auto publisher = this->create_publisher(
@@ -239,7 +245,7 @@ public:
           topic_remapped,
           type,
           qos,
-          topic_options.callback_group());
+          publisher_options);
 
         // Create subscription for the 'from_domain'
         auto subscription = this->create_subscription(
@@ -248,7 +254,7 @@ public:
           topic,
           type,
           qos,
-          topic_options.callback_group());
+          subscription_options);
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
