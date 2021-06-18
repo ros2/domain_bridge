@@ -17,6 +17,6 @@ digraph {
         graph[style=dashed];
     }
       
-    service_in [shape=oval, color="#000000", label="External /add_two_ints server"]
-    service_out [shape=oval, color="#000000", label="External /add_two_ints client"];
+    service_in [shape=oval, color="#000000", label="External\n /add_two_ints server"]
+    service_out [shape=oval, color="#000000", label="External\n /add_two_ints client"];
 }

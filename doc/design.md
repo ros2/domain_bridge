@@ -313,10 +313,10 @@ It is possible though to do that statically, by using the `bridge_service()` tem
 
 ```cpp
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_service<example_interfaces::srv::AddTwoInts>("add_two_ints", from_domain, to_domain);
+  bridge.bridge_service<example_interfaces::srv::AddTwoInts>("add_two_ints", domain_1, domain_2);
 ```
 
-That will bridge a service server from the domain `from_domain` to the domain `to_domain`, as shown in the following diagram:
+That will bridge a service server from the domain `domain_1` to the domain `domain_2`, as shown in the following diagram:
 
 ![](service_example.png)
 
