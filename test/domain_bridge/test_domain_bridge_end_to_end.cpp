@@ -70,10 +70,10 @@ static
 bool
 poll_condition(std::function<bool()> condition, std::chrono::seconds timeout)
 {
-  auto start = std::chrono::system_clock::now();
+  auto start = std::chrono::steady_clock::now();
   while (
     !condition() &&
-    (start + timeout > std::chrono::system_clock::now()))
+    (start + timeout > std::chrono::steady_clock::now()))
   {
     std::this_thread::sleep_for(50ms);
   }
