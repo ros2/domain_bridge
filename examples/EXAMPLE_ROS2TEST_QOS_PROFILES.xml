@@ -129,24 +129,24 @@ xsi:noNamespaceSchemaLocation="http://community.rti.com/schema/5.3.1/rti_dds_qos
             </element>
 
             <!-- slow: 6.25 MB/sec (52 Mb/sec) flow controller -->
-            <element>                                                                                                                                                                                       
-              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.max_tokens</name>                                                                                                               
-              <value>2</value>                                                                                                                                                                              
-            </element>                                                                                                                                                                                      
-            <element>                                                                                                                                                                                       
-              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.tokens_added_per_period</name>                                                                                                  
-              <value>2</value>                                                                                                                                                                              
-            </element>                                                                                                                                                                                      
-            <element>                                                                                                                                                                                       
-              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.bytes_per_token</name>                                                                                                          
-              <value>32000</value>                                                                                                                                                                          
-            </element>                                                                                                                                                                                      
-            <element>                                                                                                                                                                                       
-              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.period.sec</name>                                                                                                               
-              <value>0</value>                                                                                                                                                                              
-            </element>                                                                                                                                                                                      
             <element>
-              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.period.nanosec</name> 
+              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.max_tokens</name>
+              <value>2</value>
+            </element>
+            <element>
+              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.tokens_added_per_period</name>
+              <value>2</value>
+            </element>
+            <element>
+              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.bytes_per_token</name>
+              <value>32000</value>
+            </element>
+            <element>
+              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.period.sec</name>
+              <value>0</value>
+            </element>
+            <element>
+              <name>dds.flow_controller.token_bucket.slow_flow.token_bucket.period.nanosec</name>
               <value>100000000</value>
             </element>
             <element>
