@@ -22,13 +22,9 @@ find_package(rcutils REQUIRED)
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
-# Only needed to be able to modify connext qos settings
-find_package(rti_connext_dds_cmake_module REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 find_package(zstd_vendor REQUIRED)
 find_package(zstd REQUIRED)
-
-rti_find_connextpro()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   msg/CompressedMsg.msg
@@ -74,17 +70,39 @@ set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME
 
 target_link_libraries(${PROJECT_NAME}_exec
   ${PROJECT_NAME}_lib
-  RTIConnextDDS::c_api)
-
-  ament_target_dependencies(${PROJECT_NAME}_exec
-  rcpputils_
 )
+
+# Only needed to build domain_bridge_rti_qos executable.
+find_package(rti_connext_dds_cmake_module QUIET)
+find_package(rcpputils QUIET)
+
+set(targets ${PROJECT_NAME}_lib ${PROJECT_NAME}_exec)
+
+if(rti_connext_dds_cmake_module_FOUND AND rcpputils_FOUND)
+  rti_find_connextpro()
+  if(RTIConnextDDS_FOUND)
+    add_executable(${PROJECT_NAME}_rti_exec
+      src/domain_bridge_rti_qos.cpp
+    )
+    set_target_properties(${PROJECT_NAME}_rti_exec
+      PROPERTIES OUTPUT_NAME ${PROJECT_NAME}_rti_qos PREFIX "")
+    target_link_libraries(${PROJECT_NAME}_rti_exec
+      ${PROJECT_NAME}_lib
+      RTIConnextDDS::c_api
+    )
+
+    ament_target_dependencies(${PROJECT_NAME}_rti_exec
+      rcpputils
+    )
+    list(APPEND targets ${PROJECT_NAME}_rti_exec)
+  endif()
+endif()
 
 install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ${PROJECT_NAME}_lib ${PROJECT_NAME}_exec
+install(TARGETS ${targets}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

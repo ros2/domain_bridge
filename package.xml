@@ -14,7 +14,6 @@
   <depend>rcutils</depend>
   <depend>rosbag2_cpp</depend>
   <depend>rosidl_typesupport_cpp</depend>
-  <depend>rti_connext_dds_cmake_module</depend>
   <depend>yaml-cpp</depend>
   <depend>zstd_vendor</depend>
 
