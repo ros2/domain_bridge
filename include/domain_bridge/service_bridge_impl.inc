@@ -45,6 +45,21 @@ struct ServiceBridgeImpl
 
 namespace detail
 {
+// service_name, from_domain_id, to_domain_id
+using ServiceBridge = std::tuple<std::string, size_t, size_t>;
+using ServiceBridgeMap = std::map<
+  ServiceBridge,
+  std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
+
+rclcpp::Node::SharedPtr
+is_bridging_service(ServiceBridge & impl, std::size_t domain_id);
+
+rclcpp::Node::SharedPtr
+get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id);
+
+const std::string &
+get_node_name(const DomainBridgeImpl & impl);
+
 /// \internal
 /// An "awesome" hack on top of `rclcpp::Service`.
 /**
@@ -114,12 +129,6 @@ create_hacked_service(
   node->get_node_services_interface()->add_service(serv_base_ptr, group);
   return serv;
 }
-
-rclcpp::Node::SharedPtr
-get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id);
-
-const std::string &
-get_node_name(const DomainBridgeImpl & impl);
 }  // namespace detail
 
 /// Bridge a service from one domain to another.
