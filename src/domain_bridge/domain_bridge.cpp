@@ -51,7 +51,7 @@ namespace domain_bridge
 
 /// \internal
 /**
- * A hack, because PublisherBase don't support to publish a serialized message and because
+ * A hack, because PublisherBase doesn't support publishing serialized messages and because
  * GenericPublisher cannot be created with a typesupport handle :/
  */
 class SerializedPublisher
