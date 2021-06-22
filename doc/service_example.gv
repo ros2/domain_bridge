@@ -5,7 +5,7 @@ digraph {
     rep_1_to_2 -> node_domain_2
     node_domain_2 -> req_2_to_1
     req_2_to_1 -> node_domain_1
-    node_domain_2 -> service_out [dir="both"] [label="srv"]
+    node_domain_2 -> service_out [dir="both"] [label="service"]
 
     subgraph cluster_domain_bridge {
         node_domain_1 [shape=oval, color="#000000"];
