@@ -137,7 +137,9 @@ public:
 
   /// Bridge a service from one domain to another.
   /**
-   * \param service_bridge: Struct containing info about the service to bridge.
+   * \param service: Name of the service to be bridged.
+   * \param from_domain_id: Domain id where there is a service server to be bridged.
+   * \param to_domain_id: Domain id where we want to make request to the bridged service.
    * \param options: Options for bridging the topic.
    */
   template<typename ServiceT>
