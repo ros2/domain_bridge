@@ -26,11 +26,19 @@ namespace domain_bridge
 class DomainBridgeOptions
 {
 public:
+  enum class Mode
+  {
+    Normal,
+    Compress,
+    Decompress,
+  };
+
   /// Constructor.
   /**
    *  Default values:
    *
    *    - name = "domain_bridge"
+   *    - mode = Mode::Normal
    */
   DOMAIN_BRIDGE_PUBLIC
   DomainBridgeOptions() = default;
@@ -62,8 +70,19 @@ public:
   DomainBridgeOptions &
   name(std::string name);
 
+  /// Get the domain bridge mode.
+  DOMAIN_BRIDGE_PUBLIC
+  Mode
+  mode() const;
+
+  /// Set the domain bridge mode.
+  DOMAIN_BRIDGE_PUBLIC
+  DomainBridgeOptions &
+  mode(Mode mode);
+
 private:
   std::string name_{"domain_bridge"};
+  Mode mode_{Mode::Normal};
 };  // class DomainBridgeOptions
 
 }  // namespace domain_bridge

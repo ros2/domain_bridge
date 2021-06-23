@@ -12,37 +12,28 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <string>
+#ifndef DOMAIN_BRIDGE__COMPRESS_MESSAGES_HPP_
+#define DOMAIN_BRIDGE__COMPRESS_MESSAGES_HPP_
 
-#include "domain_bridge/domain_bridge_options.hpp"
+#include <zstd.h>
+
+#include <vector>
+
+#include "rclcpp/serialized_message.hpp"
+
+#include "domain_bridge/visibility_control.hpp"
 
 namespace domain_bridge
 {
 
-std::string
-DomainBridgeOptions::name() const
-{
-  return this->name_;
-}
+DOMAIN_BRIDGE_PUBLIC
+std::vector<uint8_t>
+compress_message(ZSTD_CCtx * ctx, rclcpp::SerializedMessage msg);
 
-DomainBridgeOptions &
-DomainBridgeOptions::name(std::string name)
-{
-  this->name_ = name;
-  return *this;
-}
-
-DomainBridgeOptions::Mode
-DomainBridgeOptions::mode() const
-{
-  return mode_;
-}
-
-DomainBridgeOptions &
-DomainBridgeOptions::mode(DomainBridgeOptions::Mode mode)
-{
-  mode_ = mode;
-  return *this;
-}
+DOMAIN_BRIDGE_PUBLIC
+rclcpp::SerializedMessage
+decompress_message(ZSTD_DCtx * ctx, std::vector<uint8_t> compressed_msg);
 
 }  // namespace domain_bridge
+
+#endif  // DOMAIN_BRIDGE__COMPRESS_MESSAGES_HPP_

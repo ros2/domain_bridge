@@ -20,9 +20,18 @@ find_package(rclcpp REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
+find_package(rosidl_typesupport_cpp REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
+find_package(zstd_vendor REQUIRED)
+find_package(zstd REQUIRED)
 
-add_library(${PROJECT_NAME} SHARED
+rosidl_generate_interfaces(${PROJECT_NAME}
+  msg/CompressedMsg.msg
+)
+
+add_library(${PROJECT_NAME}_lib SHARED
+  src/${PROJECT_NAME}/compress_messages.cpp
   src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
   src/${PROJECT_NAME}/parse_domain_bridge_yaml_config.cpp
@@ -30,21 +39,28 @@ add_library(${PROJECT_NAME} SHARED
   src/${PROJECT_NAME}/topic_bridge_options.cpp
 )
 
-target_include_directories(${PROJECT_NAME} PUBLIC
+target_include_directories(${PROJECT_NAME}_lib PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
 
 if(CMAKE_COMPILER_IS_GNUCXX)
-  target_link_libraries(${PROJECT_NAME} stdc++fs)
+  target_link_libraries(${PROJECT_NAME}_lib stdc++fs)
 endif()
 
-ament_target_dependencies(${PROJECT_NAME}
+ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp
   rcutils
   rosbag2_cpp
+  rosidl_typesupport_cpp
   yaml_cpp_vendor
+  zstd
 )
+
+rosidl_target_interfaces(${PROJECT_NAME}_lib
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
+set_target_properties(${PROJECT_NAME}_lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
@@ -53,14 +69,14 @@ add_executable(${PROJECT_NAME}_exec
 set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
 
 target_link_libraries(${PROJECT_NAME}_exec
-  ${PROJECT_NAME}
+  ${PROJECT_NAME}_lib
 )
 
 install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec
+install(TARGETS ${PROJECT_NAME}_lib ${PROJECT_NAME}_exec
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -71,7 +87,7 @@ install(DIRECTORY examples launch
 )
 
 ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME})
+ament_export_libraries(${PROJECT_NAME}_lib)
 ament_export_dependencies(
   rclcpp
   rosbag2_cpp
