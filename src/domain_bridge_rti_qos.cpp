@@ -23,23 +23,7 @@
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
 
-
-#ifndef _WIN32
-# pragma GCC diagnostic push
-# pragma GCC diagnostic ignored "-Wpedantic"
-# pragma GCC diagnostic ignored "-Wunused-parameter"
-# ifdef __clang__
-#  pragma clang diagnostic ignored "-Wdeprecated-register"
-#  pragma clang diagnostic ignored "-Wreturn-type-c-linkage"
-# endif
-#endif
 #include "ndds/ndds_c.h"
-// #include <ndds/ndds_namespace_cpp.h>
-// #include <ndds/ndds_requestreply_cpp.h>
-#ifndef _WIN32
-# pragma GCC diagnostic pop
-#endif
-
 
 void help()
 {
