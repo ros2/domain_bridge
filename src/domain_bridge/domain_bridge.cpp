@@ -154,6 +154,21 @@ public:
     return domain_id_node_pair->second;
   }
 
+  bool
+  is_bridging_service(const detail::ServiceBridge & service_bridge) const
+  {
+    return bridged_services_.find(service_bridge) != bridged_services_.end();
+  }
+
+  void
+  add_service_bridge(
+    detail::ServiceBridge service_bridge,
+    std::shared_ptr<rclcpp::ServiceBase> service,
+    std::shared_ptr<rclcpp::ClientBase> client)
+  {
+    bridged_services_[std::move(service_bridge)] = {std::move(service), std::move(client)};
+  }
+
   /// Load typesupport library into a cache.
   void load_typesupport_library(std::string type)
   {
@@ -402,6 +417,9 @@ public:
   /// Set of bridged topics
   TopicBridgeMap bridged_topics_;
 
+  /// Set of bridged services
+  detail::ServiceBridgeMap bridged_services_;
+
   /// Cache of typesupport libraries
   TypesupportMap loaded_typesupports_;
 
@@ -422,6 +440,23 @@ get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id)
   return impl.get_node_for_domain(domain_id);
 }
 
+bool
+is_bridging_service(const DomainBridgeImpl & impl, const detail::ServiceBridge & service_bridge)
+{
+  return impl.is_bridging_service(service_bridge);
+}
+
+void
+add_service_bridge(
+  DomainBridgeImpl & impl,
+  ServiceBridge service_bridge,
+  std::shared_ptr<rclcpp::ServiceBase> service,
+  std::shared_ptr<rclcpp::ClientBase> client)
+{
+  return impl.add_service_bridge(
+    std::move(service_bridge), std::move(service), std::move(client));
+}
+
 const std::string &
 get_node_name(const DomainBridgeImpl & impl)
 {
@@ -430,13 +465,11 @@ get_node_name(const DomainBridgeImpl & impl)
 }  // namespace detail
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
-: impl_(std::make_unique<DomainBridgeImpl>(options)),
-  service_bridge_impl_(std::make_unique<ServiceBridgeImpl>())
+: impl_(std::make_unique<DomainBridgeImpl>(options))
 {}
 
 DomainBridge::DomainBridge(const DomainBridgeConfig & config)
-: impl_(std::make_unique<DomainBridgeImpl>(config.options)),
-  service_bridge_impl_(std::make_unique<ServiceBridgeImpl>())
+: impl_(std::make_unique<DomainBridgeImpl>(config.options))
 {
   for (const auto & topic_bridge_pair : config.topics) {
     bridge_topic(topic_bridge_pair.first, topic_bridge_pair.second);

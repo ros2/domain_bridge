@@ -158,7 +158,6 @@ public:
 
 private:
   std::unique_ptr<DomainBridgeImpl> impl_;
-  std::unique_ptr<ServiceBridgeImpl> service_bridge_impl_;
 };  // class DomainBridge
 
 }  // namespace domain_bridge

@@ -51,8 +51,16 @@ using ServiceBridgeMap = std::map<
   ServiceBridge,
   std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
 
-rclcpp::Node::SharedPtr
-is_bridging_service(ServiceBridge & impl, std::size_t domain_id);
+bool
+is_bridging_service(
+  const DomainBridgeImpl & impl, const ServiceBridge & service_bridge);
+
+void
+add_service_bridge(
+  DomainBridgeImpl & impl,
+  ServiceBridge service_bridge,
+  std::shared_ptr<rclcpp::ServiceBase> service,
+  std::shared_ptr<rclcpp::ClientBase> client);
 
 rclcpp::Node::SharedPtr
 get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id);
@@ -164,8 +172,7 @@ DomainBridge::bridge_service(
   };
 
   // Check if already bridged
-  if (service_bridge_impl_->bridged_services_.find(service_bridge) !=
-    service_bridge_impl_->bridged_services_.end())
+  if (detail::is_bridging_service(*impl_, service_bridge))
   {
     std::cerr << "Service '" << resolved_service_name << "'" << " already bridged from domain " <<
       std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) <<
@@ -210,7 +217,7 @@ DomainBridge::bridge_service(
     handle_request,
     options.callback_group());
 
-  service_bridge_impl_->bridged_services_[service_bridge] = {service, client};
+  detail::add_service_bridge(*impl_, service_bridge, service, client);
 }
 
 }  // namespace domain_bridge
