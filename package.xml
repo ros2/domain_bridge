@@ -10,6 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
   <depend>rcutils</depend>
   <depend>rosbag2_cpp</depend>
   <depend>yaml-cpp</depend>
