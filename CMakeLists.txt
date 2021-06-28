@@ -58,23 +58,11 @@ target_link_libraries(${PROJECT_NAME}_exec
   ${PROJECT_NAME}
 )
 
-add_executable(${PROJECT_NAME}_container
-  src/domain_bridge_container.cpp
-)
-
-ament_target_dependencies(${PROJECT_NAME}_container
-  "rclcpp_components"
-)
-
-target_link_libraries(${PROJECT_NAME}_container
-  ${PROJECT_NAME}
-)
-
 install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec ${PROJECT_NAME}_container
+install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_exec
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
