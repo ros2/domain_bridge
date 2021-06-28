@@ -35,12 +35,12 @@ int main(int argc, char ** argv)
   }
   domain_bridge::DomainBridge domain_bridge(*config_rc_pair.first);
 
-  // Add component container and domain bridge to single-threaded executor
+  // Add component manager node and domain bridge to single-threaded executor
   auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
-  auto container_node = std::make_shared<rclcpp_components::ComponentManager>(executor);
+  auto node = std::make_shared<rclcpp_components::ComponentManager>(executor);
 
   domain_bridge.add_to_executor(*executor);
-  executor->add_node(container_node);
+  executor->add_node(node);
   executor->spin();
 
   rclcpp::shutdown();
