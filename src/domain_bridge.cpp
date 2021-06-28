@@ -12,7 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <memory>
+#include <sstream>
+#include <string>
+
+#include "rclcpp/rclcpp.hpp"
 #include "rclcpp/executors/single_threaded_executor.hpp"
+#include "rclcpp_components/component_manager.hpp"
+#include "rcutils/cmdline_parser.h"
 
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
@@ -28,9 +35,13 @@ int main(int argc, char ** argv)
   }
   domain_bridge::DomainBridge domain_bridge(*config_rc_pair.first);
 
-  rclcpp::executors::SingleThreadedExecutor executor;
-  domain_bridge.add_to_executor(executor);
-  executor.spin();
+  // Add component container and domain bridge to single-threaded executor
+  auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  auto container_node = std::make_shared<rclcpp_components::ComponentManager>(executor);
+
+  domain_bridge.add_to_executor(*executor);
+  executor->add_node(container_node);
+  executor->spin();
 
   rclcpp::shutdown();
   return 0;
