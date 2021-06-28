@@ -162,8 +162,8 @@ public:
 
     // Ensure 'to' domain and 'from' domain are not equal
     if (to_domain_id == from_domain_id) {
-      std::cerr << "Cannot bridge topic '" << topic << "' from domain " << 
-        std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) << 
+      std::cerr << "Cannot bridge topic '" << topic << "' from domain " <<
+        std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) <<
         ". Domain IDs must be different." << std::endl;
       return;
     }
