@@ -268,6 +268,14 @@ public:
     const std::size_t & from_domain_id = topic_bridge.from_domain_id;
     const std::size_t & to_domain_id = topic_bridge.to_domain_id;
 
+    // Ensure 'to' domain and 'from' domain are not equal
+    if (to_domain_id == from_domain_id) {
+      std::cerr << "Cannot bridge topic '" << topic << "' from domain " <<
+        std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) <<
+        ". Domain IDs must be different." << std::endl;
+      return;
+    }
+
     // Validate type name by loading library support (if not already loaded)
     // Front-loading let's us fail early on invalid type names
     load_typesupport_library(type);
