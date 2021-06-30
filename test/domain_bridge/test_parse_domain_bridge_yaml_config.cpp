@@ -53,6 +53,24 @@ TEST_F(TestParseDomainBridgeYamlConfig, name)
   EXPECT_EQ(config.topics.size(), 0u);
 }
 
+TEST_F(TestParseDomainBridgeYamlConfig, mode)
+{
+  {
+    const std::string yaml_path = (
+      test_yaml_dir_ / std::filesystem::path{"compress_mode.yaml"}).string();
+    auto config = domain_bridge::parse_domain_bridge_yaml_config(yaml_path);
+    EXPECT_EQ(config.options.mode(), domain_bridge::DomainBridgeOptions::Mode::Compress);
+    EXPECT_EQ(config.topics.size(), 0u);
+  }
+  {
+    const std::string yaml_path = (
+      test_yaml_dir_ / std::filesystem::path{"decompress_mode.yaml"}).string();
+    auto config = domain_bridge::parse_domain_bridge_yaml_config(yaml_path);
+    EXPECT_EQ(config.options.mode(), domain_bridge::DomainBridgeOptions::Mode::Decompress);
+    EXPECT_EQ(config.topics.size(), 0u);
+  }
+}
+
 TEST_F(TestParseDomainBridgeYamlConfig, topics)
 {
   std::vector<domain_bridge::TopicBridge> expected = {
@@ -200,6 +218,13 @@ TEST_F(TestParseDomainBridgeYamlConfig, invalid)
   {
     const std::string yaml_path =
       (test_yaml_dir_ / std::filesystem::path{"invalid_depth.yaml"}).string();
+    EXPECT_THROW(
+      domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
+  }
+  // Invalid mode
+  {
+    const std::string yaml_path =
+      (test_yaml_dir_ / std::filesystem::path{"invalid_mode.yaml"}).string();
     EXPECT_THROW(
       domain_bridge::parse_domain_bridge_yaml_config(yaml_path), domain_bridge::YamlParsingError);
   }
