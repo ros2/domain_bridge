@@ -32,7 +32,9 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 add_library(${PROJECT_NAME}_lib SHARED
+  src/${PROJECT_NAME}/component_manager.cpp
   src/${PROJECT_NAME}/compress_messages.cpp
+  src/${PROJECT_NAME}/component_manager.cpp
   src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
   src/${PROJECT_NAME}/parse_domain_bridge_yaml_config.cpp
