@@ -44,7 +44,7 @@
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
 
-#include "wait_for_qos_handler.hpp"
+#include "wait_for_graph_events.hpp"
 
 namespace domain_bridge
 {
@@ -389,7 +389,7 @@ public:
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
-    wait_for_qos_handler_.register_on_publisher_qos_ready_callback(
+    wait_for_graph_events_.register_on_publisher_qos_ready_callback(
       topic, from_domain_node, create_bridge);
   }
 
@@ -424,7 +424,7 @@ public:
   TypesupportMap loaded_typesupports_;
 
   /// QoS event handler
-  WaitForQosHandler wait_for_qos_handler_;
+  WaitForGraphEvents wait_for_graph_events_;
 
   // Warn: The destruction order does matter here!
   // The subscription are capturing the raw pointer!

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef DOMAIN_BRIDGE__WAIT_FOR_QOS_HANDLER_HPP_
-#define DOMAIN_BRIDGE__WAIT_FOR_QOS_HANDLER_HPP_
+#ifndef DOMAIN_BRIDGE__WAIT_FOR_GRAPH_EVENTS_HPP_
+#define DOMAIN_BRIDGE__WAIT_FOR_GRAPH_EVENTS_HPP_
 
 // Silly cpplint thinks this is a C system header
 #include <optional>
@@ -58,12 +58,12 @@ struct QosMatchInfo
  *
  * This is a RAII class.
  */
-class WaitForQosHandler
+class WaitForGraphEvents
 {
 public:
-  WaitForQosHandler() = default;
+  WaitForGraphEvents() = default;
 
-  ~WaitForQosHandler()
+  ~WaitForGraphEvents()
   {
     for (auto & t : waiting_threads_) {
       // Notify and join
@@ -77,11 +77,11 @@ public:
   }
 
   /// Deleted copy constructor.
-  explicit WaitForQosHandler(const DomainBridgeOptions & other) = delete;
+  explicit WaitForGraphEvents(const WaitForGraphEvents & other) = delete;
 
   /// Deleted assignment operator.
-  WaitForQosHandler &
-  operator=(const WaitForQosHandler & other) = delete;
+  WaitForGraphEvents &
+  operator=(const WaitForGraphEvents & other) = delete;
 
   /// Register a callback that is called when a service server is ready.
   /**
@@ -339,8 +339,8 @@ private:
 
   /// Mutex for waiting_threads_
   std::mutex mutex_;
-};  // class WaitForQosHandler
+};  // class WaitForGraphEvents
 
 }  // namespace domain_bridge
 
-#endif  // DOMAIN_BRIDGE__WAIT_FOR_QOS_HANDLER_HPP_
+#endif  // DOMAIN_BRIDGE__WAIT_FOR_GRAPH_EVENTS_HPP_
