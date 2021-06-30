@@ -28,6 +28,7 @@
 #include <utility>
 #include <vector>
 
+#include "rclcpp/client.hpp"
 #include "rclcpp/node.hpp"
 #include "rclcpp/qos.hpp"
 
@@ -82,6 +83,33 @@ public:
   WaitForQosHandler &
   operator=(const WaitForQosHandler & other) = delete;
 
+  /// Register a callback that is called when a service server is ready.
+  /**
+   * \param client: The client waiting for a matching server.
+   * \param node: The node to use to monitor the topic.
+   * \param callback: User callback that is triggered when a matching server is found.
+   */
+  void register_on_server_ready_callback(
+    rclcpp::ClientBase::SharedPtr client,
+    rclcpp::Node::SharedPtr node,
+    std::function<void()> callback)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it_emplaced_pair = waiting_threads_.try_emplace(node);
+    auto & t = it_emplaced_pair.first->second;
+    {
+      std::lock_guard<std::mutex> lock(t.mutex);
+      t.service_callback_vec.push_back({client, callback});
+    }
+    // If we already have a thread for this node, then notify that there is a new callback
+    if (!it_emplaced_pair.second) {
+      t.cv.notify_all();
+      return;
+    }
+    // If we made it this far, there doesn't exist a thread for waiting so we'll create one
+    t.thread = this->launch_thread(node, t);
+  }
+
   /// Register a callback that is called when QoS is ready for one or more publishers.
   /**
    * \param topic: The name of the topic to monitor.
@@ -110,74 +138,13 @@ public:
       std::lock_guard<std::mutex> lock(t.mutex);
       t.topic_callback_vec.push_back({topic, callback});
     }
-
     // If we already have a thread for this node, then notify that there is a new callback
     if (!it_emplaced_pair.second) {
       t.cv.notify_all();
       return;
     }
-
     // If we made it this far, there doesn't exist a thread for waiting so we'll create one
-    auto invoke_callback_when_qos_ready = [
-      this,
-      node,
-      &t]()
-      {
-        auto event = node->get_graph_event();
-        while (true) {
-          // Wait for graph event
-          // Note, in case new publishers don't trigger a graph event we add a
-          // timeout so that we can still poll periodically for new publishers
-          node->wait_for_graph_change(event, std::chrono::seconds(1));
-          event->check_and_clear();
-
-          {
-            std::unique_lock<std::mutex> lock(t.mutex);
-            // If we're shuttdown down, exit the thread
-            if (t.shutting_down) {
-              return;
-            }
-
-            // Check if QoS is ready for any of the topics
-            for (auto it = t.topic_callback_vec.begin(); it != t.topic_callback_vec.end(); ++it) {
-              const std::string & topic = it->topic;
-              const auto & callback = it->cb;
-              std::optional<QosMatchInfo> opt_qos;
-              try {
-                opt_qos = this->get_topic_qos(topic, node);
-              } catch (const rclcpp::exceptions::RCLError & ex) {
-                // If the context was shutdown, then exit cleanly
-                // This can happen if we get a SIGINT
-                const auto context = node->get_node_options().context();
-                if (!context->is_valid()) {
-                  return;
-                }
-                // Otherwise, don't crash if there was a hiccup querying the topic endpoint
-                // Log an error instead
-                std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
-                  std::endl;
-              }
-
-              if (opt_qos) {
-                const QosMatchInfo & qos = opt_qos.value();
-                callback(qos);
-                it = t.topic_callback_vec.erase(it);
-                --it;
-              }
-            }
-
-            // It's only worth continuing if we have callbacks to handle
-            // or we're shutting down
-            {
-              t.cv.wait(
-                lock,
-                [&t]
-                {return (t.topic_callback_vec.size() > 0u) || t.shutting_down;});
-            }
-          }
-        }
-      };
-    t.thread = std::thread(invoke_callback_when_qos_ready);
+    t.thread = this->launch_thread(node, t);
   }
 
 private:
@@ -186,12 +153,18 @@ private:
     std::string topic;
     std::function<void(const QosMatchInfo)> cb;
   };
+  struct ClientAndCallback
+  {
+    rclcpp::ClientBase::SharedPtr client;
+    std::function<void()> cb;
+  };
   struct ThreadMapValue
   {
     std::thread thread;
     std::condition_variable cv;
     std::mutex mutex;
     std::vector<TopicAndCallback> topic_callback_vec;
+    std::vector<ClientAndCallback> service_callback_vec;
     bool shutting_down = false;
   };
   using ThreadMap = std::unordered_map<
@@ -284,6 +257,81 @@ private:
     result_qos.qos.lifespan(max_lifespan);
 
     return result_qos;
+  }
+
+  std::thread
+  launch_thread(rclcpp::Node::SharedPtr node, ThreadMapValue & t)
+  {
+    auto invoke_callback_when_qos_ready = [
+      this,
+      node,
+      &t]()
+      {
+        auto event = node->get_graph_event();
+        while (true) {
+          // Wait for graph event
+          // Note, in case new publishers don't trigger a graph event we add a
+          // timeout so that we can still poll periodically for new publishers
+          node->wait_for_graph_change(event, std::chrono::seconds(1));
+          event->check_and_clear();
+
+          {
+            std::unique_lock<std::mutex> lock(t.mutex);
+            // If we're shuttdown down, exit the thread
+            if (t.shutting_down) {
+              return;
+            }
+            // Check if a matching service server was found
+            auto it = t.service_callback_vec.begin();
+            while (it != t.service_callback_vec.end()) {
+              if (it->client->service_is_ready()) {
+                it->cb();
+                it = t.service_callback_vec.erase(it);
+              } else {
+                ++it;
+              }
+            }
+
+            // Check if QoS is ready for any of the topics
+            for (auto it = t.topic_callback_vec.begin(); it != t.topic_callback_vec.end(); ++it) {
+              const std::string & topic = it->topic;
+              const auto & callback = it->cb;
+              std::optional<QosMatchInfo> opt_qos;
+              try {
+                opt_qos = this->get_topic_qos(topic, node);
+              } catch (const rclcpp::exceptions::RCLError & ex) {
+                // If the context was shutdown, then exit cleanly
+                // This can happen if we get a SIGINT
+                const auto context = node->get_node_options().context();
+                if (!context->is_valid()) {
+                  return;
+                }
+                // Otherwise, don't crash if there was a hiccup querying the topic endpoint
+                // Log an error instead
+                std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
+                  std::endl;
+              }
+
+              if (opt_qos) {
+                const QosMatchInfo & qos = opt_qos.value();
+                callback(qos);
+                it = t.topic_callback_vec.erase(it);
+                --it;
+              }
+            }
+
+            // It's only worth continuing if we have callbacks to handle
+            // or we're shutting down
+            {
+              t.cv.wait(
+                lock,
+                [&t]
+                {return (t.topic_callback_vec.size() > 0u) || t.shutting_down;});
+            }
+          }
+        }
+      };
+    return std::thread(invoke_callback_when_qos_ready);
   }
 
   /// Threads used for waiting on publishers to become available
