@@ -58,8 +58,9 @@ is_bridging_service(
 void
 add_service_bridge(
   DomainBridgeImpl & impl,
+  rclcpp::Node::SharedPtr node,
   ServiceBridge service_bridge,
-  std::shared_ptr<rclcpp::ServiceBase> service,
+  std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
   std::shared_ptr<rclcpp::ClientBase> client);
 
 rclcpp::Node::SharedPtr
@@ -195,7 +196,7 @@ DomainBridge::bridge_service(
       const std::shared_ptr<rmw_request_id_t> & request_header,
       const std::shared_ptr<typename ServiceT::Request> & request) -> void
     {
-      // TODO(ivanpauno): What do we do if there's no service server available?
+      // TODO(ivanpauno): What do we do if the original server is down?
       // This is a general problem in ROS 2, we don't have a clean way of communicating a service error ....
       auto result = client->async_send_request(
         request, [me = std::move(me), request_header](typename rclcpp::Client<ServiceT>::SharedFuture future_response)
@@ -211,13 +212,21 @@ DomainBridge::bridge_service(
 
   // Create a service for the 'to_domain'
   // The client should be created first so it is available to the service callback
-  auto service = detail::create_hacked_service<ServiceT>(
-    to_domain_node,
-    service_remapped,
-    handle_request,
-    options.callback_group());
+  auto create_service_cb = [
+    to_domain_node = std::move(to_domain_node),
+    service_remapped = std::move(service_remapped),
+    handle_request = std::move(handle_request),
+    options = std::move(options)]()
+  {
+    return detail::create_hacked_service<ServiceT>(
+      to_domain_node,
+      service_remapped,
+      handle_request,
+      options.callback_group());
+  };
 
-  detail::add_service_bridge(*impl_, service_bridge, service, client);
+  detail::add_service_bridge(
+    *impl_, std::move(from_domain_node), service_bridge, create_service_cb, client);
 }
 
 }  // namespace domain_bridge

@@ -162,11 +162,23 @@ public:
 
   void
   add_service_bridge(
+    rclcpp::Node::SharedPtr node,
     detail::ServiceBridge service_bridge,
-    std::shared_ptr<rclcpp::ServiceBase> service,
+    std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
     std::shared_ptr<rclcpp::ClientBase> client)
   {
-    bridged_services_[std::move(service_bridge)] = {std::move(service), std::move(client)};
+    auto it_emplaced_pair = bridged_services_.try_emplace(
+      std::move(service_bridge), nullptr, client);
+    wait_for_graph_events_.register_on_server_ready_callback(
+      std::move(client),
+      std::move(node),
+      [
+        & service = std::get<0>(it_emplaced_pair.first->second),
+        create_service = std::move(create_service)]()
+      {
+        service = create_service();
+      }
+    );
   }
 
   /// Load typesupport library into a cache.
@@ -449,12 +461,13 @@ is_bridging_service(const DomainBridgeImpl & impl, const detail::ServiceBridge &
 void
 add_service_bridge(
   DomainBridgeImpl & impl,
+  rclcpp::Node::SharedPtr node,
   ServiceBridge service_bridge,
-  std::shared_ptr<rclcpp::ServiceBase> service,
+  std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
   std::shared_ptr<rclcpp::ClientBase> client)
 {
   return impl.add_service_bridge(
-    std::move(service_bridge), std::move(service), std::move(client));
+    std::move(node), std::move(service_bridge), std::move(create_service), std::move(client));
 }
 
 const std::string &
