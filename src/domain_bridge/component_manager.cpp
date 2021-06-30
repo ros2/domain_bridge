@@ -43,9 +43,11 @@ ComponentManager::SetNodeOptions(
       }
       options.use_intra_process_comms(extra_argument.get_value<bool>());
     } else if (extra_argument.get_name() == "domain_id") {
-      if (extra_argument.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+      if (extra_argument.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER ||
+        extra_argument.get_value<int>() < 0)
+      {
         throw rclcpp_components::ComponentManagerException(
-                "Extra component argument 'domain_id' must be an integer");
+                "Extra component argument 'domain_id' must be a positive integer");
       }
       std::size_t domain_id = extra_argument.get_value<std::size_t>();
       auto context = std::make_shared<rclcpp::Context>();
