@@ -51,7 +51,7 @@ if(TARGET test_domain_bridge_services)
     "rclcpp"
     "test_msgs"
   )
-  target_link_libraries(test_domain_bridge_services ${PROJECT_NAME})
+  target_link_libraries(test_domain_bridge_services ${PROJECT_NAME}_lib)
 endif()
 
 # Test executable
