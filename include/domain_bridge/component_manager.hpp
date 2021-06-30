@@ -18,6 +18,8 @@
 #include "rclcpp_components/component_manager.hpp"
 
 #include <memory>
+#include <string>
+#include <vector>
 
 #include "domain_bridge/visibility_control.hpp"
 
@@ -30,11 +32,11 @@ class ComponentManager : public rclcpp_components::ComponentManager
 
 protected:
   DOMAIN_BRIDGE_PUBLIC
-  virtual void
-  OnLoadNode(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<LoadNode::Request> request,
-    std::shared_ptr<LoadNode::Response> response);
+  virtual rclcpp::NodeOptions
+  SetNodeOptions(
+    std::vector<rclcpp::Parameter> parameters,
+    std::vector<std::string> remap_rules,
+    const std::shared_ptr<LoadNode::Request> request);
 };
 
 }  // namespace domain_bridge
