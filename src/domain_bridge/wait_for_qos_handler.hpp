@@ -64,14 +64,14 @@ public:
 
   ~WaitForQosHandler()
   {
-    {
-      std::lock_guard<std::mutex> lock(waiting_map_mutex_);
-      shutting_down_ = true;
-    }
-    for (const auto & t : waiting_threads_) {
+    for (auto & t : waiting_threads_) {
       // Notify and join
-      t.second.second->notify_all();
-      t.second.first->join();
+      {
+        std::lock_guard guard{t.second.mutex};
+        t.second.shutting_down = true;
+      }
+      t.second.cv.notify_all();
+      t.second.thread.join();
     }
   }
 
@@ -103,24 +103,25 @@ public:
       return;
     }
 
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it_emplaced_pair = waiting_threads_.try_emplace(node);
+    auto & t = it_emplaced_pair.first->second;
     {
-      std::lock_guard<std::mutex> lock(waiting_map_mutex_);
-      waiting_map_[node].push_back({topic, callback});
+      std::lock_guard<std::mutex> lock(t.mutex);
+      t.topic_callback_vec.push_back({topic, callback});
+    }
 
-      // If we already have a thread for this node, then notify that there is a new callback
-      auto existing_thread = waiting_threads_.find(node);
-      if (existing_thread != waiting_threads_.end()) {
-        existing_thread->second.second->notify_all();
-        return;
-      }
+    // If we already have a thread for this node, then notify that there is a new callback
+    if (!it_emplaced_pair.second) {
+      t.cv.notify_all();
+      return;
     }
 
     // If we made it this far, there doesn't exist a thread for waiting so we'll create one
-    // First, create a condition variable to notify the waiting thread when to wake up
-    auto cv = std::make_shared<std::condition_variable>();
-
-    // Create a thread that waits for a publisher to become available
-    auto invoke_callback_when_qos_ready = [this, node, cv]()
+    auto invoke_callback_when_qos_ready = [
+      this,
+      node,
+      &t]()
       {
         auto event = node->get_graph_event();
         while (true) {
@@ -131,17 +132,16 @@ public:
           event->check_and_clear();
 
           {
-            std::unique_lock<std::mutex> lock(waiting_map_mutex_);
+            std::unique_lock<std::mutex> lock(t.mutex);
             // If we're shuttdown down, exit the thread
-            if (this->shutting_down_) {
+            if (t.shutting_down) {
               return;
             }
 
             // Check if QoS is ready for any of the topics
-            auto & topic_callback_vec = waiting_map_.at(node);
-            for (auto it = topic_callback_vec.begin(); it != topic_callback_vec.end(); ++it) {
-              const std::string & topic = it->first;
-              const auto callback = it->second;
+            for (auto it = t.topic_callback_vec.begin(); it != t.topic_callback_vec.end(); ++it) {
+              const std::string & topic = it->topic;
+              const auto & callback = it->cb;
               std::optional<QosMatchInfo> opt_qos;
               try {
                 opt_qos = this->get_topic_qos(topic, node);
@@ -161,30 +161,42 @@ public:
               if (opt_qos) {
                 const QosMatchInfo & qos = opt_qos.value();
                 callback(qos);
-                topic_callback_vec.erase(it--);
+                it = t.topic_callback_vec.erase(it);
+                --it;
               }
             }
 
             // It's only worth continuing if we have callbacks to handle
             // or we're shutting down
-            cv->wait(
-              lock,
-              [this, &topic_callback_vec]
-              {return (topic_callback_vec.size() > 0u) || this->shutting_down_;});
+            {
+              t.cv.wait(
+                lock,
+                [&t]
+                {return (t.topic_callback_vec.size() > 0u) || t.shutting_down;});
+            }
           }
         }
       };
-    auto waiting_thread = std::make_shared<std::thread>(invoke_callback_when_qos_ready);
-    waiting_threads_[node] = {waiting_thread, cv};
+    t.thread = std::thread(invoke_callback_when_qos_ready);
   }
 
 private:
+  struct TopicAndCallback
+  {
+    std::string topic;
+    std::function<void(const QosMatchInfo)> cb;
+  };
+  struct ThreadMapValue
+  {
+    std::thread thread;
+    std::condition_variable cv;
+    std::mutex mutex;
+    std::vector<TopicAndCallback> topic_callback_vec;
+    bool shutting_down = false;
+  };
   using ThreadMap = std::unordered_map<
     std::shared_ptr<rclcpp::Node>,
-    std::pair<std::shared_ptr<std::thread>, std::shared_ptr<std::condition_variable>>>;
-  using WaitingMap = std::unordered_map<
-    std::shared_ptr<rclcpp::Node>,
-    std::vector<std::pair<std::string, std::function<void (const QosMatchInfo)>>>>;
+    ThreadMapValue>;
 
   /// Get QoS settings that best match all available publishers.
   /**
@@ -274,20 +286,11 @@ private:
     return result_qos;
   }
 
-  /// Flag to tell waiting threads we're shutting down
-  bool shutting_down_{false};
-
   /// Threads used for waiting on publishers to become available
   ThreadMap waiting_threads_;
 
-  /// Waiting data shared by threads
-  /**
-   * Mapping nodes to (topic, callback) pairs.
-   */
-  WaitingMap waiting_map_;
-
-  /// Mutex for waiting_map_
-  std::mutex waiting_map_mutex_;
+  /// Mutex for waiting_threads_
+  std::mutex mutex_;
 };  // class WaitForQosHandler
 
 }  // namespace domain_bridge
