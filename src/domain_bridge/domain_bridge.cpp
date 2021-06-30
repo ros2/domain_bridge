@@ -14,6 +14,8 @@
 
 #include "domain_bridge/domain_bridge.hpp"
 
+#include <zstd.h>
+
 #include <cstddef>
 #include <iostream>
 #include <limits>
@@ -26,22 +28,59 @@
 #include <utility>
 #include <vector>
 
-#include "domain_bridge/domain_bridge_options.hpp"
-#include "domain_bridge/topic_bridge.hpp"
-#include "domain_bridge/topic_bridge_options.hpp"
-
 #include "rclcpp/executor.hpp"
 #include "rclcpp/expand_topic_or_service_name.hpp"
 #include "rclcpp/generic_publisher.hpp"
 #include "rclcpp/generic_subscription.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include "rclcpp/serialization.hpp"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
+#include "rosidl_typesupport_cpp/message_type_support.hpp"
 #include "rmw/types.h"
+
+#include "domain_bridge/compress_messages.hpp"
+#include "domain_bridge/domain_bridge_options.hpp"
+#include "domain_bridge/topic_bridge.hpp"
+#include "domain_bridge/topic_bridge_options.hpp"
+#include "domain_bridge/msg/compressed_msg.hpp"
 
 #include "wait_for_qos_handler.hpp"
 
 namespace domain_bridge
 {
+
+/// \internal
+/**
+ * A hack, because PublisherBase doesn't support publishing serialized messages and because
+ * GenericPublisher cannot be created with a typesupport handle :/
+ */
+class SerializedPublisher
+{
+public:
+  template<typename MessageT, typename AllocatorT>
+  explicit SerializedPublisher(std::shared_ptr<rclcpp::Publisher<MessageT, AllocatorT>> impl)
+  : impl_(std::move(impl)),
+    publish_method_pointer_(static_cast<decltype(publish_method_pointer_)>(
+        &rclcpp::Publisher<MessageT, AllocatorT>::publish))
+  {}
+
+  explicit SerializedPublisher(std::shared_ptr<rclcpp::GenericPublisher> impl)
+  : impl_(std::move(impl)),
+    publish_method_pointer_(static_cast<decltype(publish_method_pointer_)>(
+        &rclcpp::GenericPublisher::publish))
+  {}
+
+  void publish(const rclcpp::SerializedMessage & message)
+  {
+    ((*impl_).*publish_method_pointer_)(message);  // this is a bit horrible, but it works ...
+  }
+
+private:
+  std::shared_ptr<rclcpp::PublisherBase> impl_;
+  using PointerToMemberMethod =
+    void (rclcpp::PublisherBase::*)(const rclcpp::SerializedMessage & message);
+  PointerToMemberMethod publish_method_pointer_;
+};
 
 /// Implementation of \ref DomainBridge.
 class DomainBridgeImpl
@@ -51,14 +90,28 @@ public:
   using TopicBridgeMap = std::map<
     TopicBridge,
     std::pair<
-      std::shared_ptr<rclcpp::GenericPublisher>,
-      std::shared_ptr<rclcpp::GenericSubscription>>>;
+      std::shared_ptr<SerializedPublisher>,
+      std::shared_ptr<rclcpp::SubscriptionBase>>>;
   using TypesupportMap = std::unordered_map<
     std::string, std::shared_ptr<rcpputils::SharedLibrary>>;
 
   explicit DomainBridgeImpl(const DomainBridgeOptions & options)
   : options_(options)
-  {}
+  {
+    switch (options.mode()) {
+      case DomainBridgeOptions::Mode::Decompress:
+        dctx_ = std::unique_ptr<ZSTD_DCtx, size_t (*)(ZSTD_DCtx *)>(
+          ZSTD_createDCtx(),
+          ZSTD_freeDCtx);
+        break;
+      case DomainBridgeOptions::Mode::Compress:
+        cctx_ = std::unique_ptr<ZSTD_CCtx, size_t (*)(ZSTD_CCtx *)>(
+          ZSTD_createCCtx(),
+          ZSTD_freeCCtx);
+      default:
+        break;
+    }
+  }
 
   ~DomainBridgeImpl() = default;
 
@@ -86,6 +139,9 @@ public:
 
     // If we don't already have a node for the domain, create one
     if (node_map_.end() == domain_id_node_pair) {
+      if (options_.on_new_domain_callback_) {
+        options_.on_new_domain_callback_(domain_id);
+      }
       auto context = create_context_with_domain_id(domain_id);
       auto node_options = create_node_options(context);
       std::ostringstream oss;
@@ -109,35 +165,87 @@ public:
       type, "rosidl_typesupport_cpp");
   }
 
-  std::shared_ptr<rclcpp::GenericPublisher> create_publisher(
+  std::shared_ptr<SerializedPublisher>
+  create_publisher(
     rclcpp::Node::SharedPtr node,
     const std::string & topic_name,
     const std::string & type,
     const rclcpp::QoS & qos,
     rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> & options)
   {
-    auto publisher = node->create_generic_publisher(topic_name, type, qos, options);
+    std::shared_ptr<SerializedPublisher> publisher;
+    if (options_.mode() != DomainBridgeOptions::Mode::Compress) {
+      publisher = std::make_shared<SerializedPublisher>(
+        node->create_generic_publisher(topic_name, type, qos, options));
+    } else {
+      publisher = std::make_shared<SerializedPublisher>(
+        node->create_publisher<domain_bridge::msg::CompressedMsg>(topic_name, qos, options));
+    }
     return publisher;
   }
 
-  std::shared_ptr<rclcpp::GenericSubscription> create_subscription(
+  std::shared_ptr<rclcpp::SubscriptionBase> create_subscription(
     rclcpp::Node::SharedPtr node,
-    std::shared_ptr<rclcpp::GenericPublisher> publisher,
+    std::shared_ptr<SerializedPublisher> publisher,
     const std::string & topic_name,
     const std::string & type,
     const rclcpp::QoS & qos,
     rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> & options)
   {
-    auto subscription = node->create_generic_subscription(
+    std::function<void(std::shared_ptr<rclcpp::SerializedMessage>)> callback;
+    switch (options_.mode()) {
+      case DomainBridgeOptions::Mode::Compress:
+        callback = [
+          serializer = rclcpp::Serialization<domain_bridge::msg::CompressedMsg>{},
+          publisher,
+          cctx = cctx_.get()
+          ](std::shared_ptr<rclcpp::SerializedMessage> msg)
+          {
+            // Publish message into the other domain
+            domain_bridge::msg::CompressedMsg compressed_msg;
+            compressed_msg.data = domain_bridge::compress_message(cctx, std::move(*msg));
+            rclcpp::SerializedMessage serialized_compressed_msg;
+            serializer.serialize_message(&compressed_msg, &serialized_compressed_msg);
+            publisher->publish(serialized_compressed_msg);
+          };
+        break;
+      case DomainBridgeOptions::Mode::Decompress:
+        callback = [
+          serializer = rclcpp::Serialization<domain_bridge::msg::CompressedMsg>{},
+          publisher,
+          dctx = dctx_.get()
+          ](std::shared_ptr<rclcpp::SerializedMessage> serialized_compressed_msg)
+          {
+            // Publish message into the other domain
+            domain_bridge::msg::CompressedMsg compressed_msg;
+            serializer.deserialize_message(serialized_compressed_msg.get(), &compressed_msg);
+            rclcpp::SerializedMessage msg = domain_bridge::decompress_message(
+              dctx, std::move(compressed_msg.data));
+            publisher->publish(msg);
+          };
+        break;
+      default:  // fallthrough
+      case DomainBridgeOptions::Mode::Normal:
+        callback = [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
+            // Publish message into the other domain
+            publisher->publish(*msg);
+          };
+        break;
+    }
+    if (options_.mode() != DomainBridgeOptions::Mode::Decompress) {
+      // Create subscription
+      return node->create_generic_subscription(
+        topic_name,
+        type,
+        qos,
+        callback,
+        options);
+    }
+    return node->create_subscription<domain_bridge::msg::CompressedMsg>(
       topic_name,
-      type,
       qos,
-      [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
-        // Publish message into the other domain
-        publisher->publish(*msg);
-      },
+      callback,
       options);
-    return subscription;
   }
 
   void bridge_topic(
@@ -159,6 +267,14 @@ public:
     const std::string & type = topic_bridge.type_name;
     const std::size_t & from_domain_id = topic_bridge.from_domain_id;
     const std::size_t & to_domain_id = topic_bridge.to_domain_id;
+
+    // Ensure 'to' domain and 'from' domain are not equal
+    if (to_domain_id == from_domain_id) {
+      std::cerr << "Cannot bridge topic '" << topic << "' from domain " <<
+        std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) <<
+        ". Domain IDs must be different." << std::endl;
+      return;
+    }
 
     // Validate type name by loading library support (if not already loaded)
     // Front-loading let's us fail early on invalid type names
@@ -291,6 +407,11 @@ public:
 
   /// QoS event handler
   WaitForQosHandler wait_for_qos_handler_;
+
+  // Warn: The destruction order does matter here!
+  // The subscription are capturing the raw pointer!
+  std::unique_ptr<ZSTD_DCtx, size_t (*)(ZSTD_DCtx *)> dctx_{nullptr, &ZSTD_freeDCtx};
+  std::unique_ptr<ZSTD_CCtx, size_t (*)(ZSTD_CCtx *)> cctx_{nullptr, &ZSTD_freeCCtx};
 };  // class DomainBridgeImpl
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)

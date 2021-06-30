@@ -171,6 +171,20 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
     default_to_domain = config["to_domain"].as<std::size_t>();
     is_default_to_domain = true;
   }
+  if (config["mode"]) {
+    try {
+      auto mode_str = config["mode"].as<std::string>();
+      if ("compress" == mode_str) {
+        domain_bridge_config.options.mode(DomainBridgeOptions::Mode::Compress);
+      } else if ("decompress" == mode_str) {
+        domain_bridge_config.options.mode(DomainBridgeOptions::Mode::Decompress);
+      } else if ("normal" != mode_str) {
+        throw YamlParsingError(file_path, "unsupported mode value '" + mode_str + "'");
+      }
+    } catch (const YAML::BadConversion &) {
+      throw YamlParsingError(file_path, "mode must be an string");
+    }
+  }
 
   if (config["topics"]) {
     if (config["topics"].Type() != YAML::NodeType::Map) {
