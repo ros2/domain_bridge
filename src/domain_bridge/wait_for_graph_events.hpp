@@ -281,53 +281,56 @@ private:
             if (t.shutting_down) {
               return;
             }
-            // Check if a matching service server was found
-            auto it = t.service_callback_vec.begin();
-            while (it != t.service_callback_vec.end()) {
-              if (it->client->service_is_ready()) {
-                it->cb();
-                it = t.service_callback_vec.erase(it);
-              } else {
-                ++it;
+            {
+              // Check if a matching service server was found
+              auto it = t.service_callback_vec.begin();
+              while (it != t.service_callback_vec.end()) {
+                if (it->client->service_is_ready()) {
+                  it->cb();
+                  it = t.service_callback_vec.erase(it);
+                } else {
+                  ++it;
+                }
               }
             }
-
-            // Check if QoS is ready for any of the topics
-            for (auto it = t.topic_callback_vec.begin(); it != t.topic_callback_vec.end(); ++it) {
-              const std::string & topic = it->topic;
-              const auto & callback = it->cb;
-              std::optional<QosMatchInfo> opt_qos;
-              try {
-                opt_qos = this->get_topic_qos(topic, node);
-              } catch (const rclcpp::exceptions::RCLError & ex) {
-                // If the context was shutdown, then exit cleanly
-                // This can happen if we get a SIGINT
-                const auto context = node->get_node_options().context();
-                if (!context->is_valid()) {
-                  return;
+            {
+              // Check if QoS is ready for any of the topics
+              auto it = t.topic_callback_vec.begin();
+              while (it != t.topic_callback_vec.end()) {
+                const std::string & topic = it->topic;
+                const auto & callback = it->cb;
+                std::optional<QosMatchInfo> opt_qos;
+                try {
+                  opt_qos = this->get_topic_qos(topic, node);
+                } catch (const rclcpp::exceptions::RCLError & ex) {
+                  // If the context was shutdown, then exit cleanly
+                  // This can happen if we get a SIGINT
+                  const auto context = node->get_node_options().context();
+                  if (!context->is_valid()) {
+                    return;
+                  }
+                  // Otherwise, don't crash if there was a hiccup querying the topic endpoint
+                  // Log an error instead
+                  std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
+                    std::endl;
                 }
-                // Otherwise, don't crash if there was a hiccup querying the topic endpoint
-                // Log an error instead
-                std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
-                  std::endl;
-              }
 
-              if (opt_qos) {
-                const QosMatchInfo & qos = opt_qos.value();
-                callback(qos);
-                it = t.topic_callback_vec.erase(it);
-                --it;
+                if (opt_qos) {
+                  const QosMatchInfo & qos = opt_qos.value();
+                  callback(qos);
+                  it = t.topic_callback_vec.erase(it);
+                } else {
+                  ++it;
+                }
               }
             }
 
             // It's only worth continuing if we have callbacks to handle
             // or we're shutting down
-            {
-              t.cv.wait(
-                lock,
-                [&t]
-                {return (t.topic_callback_vec.size() > 0u) || t.shutting_down;});
-            }
+            t.cv.wait(
+              lock,
+              [&t]
+              {return (t.topic_callback_vec.size() > 0u) || t.shutting_down;});
           }
         }
       };
