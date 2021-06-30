@@ -162,7 +162,7 @@ public:
 
   void
   add_service_bridge(
-    rclcpp::Node::SharedPtr node,
+    const rclcpp::Node::SharedPtr & node,
     detail::ServiceBridge service_bridge,
     std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
     std::shared_ptr<rclcpp::ClientBase> client)
@@ -171,7 +171,7 @@ public:
       std::move(service_bridge), nullptr, client);
     wait_for_graph_events_.register_on_server_ready_callback(
       std::move(client),
-      std::move(node),
+      node,
       [
         & service = std::get<0>(it_emplaced_pair.first->second),
         create_service = std::move(create_service)]()
@@ -461,13 +461,13 @@ is_bridging_service(const DomainBridgeImpl & impl, const detail::ServiceBridge &
 void
 add_service_bridge(
   DomainBridgeImpl & impl,
-  rclcpp::Node::SharedPtr node,
+  const rclcpp::Node::SharedPtr & node,
   ServiceBridge service_bridge,
   std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
   std::shared_ptr<rclcpp::ClientBase> client)
 {
   return impl.add_service_bridge(
-    std::move(node), std::move(service_bridge), std::move(create_service), std::move(client));
+    node, std::move(service_bridge), std::move(create_service), std::move(client));
 }
 
 const std::string &

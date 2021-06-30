@@ -58,7 +58,7 @@ is_bridging_service(
 void
 add_service_bridge(
   DomainBridgeImpl & impl,
-  rclcpp::Node::SharedPtr node,
+  const rclcpp::Node::SharedPtr & node,
   ServiceBridge service_bridge,
   std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
   std::shared_ptr<rclcpp::ClientBase> client);
@@ -226,7 +226,7 @@ DomainBridge::bridge_service(
   };
 
   detail::add_service_bridge(
-    *impl_, std::move(from_domain_node), service_bridge, create_service_cb, client);
+    *impl_, from_domain_node, service_bridge, create_service_cb, client);
 }
 
 }  // namespace domain_bridge

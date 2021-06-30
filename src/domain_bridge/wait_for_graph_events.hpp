@@ -91,7 +91,7 @@ public:
    */
   void register_on_server_ready_callback(
     rclcpp::ClientBase::SharedPtr client,
-    rclcpp::Node::SharedPtr node,
+    const rclcpp::Node::SharedPtr & node,
     std::function<void()> callback)
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -119,12 +119,12 @@ public:
    *   If QoS settings are already available, then the callback is called immediately.
    */
   void register_on_publisher_qos_ready_callback(
-    std::string topic,
-    rclcpp::Node::SharedPtr node,
+    const std::string & topic,
+    const rclcpp::Node::SharedPtr & node,
     std::function<void(const QosMatchInfo)> callback)
   {
     // If the QoS is already avaiable, trigger the callback immediately
-    auto opt_qos = get_topic_qos(topic, node);
+    auto opt_qos = get_topic_qos(topic, *node);
     if (opt_qos) {
       const QosMatchInfo & qos = opt_qos.value();
       callback(qos);
@@ -182,7 +182,8 @@ private:
    *
    * If there are no publishers, then no QoS is returned (i.e. the optional object is not set).
    */
-  std::optional<QosMatchInfo> get_topic_qos(std::string topic, rclcpp::Node::SharedPtr node) const
+  std::optional<QosMatchInfo> get_topic_qos(
+    const std::string & topic, rclcpp::Node & node) const
   {
     // TODO(jacobperron): replace this with common implementation when it is available.
     //       See: https://github.com/ros2/rosbag2/issues/601
@@ -192,7 +193,7 @@ private:
 
     // Query QoS info for publishers
     std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
-      node->get_publishers_info_by_topic(topic);
+      node.get_publishers_info_by_topic(topic);
     std::size_t num_endpoints = endpoint_info_vec.size();
 
     // If there are no publishers, return an empty optional
@@ -236,7 +237,7 @@ private:
     if (reliable_count > 0u && reliable_count != num_endpoints) {
       result_qos.qos.best_effort();
       std::string warning = "Some, but not all, publishers on topic '" + topic +
-        "' on domain ID " + std::to_string(node->get_node_options().context()->get_domain_id()) +
+        "' on domain ID " + std::to_string(node.get_node_options().context()->get_domain_id()) +
         " offer 'reliable' reliability. Falling back to 'best effort' reliability in order "
         "to connect to all publishers.";
       result_qos.warnings.push_back(warning);
@@ -247,7 +248,7 @@ private:
     if (transient_local_count > 0u && transient_local_count != num_endpoints) {
       result_qos.qos.durability_volatile();
       std::string warning = "Some, but not all, publishers on topic '" + topic +
-        "' on domain ID " + std::to_string(node->get_node_options().context()->get_domain_id()) +
+        "' on domain ID " + std::to_string(node.get_node_options().context()->get_domain_id()) +
         " offer 'transient local' durability. Falling back to 'volatile' durability in order "
         "to connect to all publishers.";
       result_qos.warnings.push_back(warning);
@@ -264,7 +265,7 @@ private:
   {
     auto invoke_callback_when_qos_ready = [
       this,
-      node,
+      node = std::move(node),
       &t]()
       {
         auto event = node->get_graph_event();
@@ -301,7 +302,7 @@ private:
                 const auto & callback = it->cb;
                 std::optional<QosMatchInfo> opt_qos;
                 try {
-                  opt_qos = this->get_topic_qos(topic, node);
+                  opt_qos = this->get_topic_qos(topic, *node);
                 } catch (const rclcpp::exceptions::RCLError & ex) {
                   // If the context was shutdown, then exit cleanly
                   // This can happen if we get a SIGINT
