@@ -24,6 +24,7 @@ find_package(rosbag2_cpp REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 
 add_library(${PROJECT_NAME} SHARED
+  src/${PROJECT_NAME}/component_manager.cpp
   src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
   src/${PROJECT_NAME}/parse_domain_bridge_yaml_config.cpp
