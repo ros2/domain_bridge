@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
 #include <sstream>
 #include <string>
 
@@ -20,6 +21,10 @@
 
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
+
+constexpr char kCompressModeStr[] = "compress";
+constexpr char kDecompressModeStr[] = "decompress";
+constexpr char kNormalModeStr[] = "normal";
 
 void help()
 {
@@ -35,6 +40,11 @@ void help()
     std::endl <<
     "    --to TO_DOMAIN_ID        All data will be bridged to this domain ID.  " << std::endl <<
     "                             This overrides any domain IDs set in the YAML file." <<
+    std::endl <<
+    "    --mode MODE_STR          Specify the bridge mode, valid values: '" << kCompressModeStr <<
+    "', '" << kDecompressModeStr << "' or '" << kNormalModeStr << "'.  " << std::endl <<
+    "                             This overrides any mode set in the YAML file." << std::endl <<
+    "                             Defaults to '" << kNormalModeStr << "'." <<
     std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
@@ -59,6 +69,7 @@ int main(int argc, char ** argv)
   // Get options
   const char * from_domain_opt = rcutils_cli_get_option(argv, argv + argc, "--from");
   const char * to_domain_opt = rcutils_cli_get_option(argv, argv + argc, "--to");
+  const char * mode_opt = rcutils_cli_get_option(argv, argv + argc, "--mode");
   std::size_t from_domain = 0u;
   if (from_domain_opt) {
     std::istringstream iss(from_domain_opt);
@@ -79,6 +90,20 @@ int main(int argc, char ** argv)
       return 1;
     }
   }
+  domain_bridge::DomainBridgeOptions::Mode mode = domain_bridge::DomainBridgeOptions::Mode::Normal;
+  if (mode_opt) {
+    if (0 == std::strncmp(mode_opt, kCompressModeStr, sizeof(kCompressModeStr))) {
+      mode = domain_bridge::DomainBridgeOptions::Mode::Compress;
+    } else if (0 == std::strncmp(mode_opt, kDecompressModeStr, sizeof(kDecompressModeStr))) {
+      mode = domain_bridge::DomainBridgeOptions::Mode::Decompress;
+    } else if (0 == std::strncmp(mode_opt, kNormalModeStr, sizeof(kNormalModeStr))) {
+      mode = domain_bridge::DomainBridgeOptions::Mode::Normal;
+    } else {
+      std::cerr << "error: Invalid '--mode' option '" <<
+        mode_opt << "'" << std::endl;
+      return 1;
+    }
+  }
 
   std::string yaml_config = argv[argc - 1];
   domain_bridge::DomainBridgeConfig domain_bridge_config =
@@ -93,7 +118,9 @@ int main(int argc, char ** argv)
       topic_option_pair.first.to_domain_id = to_domain;
     }
   }
-
+  if (mode_opt) {
+    domain_bridge_config.options.mode(mode);
+  }
   domain_bridge::DomainBridge domain_bridge(domain_bridge_config);
 
   rclcpp::executors::SingleThreadedExecutor executor;
