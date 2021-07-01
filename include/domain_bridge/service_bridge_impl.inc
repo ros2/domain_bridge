@@ -17,7 +17,6 @@
 #include <string>
 #include <utility>
 
-// #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/client.hpp"
 #include "rclcpp/node.hpp"
 #include "rclcpp/service.hpp"
