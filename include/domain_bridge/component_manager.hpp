@@ -17,6 +17,7 @@
 
 #include "rclcpp_components/component_manager.hpp"
 
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
@@ -37,6 +38,9 @@ protected:
     std::vector<rclcpp::Parameter> parameters,
     std::vector<std::string> remap_rules,
     const std::shared_ptr<LoadNode::Request> request);
+
+private:
+  std::map<std::size_t, std::shared_ptr<rclcpp::Context>> contexts_;
 };
 
 }  // namespace domain_bridge

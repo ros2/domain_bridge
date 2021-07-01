@@ -50,11 +50,16 @@ ComponentManager::SetNodeOptions(
                 "Extra component argument 'domain_id' must be a positive integer");
       }
       std::size_t domain_id = extra_argument.get_value<std::size_t>();
-      auto context = std::make_shared<rclcpp::Context>();
-      rclcpp::InitOptions init_options;
-      init_options.auto_initialize_logging(false).set_domain_id(domain_id);
-      context->init(0, nullptr, init_options);
-      options.context(context);
+
+      if (contexts_.find(domain_id) == contexts_.end() ) {
+        // if context does not already exist for given domain id, create one
+        auto context = std::make_shared<rclcpp::Context>();
+        rclcpp::InitOptions init_options;
+        init_options.auto_initialize_logging(false).set_domain_id(domain_id);
+        context->init(0, nullptr, init_options);
+        contexts_[domain_id] = context;
+      }
+      options.context(contexts_[domain_id]);
     }
   }
 
