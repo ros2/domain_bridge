@@ -76,7 +76,7 @@ target_link_libraries(${PROJECT_NAME}_exec
 find_package(rti_connext_dds_cmake_module QUIET)
 find_package(rcpputils QUIET)
 
-set(targets ${PROJECT_NAME}_lib ${PROJECT_NAME}_exec)
+set(executables ${PROJECT_NAME}_exec)
 
 if(rti_connext_dds_cmake_module_FOUND AND rcpputils_FOUND)
   rti_find_connextpro()
@@ -94,7 +94,7 @@ if(rti_connext_dds_cmake_module_FOUND AND rcpputils_FOUND)
     ament_target_dependencies(${PROJECT_NAME}_rti_exec
       rcpputils
     )
-    list(APPEND targets ${PROJECT_NAME}_rti_exec)
+    list(APPEND executables ${PROJECT_NAME}_rti_exec)
   endif()
 endif()
 
@@ -102,7 +102,14 @@ install(DIRECTORY include/
   DESTINATION include
 )
 
-install(TARGETS ${targets}
+install(TARGETS ${executables}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS ${PROJECT_NAME}_lib
+  EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
@@ -112,13 +119,14 @@ install(DIRECTORY examples launch
   DESTINATION share/${PROJECT_NAME}
 )
 
-ament_export_include_directories(include)
-ament_export_libraries(${PROJECT_NAME}_lib)
+ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   rclcpp
   rosbag2_cpp
   rcutils
   yaml_cpp_vendor
+  zstd_vendor
+  zstd
 )
 
 if(BUILD_TESTING)
