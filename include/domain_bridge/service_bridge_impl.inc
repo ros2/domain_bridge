@@ -32,23 +32,10 @@
 namespace domain_bridge
 {
 
-struct ServiceBridgeImpl
-{
-  using ServiceBridgeMap = std::map<
-    std::tuple<std::string, size_t, size_t>,  // service_name, from_domain_id, to_domain_id
-    std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
-
-  /// Set of bridged topics
-  ServiceBridgeMap bridged_services_;
-};
-
 namespace detail
 {
 // service_name, from_domain_id, to_domain_id
 using ServiceBridge = std::tuple<std::string, size_t, size_t>;
-using ServiceBridgeMap = std::map<
-  ServiceBridge,
-  std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
 
 bool
 is_bridging_service(

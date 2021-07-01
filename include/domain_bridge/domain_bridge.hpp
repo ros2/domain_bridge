@@ -32,7 +32,6 @@ namespace domain_bridge
 {
 
 class DomainBridgeImpl;
-class ServiceBridgeImpl;
 
 /// Bridge ROS entities across different domains.
 /**

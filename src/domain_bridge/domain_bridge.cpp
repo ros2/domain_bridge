@@ -92,6 +92,9 @@ public:
     std::pair<
       std::shared_ptr<SerializedPublisher>,
       std::shared_ptr<rclcpp::SubscriptionBase>>>;
+  using ServiceBridgeMap = std::map<
+    detail::ServiceBridge,
+    std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
   using TypesupportMap = std::unordered_map<
     std::string, std::shared_ptr<rcpputils::SharedLibrary>>;
 
@@ -430,7 +433,7 @@ public:
   TopicBridgeMap bridged_topics_;
 
   /// Set of bridged services
-  detail::ServiceBridgeMap bridged_services_;
+  ServiceBridgeMap bridged_services_;
 
   /// Cache of typesupport libraries
   TypesupportMap loaded_typesupports_;
