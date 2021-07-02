@@ -196,8 +196,8 @@ DomainBridge::bridge_service(
       });
     };
 
-  // Create a service for the 'to_domain'
-  // The client should be created first so it is available to the service callback
+  // A service for the 'to_domain' will be created when we detect there is a service running in
+  // the 'from_domain'.
   auto create_service_cb = [
     to_domain_node = std::move(to_domain_node),
     service_remapped = std::move(service_remapped),
