@@ -39,15 +39,17 @@ ComponentManager::CreateNodeOptions(const std::shared_ptr<LoadNode::Request> req
       }
       std::size_t domain_id = extra_argument.get_value<std::size_t>();
 
-      if (contexts_.find(domain_id) == contexts_.end() ) {
+      auto it = contexts_.find(domain_id);
+      if (it == contexts_.end()) {
         // if context does not already exist for given domain id, create one
         auto context = std::make_shared<rclcpp::Context>();
         rclcpp::InitOptions init_options;
         init_options.auto_initialize_logging(false).set_domain_id(domain_id);
         context->init(0, nullptr, init_options);
-        contexts_[domain_id] = context;
+        auto it_emplaced_pair = contexts_.emplace(domain_id, context);
+        it = it_emplaced_pair.first;
       }
-      options.context(contexts_[domain_id]);
+      options.context(it->second);
     }
   }
 
