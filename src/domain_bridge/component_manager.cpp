@@ -24,25 +24,13 @@ namespace domain_bridge
 {
 
 rclcpp::NodeOptions
-ComponentManager::SetNodeOptions(
-  std::vector<rclcpp::Parameter> parameters,
-  std::vector<std::string> remap_rules,
-  const std::shared_ptr<LoadNode::Request> request)
+ComponentManager::CreateNodeOptions(const std::shared_ptr<LoadNode::Request> request)
 {
-  auto options = rclcpp::NodeOptions()
-    .use_global_arguments(false)
-    .parameter_overrides(parameters)
-    .arguments(remap_rules);
+  auto options = rclcpp_components::ComponentManager::CreateNodeOptions(request);
 
   for (const auto & a : request->extra_arguments) {
     const rclcpp::Parameter extra_argument = rclcpp::Parameter::from_parameter_msg(a);
-    if (extra_argument.get_name() == "use_intra_process_comms") {
-      if (extra_argument.get_type() != rclcpp::ParameterType::PARAMETER_BOOL) {
-        throw rclcpp_components::ComponentManagerException(
-                "Extra component argument 'use_intra_process_comms' must be a boolean");
-      }
-      options.use_intra_process_comms(extra_argument.get_value<bool>());
-    } else if (extra_argument.get_name() == "domain_id") {
+    if (extra_argument.get_name() == "domain_id") {
       if (extra_argument.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER ||
         extra_argument.get_value<int>() < 0)
       {
