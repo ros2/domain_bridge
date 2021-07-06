@@ -18,9 +18,7 @@
 #include "rclcpp_components/component_manager.hpp"
 
 #include <memory>
-#include <string>
 #include <unordered_map>
-#include <vector>
 
 #include "domain_bridge/visibility_control.hpp"
 
@@ -33,8 +31,8 @@ class ComponentManager : public rclcpp_components::ComponentManager
 
 protected:
   DOMAIN_BRIDGE_PUBLIC
-  virtual rclcpp::NodeOptions
-  CreateNodeOptions(const std::shared_ptr<LoadNode::Request> request);
+  rclcpp::NodeOptions
+  CreateNodeOptions(const std::shared_ptr<LoadNode::Request> request) override;
 
 private:
   std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Context>> contexts_;
