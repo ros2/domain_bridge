@@ -15,10 +15,6 @@
 #include "domain_bridge/component_manager.hpp"
 
 #include <memory>
-#include <string>
-#include <vector>
-
-using namespace std::placeholders;
 
 namespace domain_bridge
 {

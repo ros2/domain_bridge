@@ -71,6 +71,9 @@ add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
 )
 
+ament_target_dependencies(${PROJECT_NAME}_exec
+  "rclcpp_components")
+
 set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
 
 target_link_libraries(${PROJECT_NAME}_exec
