@@ -34,10 +34,7 @@ class ComponentManager : public rclcpp_components::ComponentManager
 protected:
   DOMAIN_BRIDGE_PUBLIC
   virtual rclcpp::NodeOptions
-  SetNodeOptions(
-    std::vector<rclcpp::Parameter> parameters,
-    std::vector<std::string> remap_rules,
-    const std::shared_ptr<LoadNode::Request> request);
+  CreateNodeOptions(const std::shared_ptr<LoadNode::Request> request);
 
 private:
   std::map<std::size_t, std::shared_ptr<rclcpp::Context>> contexts_;
