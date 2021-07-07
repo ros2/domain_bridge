@@ -12,12 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <sstream>
-#include <string>
-
 #include "rclcpp/executors/single_threaded_executor.hpp"
 #include "rcpputils/scope_exit.hpp"
-#include "rcutils/cmdline_parser.h"
 #include "rcutils/env.h"
 
 #include "ndds/ndds_c.h"
