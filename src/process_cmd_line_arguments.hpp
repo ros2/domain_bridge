@@ -117,6 +117,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       continue;
     }
     if (arg == "--mode") {
+      if (mode) {
+        std::cerr << "error: --mode option passed more than once" << std::endl;
+        print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       ++it;
       const auto & mode_str = *it;
       if (mode_str == kCompressModeStr) {
