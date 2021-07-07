@@ -133,7 +133,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       continue;
     }
     if (yaml_config) {
-      std::cerr << "error: Can only specified one yaml configuration file '" <<
+      std::cerr << "error: Can only specify one yaml configuration file '" <<
         *it << "'" << std::endl;
       return std::make_pair(std::nullopt, 1);
     }
