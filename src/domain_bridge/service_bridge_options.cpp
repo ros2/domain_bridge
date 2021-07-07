@@ -12,45 +12,39 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "domain_bridge/domain_bridge_options.hpp"
+#include "domain_bridge/service_bridge_options.hpp"
 
-#include <functional>
+#include <memory>
 #include <string>
-#include <utility>
+
+#include "rclcpp/callback_group.hpp"
 
 namespace domain_bridge
 {
 
+std::shared_ptr<rclcpp::CallbackGroup>
+ServiceBridgeOptions::callback_group() const
+{
+  return callback_group_;
+}
+
+ServiceBridgeOptions &
+ServiceBridgeOptions::callback_group(std::shared_ptr<rclcpp::CallbackGroup> group)
+{
+  callback_group_ = group;
+  return *this;
+}
+
 const std::string &
-DomainBridgeOptions::name() const
+ServiceBridgeOptions::remap_name() const
 {
-  return this->name_;
+  return remap_name_;
 }
 
-DomainBridgeOptions &
-DomainBridgeOptions::name(std::string name)
+ServiceBridgeOptions &
+ServiceBridgeOptions::remap_name(const std::string & remap_name)
 {
-  this->name_ = name;
-  return *this;
-}
-
-DomainBridgeOptions::Mode
-DomainBridgeOptions::mode() const
-{
-  return mode_;
-}
-
-DomainBridgeOptions &
-DomainBridgeOptions::mode(DomainBridgeOptions::Mode mode)
-{
-  mode_ = mode;
-  return *this;
-}
-
-DomainBridgeOptions &
-DomainBridgeOptions::on_new_domain_callback(std::function<void(size_t)> callback)
-{
-  this->on_new_domain_callback_ = std::move(callback);
+  remap_name_ = remap_name;
   return *this;
 }
 

@@ -63,7 +63,7 @@ public:
 
   /// Get the name of the domain bridge.
   DOMAIN_BRIDGE_PUBLIC
-  std::string
+  const std::string &
   name() const;
 
   /// Set the name of the domain bridge.

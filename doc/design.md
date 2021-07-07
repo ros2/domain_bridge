@@ -305,3 +305,19 @@ Pros:
 Cons:
 - Not obvious how to handle missing messages during subscription re-creation
 - Substantially more complex to implement.
+
+### Bridging service
+
+It is not currently possible to create a service or client with only the type name and topic name, thus we cannot bridge services dynamically from a configuration file.
+It is possible though to do that statically, by using the `bridge_service()` template method:
+
+```cpp
+  domain_bridge::DomainBridge bridge;
+  bridge.bridge_service<example_interfaces::srv::AddTwoInts>("add_two_ints", domain_1, domain_2);
+```
+
+That will bridge a service server from the domain `domain_1` to the domain `domain_2`, as shown in the following diagram:
+
+![](service_example.png)
+
+You can create your own executable based in the one in `src/domain_bridge.cpp`, allowing your node to bridge topics based on a configuration files and also bridge some predetermined services!!!

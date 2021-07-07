@@ -43,6 +43,16 @@ if(TARGET test_domain_bridge_end_to_end)
   target_link_libraries(test_domain_bridge_end_to_end ${PROJECT_NAME}_lib)
 endif()
 
+ament_add_gmock(test_domain_bridge_services
+  domain_bridge/test_domain_bridge_services.cpp
+)
+if(TARGET test_domain_bridge_services)
+  ament_target_dependencies(test_domain_bridge_services
+    "rclcpp"
+    "test_msgs"
+  )
+  target_link_libraries(test_domain_bridge_services ${PROJECT_NAME}_lib)
+endif()
 
 # Test executable
 add_launch_test(

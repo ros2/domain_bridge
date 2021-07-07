@@ -44,7 +44,7 @@
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
 
-#include "wait_for_qos_handler.hpp"
+#include "wait_for_graph_events.hpp"
 
 namespace domain_bridge
 {
@@ -92,6 +92,9 @@ public:
     std::pair<
       std::shared_ptr<SerializedPublisher>,
       std::shared_ptr<rclcpp::SubscriptionBase>>>;
+  using ServiceBridgeMap = std::map<
+    detail::ServiceBridge,
+    std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
   using TypesupportMap = std::unordered_map<
     std::string, std::shared_ptr<rcpputils::SharedLibrary>>;
 
@@ -152,6 +155,33 @@ public:
     }
 
     return domain_id_node_pair->second;
+  }
+
+  bool
+  is_bridging_service(const detail::ServiceBridge & service_bridge) const
+  {
+    return bridged_services_.find(service_bridge) != bridged_services_.end();
+  }
+
+  void
+  add_service_bridge(
+    const rclcpp::Node::SharedPtr & node,
+    detail::ServiceBridge service_bridge,
+    std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
+    std::shared_ptr<rclcpp::ClientBase> client)
+  {
+    auto it_emplaced_pair = bridged_services_.try_emplace(
+      std::move(service_bridge), nullptr, client);
+    wait_for_graph_events_.register_on_server_ready_callback(
+      std::move(client),
+      node,
+      [
+        & service = std::get<0>(it_emplaced_pair.first->second),
+        create_service = std::move(create_service)]()
+      {
+        service = create_service();
+      }
+    );
   }
 
   /// Load typesupport library into a cache.
@@ -374,7 +404,7 @@ public:
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
-    wait_for_qos_handler_.register_on_publisher_qos_ready_callback(
+    wait_for_graph_events_.register_on_publisher_qos_ready_callback(
       topic, from_domain_node, create_bridge);
   }
 
@@ -402,17 +432,53 @@ public:
   /// Set of bridged topics
   TopicBridgeMap bridged_topics_;
 
+  /// Set of bridged services
+  ServiceBridgeMap bridged_services_;
+
   /// Cache of typesupport libraries
   TypesupportMap loaded_typesupports_;
 
   /// QoS event handler
-  WaitForQosHandler wait_for_qos_handler_;
+  WaitForGraphEvents wait_for_graph_events_;
 
   // Warn: The destruction order does matter here!
   // The subscription are capturing the raw pointer!
   std::unique_ptr<ZSTD_DCtx, size_t (*)(ZSTD_DCtx *)> dctx_{nullptr, &ZSTD_freeDCtx};
   std::unique_ptr<ZSTD_CCtx, size_t (*)(ZSTD_CCtx *)> cctx_{nullptr, &ZSTD_freeCCtx};
 };  // class DomainBridgeImpl
+
+namespace detail
+{
+rclcpp::Node::SharedPtr
+get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id)
+{
+  return impl.get_node_for_domain(domain_id);
+}
+
+bool
+is_bridging_service(const DomainBridgeImpl & impl, const detail::ServiceBridge & service_bridge)
+{
+  return impl.is_bridging_service(service_bridge);
+}
+
+void
+add_service_bridge(
+  DomainBridgeImpl & impl,
+  const rclcpp::Node::SharedPtr & node,
+  ServiceBridge service_bridge,
+  std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
+  std::shared_ptr<rclcpp::ClientBase> client)
+{
+  return impl.add_service_bridge(
+    node, std::move(service_bridge), std::move(create_service), std::move(client));
+}
+
+const std::string &
+get_node_name(const DomainBridgeImpl & impl)
+{
+  return impl.options_.name();
+}
+}  // namespace detail
 
 DomainBridge::DomainBridge(const DomainBridgeOptions & options)
 : impl_(std::make_unique<DomainBridgeImpl>(options))

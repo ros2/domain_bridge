@@ -25,6 +25,7 @@
 #include "domain_bridge/domain_bridge_options.hpp"
 #include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
+#include "domain_bridge/service_bridge_options.hpp"
 #include "domain_bridge/visibility_control.hpp"
 
 namespace domain_bridge
@@ -133,6 +134,20 @@ public:
     const TopicBridge & topic_bridge,
     const TopicBridgeOptions & options = TopicBridgeOptions());
 
+  /// Bridge a service from one domain to another.
+  /**
+   * \param service: Name of the service to be bridged.
+   * \param from_domain_id: Domain id where there is a service server to be bridged.
+   * \param to_domain_id: Domain id where we want to make request to the bridged service.
+   * \param options: Options for bridging the topic.
+   */
+  template<typename ServiceT>
+  void bridge_service(
+    const std::string & service,
+    size_t from_domain_id,
+    size_t to_domain_id,
+    const ServiceBridgeOptions & options = ServiceBridgeOptions());
+
   /// Get bridged topics.
   /**
    * \return Topic bridges created by `bridge_topic()`.
@@ -145,5 +160,8 @@ private:
 };  // class DomainBridge
 
 }  // namespace domain_bridge
+
+// Implementation of the bridge_service() template method.
+#include "domain_bridge/service_bridge_impl.inc"
 
 #endif  // DOMAIN_BRIDGE__DOMAIN_BRIDGE_HPP_
