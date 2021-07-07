@@ -17,6 +17,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
@@ -31,6 +32,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 add_library(${PROJECT_NAME}_lib SHARED
+  src/${PROJECT_NAME}/component_manager.cpp
   src/${PROJECT_NAME}/compress_messages.cpp
   src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
@@ -51,6 +53,7 @@ endif()
 
 ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp
+  rclcpp_components
   rcutils
   rosbag2_cpp
   rosidl_typesupport_cpp
@@ -66,6 +69,9 @@ set_target_properties(${PROJECT_NAME}_lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME}
 add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
 )
+
+ament_target_dependencies(${PROJECT_NAME}_exec
+  "rclcpp_components")
 
 set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
 
@@ -123,6 +129,7 @@ install(DIRECTORY examples launch
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   rclcpp
+  rclcpp_components
   rosbag2_cpp
   rcutils
   yaml_cpp_vendor
