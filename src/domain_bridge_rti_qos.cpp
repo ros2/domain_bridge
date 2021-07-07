@@ -12,6 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <stdexcept>
+#include <string>
+
 #include "rclcpp/executors/single_threaded_executor.hpp"
 #include "rcpputils/scope_exit.hpp"
 #include "rcutils/env.h"
