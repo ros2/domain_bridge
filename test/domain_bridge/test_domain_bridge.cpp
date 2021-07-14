@@ -78,11 +78,6 @@ TEST_F(TestDomainBridge, bridge_topic_valid)
     };
     bridge.bridge_topic(topic_bridge);
   }
-  // Same domain ID
-  {
-    domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 1u);
-  }
   // Topic with namespace
   {
     domain_bridge::DomainBridge bridge;
@@ -126,6 +121,17 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
     domain_bridge::DomainBridge bridge;
     EXPECT_THROW(
       bridge.bridge_topic("foo", "not a valid message type", 1u, 2u), std::runtime_error);
+  }
+  // Same domain ID
+  {
+    testing::internal::CaptureStderr();
+    domain_bridge::DomainBridge bridge;
+    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 1u);
+    std::string stderr_output = testing::internal::GetCapturedStderr();
+    EXPECT_THAT(
+      stderr_output,
+      ::testing::HasSubstr(
+        "Cannot bridge topic '/foo' from domain 1 to domain 1. Domain IDs must be different.\n"));
   }
   // Same bridge twice
   {
@@ -233,18 +239,18 @@ TEST_F(TestDomainBridge, get_bridged_topics)
       {"foo", "test_msgs/msg/BasicTypes", 3u, 2u},
       {"foo", "test_msgs/msg/BasicTypes", 1u, 2u},
       {"foo", "test_msgs/msg/BasicTypes", 2u, 1u},
-      {"foo", "test_msgs/msg/BasicTypes", 2u, 2u},
       {"baz", "test_msgs/msg/Strings", 1u, 2u},
       {"bar", "test_msgs/msg/BasicTypes", 1u, 2u},
+      {"foo", "test_msgs/msg/BasicTypes", 2u, 2u},  // same domain ID
       {"foo", "test_msgs/msg/BasicTypes", 1u, 2u}  // duplicate
     };
     for (const auto & topic_bridge : input) {
       bridge.bridge_topic(topic_bridge);
     }
     auto result = bridge.get_bridged_topics();
-    ASSERT_EQ(result.size(), 6u);  // duplicate entry should not appear
+    ASSERT_EQ(result.size(), 5u);  // duplicate and same domain ID entries should not appear
     // Expect result to be in sorted order
-    std::sort(input.begin(), input.end() - 1);  // - 1 to ignore duplicate
+    std::sort(input.begin(), input.end() - 2);  // - 2 to ignore duplicate and same domain ID
     for (std::size_t i = 0u; i < result.size(); ++i) {
       EXPECT_EQ(result[i].topic_name, input[i].topic_name);
       EXPECT_EQ(result[i].type_name, input[i].type_name);
@@ -252,4 +258,18 @@ TEST_F(TestDomainBridge, get_bridged_topics)
       EXPECT_EQ(result[i].to_domain_id, input[i].to_domain_id);
     }
   }
+}
+
+TEST_F(TestDomainBridge, remap_topic_name_invalid)
+{
+  const std::string topic_name("test_remap_topic_invalid_before");
+  const std::string remap_name("test_remap_topic_1nv@lid_after");
+
+  domain_bridge::DomainBridge bridge;
+  domain_bridge::TopicBridgeOptions topic_bridge_options;
+  topic_bridge_options.remap_name(remap_name);
+  EXPECT_THROW(
+    bridge.bridge_topic(
+      topic_name, "test_msgs/msg/BasicTypes", 0, 2, topic_bridge_options),
+    rclcpp::exceptions::InvalidTopicNameError);
 }
