@@ -21,8 +21,8 @@ topics:
   # Bridge bidirectional "/chatter" topic
   chatter:
     type: example_interfaces/msg/String
-    # Enables bridging from domain ID 2 to domain ID 3 AND from domain ID 3 to domain ID 2
-    reverse: True
+    # Enable bridging from domain ID 2 to domain ID 3 AND from domain ID 3 to domain ID 2
+    bidirectional: True
 
   # Bridge "/chatter" topic from doman ID 2 to domain ID 3, but as "/chitter"
   chatter:

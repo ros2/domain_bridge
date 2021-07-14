@@ -236,6 +236,7 @@ public:
         rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> subscription_options;
 
         // Prevent endless looping on a bidirectional bridge
+        // Note: this may not be supported by all rmw implementations
         subscription_options.ignore_local_publications = true;
 
         publisher_options.callback_group = topic_options.callback_group();

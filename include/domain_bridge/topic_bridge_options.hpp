@@ -37,6 +37,7 @@ public:
    *    - callback_group = nullptr (node's default)
    *    - qos_options = default (see QosOptions for more information)
    *    - remap_name = "" (no remap)
+   *    - bidirectional = false (one-way)
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions() = default;
