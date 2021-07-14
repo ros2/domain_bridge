@@ -43,6 +43,16 @@ if(TARGET test_remap_name)
   target_link_libraries(test_remap_name ${PROJECT_NAME})
 endif()
 
+ament_add_gmock(test_bidirectional_domain_bridge
+  domain_bridge/test_bidirectional_domain_bridge.cpp
+)
+if(TARGET test_bidirectional_domain_bridge)
+  ament_target_dependencies(test_bidirectional_domain_bridge
+    "rclcpp"
+    "test_msgs"
+  )
+  target_link_libraries(test_bidirectional_domain_bridge ${PROJECT_NAME})
+endif()
 
 # Test executable
 add_launch_test(

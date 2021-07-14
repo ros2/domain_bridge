@@ -106,7 +106,7 @@ private:
 
   std::string remap_name_;
 
-  bool bidirectional_;
+  bool bidirectional_{false};
 };  // class TopicBridgeOptions
 
 }  // namespace domain_bridge
