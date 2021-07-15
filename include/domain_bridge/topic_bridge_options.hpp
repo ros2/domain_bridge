@@ -37,6 +37,7 @@ public:
    *    - callback_group = nullptr (node's default)
    *    - qos_options = default (see QosOptions for more information)
    *    - remap_name = "" (no remap)
+   *    - reversed = false
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions() = default;
@@ -74,12 +75,24 @@ public:
   TopicBridgeOptions &
   remap_name(const std::string & remap_name);
 
+  /// Get reversed option.
+  DOMAIN_BRIDGE_PUBLIC
+  const bool &
+  reversed() const;
+
+  /// Set reversed option.
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  reversed(const bool & reversed);
+
 private:
   std::shared_ptr<rclcpp::CallbackGroup> callback_group_{nullptr};
 
   QosOptions qos_options_;
 
   std::string remap_name_;
+
+  bool reversed_{false};
 };  // class TopicBridgeOptions
 
 }  // namespace domain_bridge
