@@ -32,7 +32,7 @@ class ComponentManager : public rclcpp_components::ComponentManager
 protected:
   DOMAIN_BRIDGE_PUBLIC
   rclcpp::NodeOptions
-  CreateNodeOptions(const std::shared_ptr<LoadNode::Request> request) override;
+  create_node_options(const std::shared_ptr<LoadNode::Request> request) override;
 
 private:
   std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Context>> contexts_;

@@ -20,9 +20,9 @@ namespace domain_bridge
 {
 
 rclcpp::NodeOptions
-ComponentManager::CreateNodeOptions(const std::shared_ptr<LoadNode::Request> request)
+ComponentManager::create_node_options(const std::shared_ptr<LoadNode::Request> request)
 {
-  auto options = rclcpp_components::ComponentManager::CreateNodeOptions(request);
+  auto options = rclcpp_components::ComponentManager::create_node_options(request);
 
   for (const auto & a : request->extra_arguments) {
     const rclcpp::Parameter extra_argument = rclcpp::Parameter::from_parameter_msg(a);
