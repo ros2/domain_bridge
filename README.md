@@ -69,6 +69,8 @@ ros2 launch domain_bridge domain_bridge.launch.xml config:=examples/example_brid
 
 You can also override domain IDs with optional launch arguments `from_domain` and `to_domain`.
 
+To enable bidirectional bridging of a topic, set the `bidirectional` argument to `true`.
+
 Here is an example of including the domain bridge launch script into your own:
 
 ```xml
