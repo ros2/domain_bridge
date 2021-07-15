@@ -273,5 +273,6 @@ TEST_F(TestDomainBridgeEndToEnd, create_bidirectional_bridge)
   domain_bridge::DomainBridge bridge(config);
 
   // 'to' domain is 1, but since we are bridging both ways, publisher should also appear on domain 2
+  ASSERT_TRUE(wait_for_publisher(node_1_, topic_name));
   ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
 }
