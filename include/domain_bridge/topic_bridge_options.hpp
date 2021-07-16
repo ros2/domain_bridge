@@ -104,6 +104,7 @@ private:
   std::string remap_name_;
 
   bool bidirectional_{false};
+
   bool reversed_{false};
 };  // class TopicBridgeOptions
 

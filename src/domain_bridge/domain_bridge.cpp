@@ -294,9 +294,20 @@ public:
         topic_options.remap_name(), options_.name(), "/");
     }
 
+    // Prevent using reversed flag and bidirectional flag at the same time
+    if (topic_options.reversed() && topic_options.bidirectional()) {
+      std::cerr << "Topic '" << topic << "' cannot use 'reversed' flag and" <<
+        " 'bidirectional' flag at the same time, ignoring" << std::endl;
+      return;
+    }
+
     const std::string & type = topic_bridge.type_name;
-    const std::size_t & from_domain_id = topic_bridge.from_domain_id;
-    const std::size_t & to_domain_id = topic_bridge.to_domain_id;
+    std::size_t from_domain_id = topic_bridge.from_domain_id;
+    std::size_t to_domain_id = topic_bridge.to_domain_id;
+
+    if (topic_options.reversed()) {
+      std::swap(to_domain_id, from_domain_id);
+    }
 
     // Ensure 'to' domain and 'from' domain are not equal
     if (to_domain_id == from_domain_id) {
