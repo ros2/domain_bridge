@@ -161,6 +161,21 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
         "Topic '/foo' with type 'test_msgs/msg/BasicTypes' already bridged from "
         "domain 1 to domain 2, ignoring\n"));
   }
+  // Reversed and bidirectional
+  {
+    testing::internal::CaptureStderr();
+    domain_bridge::DomainBridge bridge;
+    domain_bridge::TopicBridgeOptions options;
+    options.reversed(true);
+    options.bidirectional(true);
+    bridge.bridge_topic({"foo", "test_msgs/msg/BasicTypes", 1u, 2u}, options);
+    std::string stderr_output = testing::internal::GetCapturedStderr();
+    EXPECT_THAT(
+      stderr_output,
+      ::testing::HasSubstr(
+        "Topic '/foo' cannot use 'reversed' flag and 'bidirectional' flag "
+        "at the same time, ignoring\n"));
+  }
 }
 
 TEST_F(TestDomainBridge, add_to_executor_valid)

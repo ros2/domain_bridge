@@ -276,3 +276,23 @@ TEST_F(TestDomainBridgeEndToEnd, create_bidirectional_bridge)
   ASSERT_TRUE(wait_for_publisher(node_1_, topic_name));
   ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
 }
+
+TEST_F(TestDomainBridgeEndToEnd, create_reversed_bridge)
+{
+  const std::string topic_name("test_reversed");
+
+  // Create a publisher on domain 1
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
+
+  // Bridge the publisher topic in the reversed direction
+  domain_bridge::DomainBridge bridge;
+  domain_bridge::TopicBridgeOptions topic_bridge_options;
+  topic_bridge_options.reversed(true);
+  bridge.bridge_topic(
+    {topic_name, "test_msgs/msg/BasicTypes", kDomain2, kDomain1},
+    topic_bridge_options
+  );
+
+  // 'to' domain is 1, but since the bridge is reversed, publisher should only appear on domain 2
+  ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
+}
