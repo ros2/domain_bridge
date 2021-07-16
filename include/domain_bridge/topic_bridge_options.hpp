@@ -37,6 +37,7 @@ public:
    *    - callback_group = nullptr (node's default)
    *    - qos_options = default (see QosOptions for more information)
    *    - remap_name = "" (no remap)
+   *    - bidirectional = false (one-way)
    *    - reversed = false
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -75,6 +76,16 @@ public:
   TopicBridgeOptions &
   remap_name(const std::string & remap_name);
 
+  /// Get bidirectional option.
+  DOMAIN_BRIDGE_PUBLIC
+  const bool &
+  bidirectional() const;
+
+  /// Set bidirectional option.
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  bidirectional(const bool & bidirectional);
+
   /// Get reversed option.
   DOMAIN_BRIDGE_PUBLIC
   const bool &
@@ -92,6 +103,7 @@ private:
 
   std::string remap_name_;
 
+  bool bidirectional_{false};
   bool reversed_{false};
 };  // class TopicBridgeOptions
 

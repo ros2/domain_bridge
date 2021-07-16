@@ -71,6 +71,8 @@ You can also override domain IDs with optional launch arguments `from_domain` an
 
 To reverse the `from` and `to` domain IDs for a topic, set the `reversed` argument to `true`.
 
+To enable bidirectional bridging of a topic, set the `bidirectional` argument to `true`.
+
 Here is an example of including the domain bridge launch script into your own:
 
 ```xml

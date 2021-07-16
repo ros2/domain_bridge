@@ -122,7 +122,8 @@ TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
       .depth(42u)
       .deadline(123456)
       .lifespan_auto())
-    .remap_name("bar/remapped"),
+    .remap_name("bar/remapped")
+    .bidirectional(true),
     domain_bridge::TopicBridgeOptions().qos_options(
       domain_bridge::QosOptions()
       .deadline_auto()
@@ -146,6 +147,7 @@ TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
     EXPECT_EQ(
       config.topics[i].second.qos_options().depth(), expected[i].qos_options().depth());
     EXPECT_EQ(config.topics[i].second.remap_name(), expected[i].remap_name());
+    EXPECT_EQ(config.topics[i].second.bidirectional(), expected[i].bidirectional());
   }
 }
 

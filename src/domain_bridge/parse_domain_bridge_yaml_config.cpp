@@ -229,6 +229,10 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
       }
       options.qos_options(parse_qos_options(topic_info, file_path));
 
+      if (topic_info["bidirectional"]) {
+        options.bidirectional(topic_info["bidirectional"].as<bool>());
+      }
+
       if (topic_info["reversed"]) {
         options.reversed(topic_info["reversed"].as<bool>());
       }

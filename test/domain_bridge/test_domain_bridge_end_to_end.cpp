@@ -28,6 +28,7 @@
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
 
+#include "wait_for_publisher.hpp"
 
 static constexpr std::size_t kDomain1{1u};
 static constexpr std::size_t kDomain2{2u};
@@ -251,4 +252,27 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
   EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
+}
+
+TEST_F(TestDomainBridgeEndToEnd, create_bidirectional_bridge)
+{
+  const std::string topic_name("test_bidirectional");
+
+  // Create a publisher on domain 1
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
+
+  // Bridge the publisher topic bidirectionally
+  domain_bridge::TopicBridgeOptions topic_bridge_options;
+  topic_bridge_options.bidirectional(true);
+  domain_bridge::DomainBridgeConfig config;
+  config.topics.push_back(
+  {
+    {topic_name, "test_msgs/msg/BasicTypes", kDomain2, kDomain1},
+    topic_bridge_options
+  });
+  domain_bridge::DomainBridge bridge(config);
+
+  // 'to' domain is 1, but since we are bridging both ways, publisher should also appear on domain 2
+  ASSERT_TRUE(wait_for_publisher(node_1_, topic_name));
+  ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
 }

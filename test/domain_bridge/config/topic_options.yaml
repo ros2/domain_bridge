@@ -15,6 +15,7 @@ topics:
       deadline: 123456
       lifespan: auto
     remap: bar/remapped
+    bidirectional: True
   baz:
     type: test_msgs/msg/Empty
     # Trying other values for deadline and lifespan

@@ -307,7 +307,7 @@ public:
     }
 
     // Validate type name by loading library support (if not already loaded)
-    // Front-loading let's us fail early on invalid type names
+    // Front-loading lets us fail early on invalid type names
     load_typesupport_library(type);
 
     // Check if already bridged
@@ -380,6 +380,10 @@ public:
 
         rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> publisher_options;
         rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> subscription_options;
+
+        // Prevent endless looping on a bidirectional bridge
+        // Note: this may not be supported by all rmw implementations
+        subscription_options.ignore_local_publications = true;
 
         publisher_options.callback_group = topic_options.callback_group();
         subscription_options.callback_group = topic_options.callback_group();
@@ -489,6 +493,15 @@ DomainBridge::DomainBridge(const DomainBridgeConfig & config)
 {
   for (const auto & topic_bridge_pair : config.topics) {
     bridge_topic(topic_bridge_pair.first, topic_bridge_pair.second);
+
+    // if topic is bidrectional, bridge it again with the domain IDs swapped
+    if (topic_bridge_pair.second.bidirectional()) {
+      auto reversed_topic_bridge_pair = topic_bridge_pair;
+      std::swap(
+        reversed_topic_bridge_pair.first.from_domain_id,
+        reversed_topic_bridge_pair.first.to_domain_id);
+      bridge_topic(reversed_topic_bridge_pair.first, reversed_topic_bridge_pair.second);
+    }
   }
 }
 
