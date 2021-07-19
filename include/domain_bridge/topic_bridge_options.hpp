@@ -81,7 +81,7 @@ public:
   const bool &
   bidirectional() const;
 
-  /// Set bidirectional option.
+  /// Set bidirectional option. If true, this will bridge the topic in both directions.
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions &
   bidirectional(const bool & bidirectional);
@@ -91,7 +91,7 @@ public:
   const bool &
   reversed() const;
 
-  /// Set reversed option.
+  /// Set reversed option. If true, this will swap the 'to' and 'from' domain IDs.
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions &
   reversed(const bool & reversed);
