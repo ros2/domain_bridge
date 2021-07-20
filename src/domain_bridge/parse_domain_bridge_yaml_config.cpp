@@ -233,6 +233,10 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
         options.bidirectional(topic_info["bidirectional"].as<bool>());
       }
 
+      if (topic_info["reversed"]) {
+        options.reversed(topic_info["reversed"].as<bool>());
+      }
+
       // Add topic bridge to config
       domain_bridge_config.topics.push_back({{topic, type, from_domain_id, to_domain_id}, options});
     }

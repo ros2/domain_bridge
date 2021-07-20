@@ -74,4 +74,17 @@ TopicBridgeOptions::bidirectional(const bool & bidirectional)
   return *this;
 }
 
+const bool &
+TopicBridgeOptions::reversed() const
+{
+  return reversed_;
+}
+
+TopicBridgeOptions &
+TopicBridgeOptions::reversed(const bool & reversed)
+{
+  reversed_ = reversed;
+  return *this;
+}
+
 }  // namespace domain_bridge
