@@ -26,7 +26,13 @@
   <test_depend>launch</test_depend>
   <test_depend>launch_testing</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>rmw_implementation_cmake</test_depend>
   <test_depend>test_msgs</test_depend>
+
+  <!-- Ensure the following Tier 1 RMW implementations are available for testing -->
+  <test_depend>rmw_connextdds</test_depend>
+  <test_depend>rmw_cyclonedds_cpp</test_depend>
+  <test_depend>rmw_fastrtps_cpp</test_depend>
 
   <member_of_group>rosidl_interface_packages</member_of_group>
 
