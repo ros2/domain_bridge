@@ -331,7 +331,11 @@ private:
             t.cv.wait(
               lock,
               [&t]
-              {return (t.topic_callback_vec.size() > 0u) || t.shutting_down;});
+              {
+                return (t.topic_callback_vec.size() > 0u) ||
+                (t.service_callback_vec.size() > 0u) ||
+                t.shutting_down;
+              });
           }
         }
       };
