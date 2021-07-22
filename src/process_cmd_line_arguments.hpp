@@ -69,6 +69,7 @@ parse_size_t_arg(const std::string & arg, const char * error_str)
   }
   return value;
 }
+}  // namespace detail
 
 inline
 std::pair<std::optional<DomainBridgeConfig>, int>
@@ -76,7 +77,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
 {
   if (args.size() < 2) {
     std::cerr << "error: Expected YAML config file" << std::endl;
-    print_help();
+    detail::print_help();
     return std::make_pair(std::nullopt, 1);
   }
   std::optional<size_t> from_domain_id;
@@ -87,17 +88,17 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
     if (arg == "-h" || arg == "--help") {
-      print_help();
+      detail::print_help();
       return std::make_pair(std::nullopt, 0);
     }
     if (arg == "--from") {
       if (from_domain_id) {
         std::cerr << "error: --from option passed more than once" << std::endl;
-        print_help();
+        detail::print_help();
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
-      from_domain_id = parse_size_t_arg(*it, "FROM_DOMAIN_ID");
+      from_domain_id = detail::parse_size_t_arg(*it, "FROM_DOMAIN_ID");
       if (!from_domain_id) {
         return std::make_pair(std::nullopt, 1);
       }
@@ -106,11 +107,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
     if (arg == "--to") {
       if (to_domain_id) {
         std::cerr << "error: --to option passed more than once" << std::endl;
-        print_help();
+        detail::print_help();
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
-      to_domain_id = parse_size_t_arg(*it, "TO_DOMAIN_ID");
+      to_domain_id = detail::parse_size_t_arg(*it, "TO_DOMAIN_ID");
       if (!to_domain_id) {
         return std::make_pair(std::nullopt, 1);
       }
@@ -119,16 +120,16 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
     if (arg == "--mode") {
       if (mode) {
         std::cerr << "error: --mode option passed more than once" << std::endl;
-        print_help();
+        detail::print_help();
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
       const auto & mode_str = *it;
-      if (mode_str == kCompressModeStr) {
+      if (mode_str == detail::kCompressModeStr) {
         mode = domain_bridge::DomainBridgeOptions::Mode::Compress;
-      } else if (mode_str == kDecompressModeStr) {
+      } else if (mode_str == detail::kDecompressModeStr) {
         mode = domain_bridge::DomainBridgeOptions::Mode::Decompress;
-      } else if (mode_str == kNormalModeStr) {
+      } else if (mode_str == detail::kNormalModeStr) {
         mode = domain_bridge::DomainBridgeOptions::Mode::Normal;
       } else {
         std::cerr << "error: Invalid '--mode' option '" <<
@@ -167,7 +168,6 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   }
   return std::make_pair(domain_bridge_config, 0);
 }
-}  // namespace detail
 }  // namespace domain_bridge
 
 #endif  // PROCESS_CMD_LINE_ARGUMENTS_HPP_

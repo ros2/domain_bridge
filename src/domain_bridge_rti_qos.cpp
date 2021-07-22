@@ -36,7 +36,7 @@ int main(int argc, char ** argv)
 {
   auto arguments = rclcpp::init_and_remove_ros_arguments(argc, argv);
 
-  auto config_rc_pair = domain_bridge::detail::process_cmd_line_arguments(arguments);
+  auto config_rc_pair = domain_bridge::process_cmd_line_arguments(arguments);
   if (!config_rc_pair.first || 0 != config_rc_pair.second) {
     return config_rc_pair.second;
   }
