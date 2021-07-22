@@ -55,6 +55,12 @@ print_help()
     "    --help, -h               Print this help message." << std::endl;
 }
 
+/// Parse argument string and return as a size_t
+/**
+ * \param arg argument string
+ * \param error_str argument name to output if parsing fails
+ * \return size_t value
+*/
 inline
 std::optional<size_t>
 parse_size_t_arg(const std::string & arg, const char * error_str)
@@ -71,6 +77,11 @@ parse_size_t_arg(const std::string & arg, const char * error_str)
 }
 }  // namespace detail
 
+/// Parse command line arguments
+/**
+ * \param args vector of argument strings
+ * \return pair containing domain bridge config and status
+*/
 inline
 std::pair<std::optional<DomainBridgeConfig>, int>
 process_cmd_line_arguments(const std::vector<std::string> & args)
