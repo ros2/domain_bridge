@@ -16,8 +16,7 @@
 
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
-
-#include "process_cmd_line_arguments.hpp"
+#include "domain_bridge/process_cmd_line_arguments.hpp"
 
 int main(int argc, char ** argv)
 {

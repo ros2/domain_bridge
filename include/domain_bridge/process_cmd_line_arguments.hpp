@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef PROCESS_CMD_LINE_ARGUMENTS_HPP_
-#define PROCESS_CMD_LINE_ARGUMENTS_HPP_
+#ifndef DOMAIN_BRIDGE__PROCESS_CMD_LINE_ARGUMENTS_HPP_
+#define DOMAIN_BRIDGE__PROCESS_CMD_LINE_ARGUMENTS_HPP_
 
 #include <optional>
 #include <string>
@@ -181,4 +181,4 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
 }
 }  // namespace domain_bridge
 
-#endif  // PROCESS_CMD_LINE_ARGUMENTS_HPP_
+#endif  // DOMAIN_BRIDGE__PROCESS_CMD_LINE_ARGUMENTS_HPP_
