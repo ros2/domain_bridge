@@ -123,7 +123,7 @@ public:
     const rclcpp::Node::SharedPtr & node,
     std::function<void(const QosMatchInfo)> callback)
   {
-    // If the QoS is already avaiable, trigger the callback immediately
+    // If the QoS is already available, trigger the callback immediately
     auto opt_qos = get_topic_qos(topic, *node);
     if (opt_qos) {
       const QosMatchInfo & qos = opt_qos.value();
@@ -199,6 +199,11 @@ private:
     // If there are no publishers, return an empty optional
     if (num_endpoints < 1u) {
       return {};
+    } else {
+      // If we found at least one publisher, wait for a bit (more publishers may become available)
+      std::this_thread::sleep_for(std::chrono::milliseconds(300));
+      endpoint_info_vec = node.get_publishers_info_by_topic(topic);
+      num_endpoints = endpoint_info_vec.size();
     }
 
     // Initialize QoS
@@ -257,7 +262,15 @@ private:
     result_qos.qos.deadline(max_deadline);
     result_qos.qos.lifespan(max_lifespan);
 
-    return result_qos;
+    // If the number of endpoints has changed, get QoS again
+    std::vector<rclcpp::TopicEndpointInfo> new_endpoint_info_vec =
+      node.get_publishers_info_by_topic(topic);
+    std::size_t new_num_endpoints = new_endpoint_info_vec.size();
+    if (num_endpoints != new_num_endpoints) {
+      return get_topic_qos(topic, node);
+    } else {
+      return result_qos;
+    }
   }
 
   std::thread
@@ -278,7 +291,7 @@ private:
 
           {
             std::unique_lock<std::mutex> lock(t.mutex);
-            // If we're shuttdown down, exit the thread
+            // If we're shutting down, exit the thread
             if (t.shutting_down) {
               return;
             }
