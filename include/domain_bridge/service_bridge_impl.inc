@@ -99,7 +99,10 @@ public:
     // send_response(*request_header, *response);
     // ***
     // The hack: forget about sending a response immediately.
-    callback_(this->shared_from_this(), request_header, typed_request);
+    callback_(
+      std::enable_shared_from_this<HackedService<ServiceT>>::shared_from_this(),
+      request_header,
+      typed_request);
   }
 private:
   // any_callback_ is private in service, we will use our own callback implementation.
