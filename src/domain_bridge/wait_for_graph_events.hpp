@@ -197,6 +197,9 @@ private:
     // This implementation is inspired by rosbag2_transport:
     // https://github.com/ros2/rosbag2/blob/master/rosbag2_transport/src/rosbag2_transport/qos.cpp
 
+    // Wait to allow publishers to become available
+    std::this_thread::sleep_for(delay_);
+
     // Query QoS info for publishers
     std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
       node.get_publishers_info_by_topic(topic);
@@ -205,12 +208,6 @@ private:
     // If there are no publishers, return an empty optional
     if (num_endpoints < 1u) {
       return {};
-    } else if (delay_ > std::chrono::milliseconds(0)) {
-      // If we found at least one publisher and a delay time was provided,
-      // wait (more publishers may become available)
-      std::this_thread::sleep_for(delay_);
-      endpoint_info_vec = node.get_publishers_info_by_topic(topic);
-      num_endpoints = endpoint_info_vec.size();
     }
 
     // Initialize QoS
