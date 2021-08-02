@@ -412,6 +412,7 @@ public:
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
+    wait_for_graph_events_.set_delay(topic_options.delay());
     wait_for_graph_events_.register_on_publisher_qos_ready_callback(
       topic, from_domain_node, create_bridge);
   }

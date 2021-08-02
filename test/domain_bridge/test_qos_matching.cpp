@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <limits>
 #include <memory>
 #include <string>
@@ -161,10 +162,14 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   // Second publisher has different QoS
   qos.best_effort().transient_local();
   auto pub_2 = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
+  // Delay creation of bridge to allow both publishers to become available
+  domain_bridge::TopicBridgeOptions bridge_options;
+  bridge_options.delay(std::chrono::milliseconds(1000));
 
   // Bridge the publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);
 
   // Wait for bridge publisher to appear on domain 2
   auto node_2 = std::make_shared<rclcpp::Node>(
@@ -252,6 +257,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
   domain_bridge::QosOptions qos_options;
   qos_options.deadline_auto().lifespan_auto();
   bridge_options.qos_options(qos_options);
+  // Delay creation of bridge to allow both publishers to become available
+  bridge_options.delay(std::chrono::milliseconds(1000));
   domain_bridge::DomainBridge bridge;
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);

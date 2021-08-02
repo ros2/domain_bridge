@@ -87,4 +87,17 @@ TopicBridgeOptions::reversed(const bool & reversed)
   return *this;
 }
 
+const std::chrono::milliseconds &
+TopicBridgeOptions::delay() const
+{
+  return delay_;
+}
+
+TopicBridgeOptions &
+TopicBridgeOptions::delay(const std::chrono::milliseconds & delay)
+{
+  delay_ = delay;
+  return *this;
+}
+
 }  // namespace domain_bridge

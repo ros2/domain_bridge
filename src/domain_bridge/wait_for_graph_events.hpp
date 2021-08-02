@@ -19,6 +19,7 @@
 #include <optional>
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -147,6 +148,11 @@ public:
     t.thread = this->launch_thread(node, t);
   }
 
+  void set_delay(const std::chrono::milliseconds & delay)
+  {
+    delay_ = delay;
+  }
+
 private:
   struct TopicAndCallback
   {
@@ -199,9 +205,10 @@ private:
     // If there are no publishers, return an empty optional
     if (num_endpoints < 1u) {
       return {};
-    } else {
-      // If we found at least one publisher, wait for a bit (more publishers may become available)
-      std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    } else if (delay_ > std::chrono::milliseconds(0)) {
+      // If we found at least one publisher and a delay time was provided,
+      // wait (more publishers may become available)
+      std::this_thread::sleep_for(delay_);
       endpoint_info_vec = node.get_publishers_info_by_topic(topic);
       num_endpoints = endpoint_info_vec.size();
     }
@@ -262,15 +269,7 @@ private:
     result_qos.qos.deadline(max_deadline);
     result_qos.qos.lifespan(max_lifespan);
 
-    // If the number of endpoints has changed, get QoS again
-    std::vector<rclcpp::TopicEndpointInfo> new_endpoint_info_vec =
-      node.get_publishers_info_by_topic(topic);
-    std::size_t new_num_endpoints = new_endpoint_info_vec.size();
-    if (num_endpoints != new_num_endpoints) {
-      return get_topic_qos(topic, node);
-    } else {
-      return result_qos;
-    }
+    return result_qos;
   }
 
   std::thread
@@ -360,6 +359,9 @@ private:
 
   /// Mutex for waiting_threads_
   std::mutex mutex_;
+
+  /// Amount of time to wait for publishers before getting QoS
+  std::chrono::milliseconds delay_;
 };  // class WaitForGraphEvents
 
 }  // namespace domain_bridge
