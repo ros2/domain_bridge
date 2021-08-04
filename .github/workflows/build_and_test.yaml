@@ -10,6 +10,7 @@ jobs:
     - uses: ros-tooling/setup-ros@v0.2
       with:
         install-connext: true
+        use-ros2-testing: true
         required-ros-distributions: rolling
     - uses: ros-tooling/action-ros-ci@v0.2
       with:
