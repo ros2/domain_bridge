@@ -19,6 +19,7 @@
 #include <optional>
 
 #include <atomic>
+#include <chrono>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -123,7 +124,7 @@ public:
     const rclcpp::Node::SharedPtr & node,
     std::function<void(const QosMatchInfo)> callback)
   {
-    // If the QoS is already avaiable, trigger the callback immediately
+    // If the QoS is already available, trigger the callback immediately
     auto opt_qos = get_topic_qos(topic, *node);
     if (opt_qos) {
       const QosMatchInfo & qos = opt_qos.value();
@@ -145,6 +146,11 @@ public:
     }
     // If we made it this far, there doesn't exist a thread for waiting so we'll create one
     t.thread = this->launch_thread(node, t);
+  }
+
+  void set_delay(const std::chrono::milliseconds & delay)
+  {
+    delay_ = delay;
   }
 
 private:
@@ -190,6 +196,9 @@ private:
 
     // This implementation is inspired by rosbag2_transport:
     // https://github.com/ros2/rosbag2/blob/master/rosbag2_transport/src/rosbag2_transport/qos.cpp
+
+    // Wait to allow publishers to become available
+    std::this_thread::sleep_for(delay_);
 
     // Query QoS info for publishers
     std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
@@ -278,7 +287,7 @@ private:
 
           {
             std::unique_lock<std::mutex> lock(t.mutex);
-            // If we're shuttdown down, exit the thread
+            // If we're shutting down, exit the thread
             if (t.shutting_down) {
               return;
             }
@@ -347,6 +356,9 @@ private:
 
   /// Mutex for waiting_threads_
   std::mutex mutex_;
+
+  /// Amount of time to wait for publishers before getting QoS
+  std::chrono::milliseconds delay_;
 };  // class WaitForGraphEvents
 
 }  // namespace domain_bridge

@@ -39,6 +39,7 @@ public:
    *    - remap_name = "" (no remap)
    *    - bidirectional = false (one-way)
    *    - reversed = false
+   *    - delay = 0 (no extra delay to wait for publishers before creating bridge)
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions() = default;
@@ -96,6 +97,16 @@ public:
   TopicBridgeOptions &
   reversed(const bool & reversed);
 
+  /// Get bridge delay.
+  DOMAIN_BRIDGE_PUBLIC
+  const std::chrono::milliseconds &
+  delay() const;
+
+  /// Set bridge delay (amount of time to wait for publishers before creating bridge).
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  delay(const std::chrono::milliseconds & delay);
+
 private:
   std::shared_ptr<rclcpp::CallbackGroup> callback_group_{nullptr};
 
@@ -106,6 +117,8 @@ private:
   bool bidirectional_{false};
 
   bool reversed_{false};
+
+  std::chrono::milliseconds delay_{0};
 };  // class TopicBridgeOptions
 
 }  // namespace domain_bridge
