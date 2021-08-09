@@ -142,11 +142,12 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
 
-  EXPECT_TRUE(poll_condition(
-    [sub, pub]() {
-      return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-    },
-    3s));
+  EXPECT_TRUE(
+    poll_condition(
+      [sub, pub]() {
+        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
+      },
+      3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
@@ -180,10 +181,12 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
 
-  EXPECT_TRUE(poll_condition(
-    [sub, pub]() {
-      return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-    }, 3s));
+  EXPECT_TRUE(
+    poll_condition(
+      [sub, pub]() {
+        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
+      },
+      3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
@@ -214,11 +217,12 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
 
-  EXPECT_TRUE(poll_condition(
-    [sub, pub]() {
-      return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-    },
-    3s));
+  EXPECT_TRUE(
+    poll_condition(
+      [sub, pub]() {
+        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
+      },
+      3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
@@ -249,11 +253,12 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
 
-  EXPECT_TRUE(poll_condition(
-    [sub, pub]() {
-      return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-    },
-    3s));
+  EXPECT_TRUE(
+    poll_condition(
+      [sub, pub]() {
+        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
+      },
+      3s));
   rclcpp::Serialization<test_msgs::msg::BasicTypes> serializer;
   test_msgs::msg::BasicTypes msg;
   rclcpp::SerializedMessage serialized_msg;
