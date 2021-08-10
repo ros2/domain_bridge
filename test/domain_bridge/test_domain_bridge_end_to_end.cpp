@@ -151,7 +151,7 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
@@ -184,7 +184,7 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, compress_mode)
@@ -214,7 +214,7 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
@@ -251,7 +251,7 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, create_bidirectional_bridge)
