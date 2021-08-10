@@ -65,6 +65,10 @@ protected:
   std::shared_ptr<rclcpp::Context> context_2_;
   std::shared_ptr<rclcpp::Node> node_1_;
   std::shared_ptr<rclcpp::Node> node_2_;
+  // use a qos profile with transient local volatility to make the tests simple.
+  // it's hard to guarantee that all pub/sub have matched and so the first few messages
+  // can be lost if using a profile with volatile durability.
+  rclcpp::QoS pub_sub_qos_ = rclcpp::QoS(1).transient_local();
 };
 
 static
@@ -129,10 +133,10 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
 
   std::atomic<bool> got_message = false;
 
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     remap_name,
-    1,
+    pub_sub_qos_,
     [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -142,12 +146,6 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
 
-  EXPECT_TRUE(
-    poll_condition(
-      [sub, pub]() {
-        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-      },
-      3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
@@ -166,10 +164,10 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   std::atomic<bool> got_message = false;
 
   // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     expected_name,
-    1,
+    pub_sub_qos_,
     [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -181,12 +179,6 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
 
-  EXPECT_TRUE(
-    poll_condition(
-      [sub, pub]() {
-        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-      },
-      3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
@@ -203,10 +195,10 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   std::atomic<bool> got_message = false;
 
   // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
   auto sub = node_2_->create_subscription<domain_bridge::msg::CompressedMsg>(
     topic_name,
-    1,
+    pub_sub_qos_,
     [&got_message](const domain_bridge::msg::CompressedMsg &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -217,12 +209,6 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
 
-  EXPECT_TRUE(
-    poll_condition(
-      [sub, pub]() {
-        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-      },
-      3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
@@ -239,10 +225,10 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   std::atomic<bool> got_message = false;
 
   // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<domain_bridge::msg::CompressedMsg>(topic_name, 1);
+  auto pub = node_1_->create_publisher<domain_bridge::msg::CompressedMsg>(topic_name, pub_sub_qos_);
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     topic_name,
-    1,
+    pub_sub_qos_,
     [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -253,12 +239,6 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
 
-  EXPECT_TRUE(
-    poll_condition(
-      [sub, pub]() {
-        return sub->get_publisher_count() == 1u && pub->get_subscription_count() == 1u;
-      },
-      3s));
   rclcpp::Serialization<test_msgs::msg::BasicTypes> serializer;
   test_msgs::msg::BasicTypes msg;
   rclcpp::SerializedMessage serialized_msg;
