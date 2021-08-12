@@ -22,17 +22,6 @@ if(TARGET test_parse_domain_bridge_yaml_config)
   target_link_libraries(test_parse_domain_bridge_yaml_config ${PROJECT_NAME}_lib)
 endif()
 
-add_library(${PROJECT_NAME}_test_component_lib SHARED
-  ${PROJECT_NAME}/test_component.cpp
-)
-ament_target_dependencies(${PROJECT_NAME}_test_component_lib
-  rclcpp
-  test_msgs
-)
-rclcpp_components_register_node(${PROJECT_NAME}_test_component_lib
-  PLUGIN "domain_bridge::TestComponent"
-  EXECUTABLE test_component)
-
 # The following tests are run for each available RMW implementation
 function(add_communication_tests)
   set(rmw_implementation_env RMW_IMPLEMENTATION=${rmw_implementation})
@@ -78,11 +67,4 @@ call_for_each_rmw_implementation(add_communication_tests)
 add_launch_test(
   test_domain_bridge.launch.py
   WORKING_DIRECTORY "$<TARGET_FILE_DIR:${PROJECT_NAME}_exec>"
-)
-
-install(TARGETS ${PROJECT_NAME}_test_component_lib
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
