@@ -66,16 +66,6 @@ rosidl_target_interfaces(${PROJECT_NAME}_lib
 
 set_target_properties(${PROJECT_NAME}_lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
-add_library(${PROJECT_NAME}_test_component_lib SHARED
-  test/${PROJECT_NAME}/test_component.cpp
-)
-ament_target_dependencies(${PROJECT_NAME}_test_component_lib
-  rclcpp
-)
-rclcpp_components_register_node(${PROJECT_NAME}_test_component_lib
-  PLUGIN "domain_bridge::TestComponent"
-  EXECUTABLE test_component)
-
 add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
 )
@@ -126,13 +116,6 @@ install(TARGETS ${executables}
 )
 
 install(TARGETS ${PROJECT_NAME}_lib
-  EXPORT export_${PROJECT_NAME}
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-)
-
-install(TARGETS ${PROJECT_NAME}_test_component_lib
   EXPORT export_${PROJECT_NAME}
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
