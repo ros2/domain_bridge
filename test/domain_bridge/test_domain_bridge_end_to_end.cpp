@@ -24,6 +24,7 @@
 #include "rclcpp/serialization.hpp"
 #include "test_msgs/msg/basic_types.hpp"
 
+#include "domain_bridge/component_manager.hpp"
 #include "domain_bridge/compress_messages.hpp"
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
@@ -89,9 +90,10 @@ class ScopedAsyncSpinner
 {
 public:
   explicit ScopedAsyncSpinner(std::shared_ptr<rclcpp::Context> context)
-  : executor_{get_executor_options_with_context(std::move(context))},
+  : executor_{std::make_shared<rclcpp::executors::SingleThreadedExecutor>(
+        get_executor_options_with_context(std::move(context)))},
     thread_{[this, stop_token = promise_.get_future()] {
-        executor_.spin_until_future_complete(stop_token);
+        executor_->spin_until_future_complete(stop_token);
       }}
   {}
 
@@ -101,12 +103,18 @@ public:
     // TODO(ivanpauno): Report bug in rclcpp.
     // This shouldn't be needed if spin_until_future_complete() worked
     // correctly.
-    executor_.cancel();
+    executor_->cancel();
     thread_.join();
   }
 
   rclcpp::Executor &
   get_executor()
+  {
+    return *executor_;
+  }
+
+  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> &
+  get_executor_ptr()
   {
     return executor_;
   }
@@ -121,7 +129,7 @@ private:
     return ret;
   }
 
-  rclcpp::executors::SingleThreadedExecutor executor_;
+  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> executor_;
   std::promise<void> promise_;
   std::thread thread_;
 };
@@ -295,4 +303,53 @@ TEST_F(TestDomainBridgeEndToEnd, create_reversed_bridge)
 
   // 'to' domain is 1, but since the bridge is reversed, publisher should only appear on domain 2
   ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
+}
+
+TEST_F(TestDomainBridgeEndToEnd, domain_bridge_component_manager)
+{
+  rclcpp::init(0, nullptr);
+  auto client_node = std::make_shared<rclcpp::Node>("client_node");
+  std::shared_ptr<domain_bridge::ComponentManager> manager = nullptr;
+
+  // Bridge topic
+  const std::string topic_name("test_domain_bridge_component_manager");
+  domain_bridge::DomainBridge bridge;
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
+
+  // Add component manager, client, and node_2 (to receive the message)
+  ScopedAsyncSpinner spinner{context_1_};
+  manager = std::make_shared<domain_bridge::ComponentManager>(spinner.get_executor_ptr());
+  spinner.get_executor().add_node(manager);
+  spinner.get_executor().add_node(client_node);
+  spinner.get_executor().add_node(node_2_);
+
+  // Wait for LoadNode service
+  auto client = client_node->create_client<composition_interfaces::srv::LoadNode>(
+    "/ComponentManager/_container/load_node");
+  if (!client->wait_for_service(5s)) {
+    ASSERT_TRUE(false) << "service not available after waiting";
+  }
+
+  // Load publisher component on domain 1
+  auto resources = manager->get_component_resources("domain_bridge");
+  EXPECT_EQ("domain_bridge::TestComponent", resources[0].first);
+  auto request = std::make_shared<composition_interfaces::srv::LoadNode::Request>();
+  request->package_name = "domain_bridge";
+  request->plugin_name = "domain_bridge::TestComponent";
+  rclcpp::Parameter domain_id_1("domain_id", rclcpp::ParameterValue(1));
+  request->extra_arguments.push_back(domain_id_1.to_parameter_msg());
+  auto result = client->async_send_request(request);
+  EXPECT_TRUE(result.get()->success);
+
+  // Create subscriber on domain 2
+  std::atomic<bool> got_message = false;
+  auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
+    topic_name,
+    1,
+    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
+
+  // Add bridge and verify message from component is received
+  bridge.add_to_executor(spinner.get_executor());
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 1s));
 }
