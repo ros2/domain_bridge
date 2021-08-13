@@ -61,7 +61,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   zstd
 )
 
-rosidl_get_typesupport_target(cpp_typesupport_target 
+rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
 target_link_libraries(${PROJECT_NAME}_lib "${cpp_typesupport_target}")
 
