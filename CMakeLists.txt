@@ -17,6 +17,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
@@ -31,6 +32,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 )
 
 add_library(${PROJECT_NAME}_lib SHARED
+  src/${PROJECT_NAME}/component_manager.cpp
   src/${PROJECT_NAME}/compress_messages.cpp
   src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
@@ -51,6 +53,7 @@ endif()
 
 ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp
+  rclcpp_components
   rcutils
   rosbag2_cpp
   rosidl_typesupport_cpp
@@ -58,14 +61,18 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   zstd
 )
 
-rosidl_target_interfaces(${PROJECT_NAME}_lib
+rosidl_get_typesupport_target(cpp_typesupport_target
   ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(${PROJECT_NAME}_lib "${cpp_typesupport_target}")
 
 set_target_properties(${PROJECT_NAME}_lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
 add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
 )
+
+ament_target_dependencies(${PROJECT_NAME}_exec
+  "rclcpp_components")
 
 set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
 
@@ -123,6 +130,7 @@ install(DIRECTORY examples launch
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   rclcpp
+  rclcpp_components
   rosbag2_cpp
   rcutils
   yaml_cpp_vendor
@@ -132,9 +140,28 @@ ament_export_dependencies(
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
+  find_package(test_msgs REQUIRED)
   ament_lint_auto_find_test_dependencies()
 
   add_subdirectory(test)
+
+  add_library(${PROJECT_NAME}_test_component_lib SHARED
+    test/${PROJECT_NAME}/test_component.cpp
+  )
+  ament_target_dependencies(${PROJECT_NAME}_test_component_lib
+    rclcpp
+    test_msgs
+  )
+  rclcpp_components_register_node(${PROJECT_NAME}_test_component_lib
+    PLUGIN "domain_bridge::TestComponent"
+    EXECUTABLE test_component)
+
+  install(TARGETS ${PROJECT_NAME}_test_component_lib
+    EXPORT export_${PROJECT_NAME}
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+  )
 endif()
 
 ament_package()
