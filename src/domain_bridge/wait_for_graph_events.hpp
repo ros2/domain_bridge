@@ -383,7 +383,6 @@ private:
                 const std::string & topic = it->topic;
                 const auto & callback = it->cb;
                 bool subscription_ready = false;
-                // fprintf(stderr, "checking for subscription ready\n");
                 try {
                   subscription_ready =
                     node->get_subscriptions_info_by_topic(topic).size() != 0;
@@ -399,7 +398,6 @@ private:
                   std::cerr << "Failed to query subscriptions info for topic '" << topic <<
                     "': " << ex.what() << std::endl;
                 }
-                // fprintf(stderr, "subscription_ready %d\n", static_cast<int>(subscription_ready));
                 if (subscription_ready) {
                   callback();
                   it = t.subscriptions_callback_vec.erase(it);
