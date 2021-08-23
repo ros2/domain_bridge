@@ -52,6 +52,12 @@ print_help()
     "                             This overrides any mode set in the YAML file." << std::endl <<
     "                             Defaults to '" << kNormalModeStr << "'." <<
     std::endl <<
+    "    --wait-for-subscription  Will wait for an available subscription before"
+    " bridging a topic" <<
+    std::endl <<
+    "                             This overrides any mode set in the YAML file." << std::endl <<
+    "                             Defaults to '" << kNormalModeStr << "'." <<
+    std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
 
@@ -93,6 +99,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   }
   std::optional<size_t> from_domain_id;
   std::optional<size_t> to_domain_id;
+  bool wait_for_subscription = false;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
 
@@ -126,6 +133,15 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       if (!to_domain_id) {
         return std::make_pair(std::nullopt, 1);
       }
+      continue;
+    }
+    if (arg == "--wait-for-subscription") {
+      if (wait_for_subscription) {
+        std::cerr << "error: --wait-for-subscription option passed more than once" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      wait_for_subscription = true;
       continue;
     }
     if (arg == "--mode") {
@@ -163,14 +179,17 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   domain_bridge::DomainBridgeConfig domain_bridge_config =
     domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
 
-  // Override 'from_domain' and 'to_domain' in config
-  if (from_domain_id || to_domain_id) {
+  // Override 'from_domain','to_domain' and 'wait_for_subscription' in config
+  if (from_domain_id || to_domain_id || wait_for_subscription) {
     for (auto & topic_option_pair : domain_bridge_config.topics) {
       if (from_domain_id) {
         topic_option_pair.first.from_domain_id = *from_domain_id;
       }
       if (to_domain_id) {
         topic_option_pair.first.to_domain_id = *to_domain_id;
+      }
+      if (wait_for_subscription) {
+        topic_option_pair.second.wait_for_subscription(true);
       }
     }
   }

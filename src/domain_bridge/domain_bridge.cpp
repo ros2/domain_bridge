@@ -343,17 +343,17 @@ public:
           rclcpp::QoS qos(qos_options.depth());
           qos.history(qos_options.history());
           if (qos_options.reliability()) {
-            qos.reliability(qos_options.reliability().value());
+            qos.reliability(*qos_options.reliability());
           } else {
             qos.reliability(qos_match.qos.reliability());
           }
           if (qos_options.durability()) {
-            qos.durability(qos_options.durability().value());
+            qos.durability(*qos_options.durability());
           } else {
             qos.durability(qos_match.qos.durability());
           }
           if (qos_options.deadline()) {
-            const auto deadline_ns = qos_options.deadline().value();
+            const auto deadline_ns = *qos_options.deadline();
             if (deadline_ns < 0) {
               qos.deadline(
                 rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
@@ -364,7 +364,7 @@ public:
             qos.deadline(qos_match.qos.deadline());
           }
           if (qos_options.lifespan()) {
-            const auto lifespan_ns = qos_options.lifespan().value();
+            const auto lifespan_ns = *qos_options.lifespan();
             if (lifespan_ns < 0) {
               qos.lifespan(
                 rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
@@ -428,23 +428,30 @@ public:
           const auto & qos_options = topic_options.qos_options();
           rclcpp::QoS qos(qos_options.depth());
           qos.history(qos_options.history());
-          qos.reliability(qos_options.reliability().value());
-          qos.durability(qos_options.durability().value());
-          const auto deadline_ns = qos_options.deadline().value();
-          if (deadline_ns < 0) {
-            qos.deadline(
-              rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
-          } else {
-            qos.deadline(rclcpp::Duration::from_nanoseconds(deadline_ns));
+          if (qos_options.reliability()) {
+            qos.reliability(*qos_options.reliability());
           }
-          const auto lifespan_ns = qos_options.lifespan().value();
-          if (lifespan_ns < 0) {
-            qos.lifespan(
-              rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
-          } else {
-            qos.lifespan(rclcpp::Duration::from_nanoseconds(lifespan_ns));
+          if (qos_options.durability()) {
+            qos.durability(*qos_options.durability());
           }
-
+          if (qos_options.deadline()) {
+            const auto deadline_ns = *qos_options.deadline();
+            if (deadline_ns < 0) {
+              qos.deadline(
+                rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
+            } else {
+              qos.deadline(rclcpp::Duration::from_nanoseconds(deadline_ns));
+            }
+          }
+          if (qos_options.lifespan()) {
+            const auto lifespan_ns = *qos_options.lifespan();
+            if (lifespan_ns < 0) {
+              qos.lifespan(
+                rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
+            } else {
+              qos.lifespan(rclcpp::Duration::from_nanoseconds(lifespan_ns));
+            }
+          }
           rclcpp::PublisherOptions publisher_options;
           rclcpp::SubscriptionOptions subscription_options;
 
@@ -475,9 +482,10 @@ public:
 
           this->bridged_topics_[topic_bridge] = {publisher, subscription};
         };
+      fprintf(stderr, "registered on subscription callback\n");
       wait_for_graph_events_.set_delay(topic_options.delay());
       wait_for_graph_events_.register_on_subscription_ready_callback(
-        topic, from_domain_node, create_bridge);
+        topic, to_domain_node, create_bridge);
     }
   }
 
