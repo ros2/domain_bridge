@@ -150,6 +150,7 @@ if(BUILD_TESTING)
   )
   ament_target_dependencies(${PROJECT_NAME}_test_component_lib
     rclcpp
+    rclcpp_components
     test_msgs
   )
   rclcpp_components_register_node(${PROJECT_NAME}_test_component_lib
