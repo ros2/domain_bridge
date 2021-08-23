@@ -100,7 +100,7 @@ public:
     auto & t = it_emplaced_pair.first->second;
     {
       std::lock_guard<std::mutex> lock(t.mutex);
-      t.service_callback_vec.push_back({client, callback});
+      t.clients_callback_vec.push_back({client, callback});
     }
     // If we already have a thread for this node, then notify that there is a new callback
     if (!it_emplaced_pair.second) {
@@ -137,7 +137,43 @@ public:
     auto & t = it_emplaced_pair.first->second;
     {
       std::lock_guard<std::mutex> lock(t.mutex);
-      t.topic_callback_vec.push_back({topic, callback});
+      t.publishers_callback_vec.push_back({topic, callback});
+    }
+    // If we already have a thread for this node, then notify that there is a new callback
+    if (!it_emplaced_pair.second) {
+      t.cv.notify_all();
+      return;
+    }
+    // If we made it this far, there doesn't exist a thread for waiting so we'll create one
+    t.thread = this->launch_thread(node, t);
+  }
+
+  /// Register a callback that is called when a subscription is ready.
+  /**
+   * \param topic: The name of the topic to monitor.
+   * \param node: The node to use to monitor the topic.
+   * \param callback: User callback that is triggered when a subscription is found.
+   */
+  void register_on_subscription_ready_callback(
+    const std::string & topic,
+    const rclcpp::Node::SharedPtr & node,
+    std::function<void()> callback)
+  {
+    // If a subscription is already available, trigger the callback immediately.
+    std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
+      node->get_subscriptions_info_by_topic(topic);
+    std::size_t num_endpoints = endpoint_info_vec.size();
+    if (num_endpoints) {
+      callback();
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it_emplaced_pair = waiting_threads_.try_emplace(node);
+    auto & t = it_emplaced_pair.first->second;
+    {
+      std::lock_guard<std::mutex> lock(t.mutex);
+      t.subscriptions_callback_vec.push_back({topic, callback});
     }
     // If we already have a thread for this node, then notify that there is a new callback
     if (!it_emplaced_pair.second) {
@@ -154,10 +190,15 @@ public:
   }
 
 private:
-  struct TopicAndCallback
+  struct PublisherTopicAndCallback
   {
     std::string topic;
     std::function<void(const QosMatchInfo)> cb;
+  };
+  struct SubscriptionTopicAndCallback
+  {
+    std::string topic;
+    std::function<void()> cb;
   };
   struct ClientAndCallback
   {
@@ -169,8 +210,9 @@ private:
     std::thread thread;
     std::condition_variable cv;
     std::mutex mutex;
-    std::vector<TopicAndCallback> topic_callback_vec;
-    std::vector<ClientAndCallback> service_callback_vec;
+    std::vector<PublisherTopicAndCallback> publishers_callback_vec;
+    std::vector<SubscriptionTopicAndCallback> subscriptions_callback_vec;
+    std::vector<ClientAndCallback> clients_callback_vec;
     bool shutting_down = false;
   };
   using ThreadMap = std::unordered_map<
@@ -293,11 +335,11 @@ private:
             }
             {
               // Check if a matching service server was found
-              auto it = t.service_callback_vec.begin();
-              while (it != t.service_callback_vec.end()) {
+              auto it = t.clients_callback_vec.begin();
+              while (it != t.clients_callback_vec.end()) {
                 if (it->client->service_is_ready()) {
                   it->cb();
-                  it = t.service_callback_vec.erase(it);
+                  it = t.clients_callback_vec.erase(it);
                 } else {
                   ++it;
                 }
@@ -305,8 +347,8 @@ private:
             }
             {
               // Check if QoS is ready for any of the topics
-              auto it = t.topic_callback_vec.begin();
-              while (it != t.topic_callback_vec.end()) {
+              auto it = t.publishers_callback_vec.begin();
+              while (it != t.publishers_callback_vec.end()) {
                 const std::string & topic = it->topic;
                 const auto & callback = it->cb;
                 std::optional<QosMatchInfo> opt_qos;
@@ -321,14 +363,45 @@ private:
                   }
                   // Otherwise, don't crash if there was a hiccup querying the topic endpoint
                   // Log an error instead
-                  std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
-                    std::endl;
+                  std::cerr << "Failed to query publishers info for topic '" << topic <<
+                  "': " << ex.what() << std::endl;
                 }
 
                 if (opt_qos) {
                   const QosMatchInfo & qos = opt_qos.value();
                   callback(qos);
-                  it = t.topic_callback_vec.erase(it);
+                  it = t.publishers_callback_vec.erase(it);
+                } else {
+                  ++it;
+                }
+              }
+            }
+            {
+              // Check if a subscription is ready
+              auto it = t.subscriptions_callback_vec.begin();
+              while (it != t.subscriptions_callback_vec.end()) {
+                const std::string & topic = it->topic;
+                const auto & callback = it->cb;
+                bool subscription_ready = false;
+                try {
+                  subscription_ready =
+                    node->get_subscriptions_info_by_topic(topic).size() != 0;
+                } catch (const rclcpp::exceptions::RCLError & ex) {
+                  // If the context was shutdown, then exit cleanly
+                  // This can happen if we get a SIGINT
+                  const auto context = node->get_node_options().context();
+                  if (!context->is_valid()) {
+                    return;
+                  }
+                  // Otherwise, don't crash if there was a hiccup querying the topic endpoint
+                  // Log an error instead
+                  std::cerr << "Failed to query subscriptions info for topic '" << topic <<
+                  "': " << ex.what() << std::endl;
+                }
+
+                if (subscription_ready) {
+                  callback();
+                  it = t.subscriptions_callback_vec.erase(it);
                 } else {
                   ++it;
                 }
@@ -341,8 +414,9 @@ private:
               lock,
               [&t]
               {
-                return (t.topic_callback_vec.size() > 0u) ||
-                (t.service_callback_vec.size() > 0u) ||
+                return (t.publishers_callback_vec.size() > 0u) ||
+                (t.subscriptions_callback_vec.size() > 0u) ||
+                (t.clients_callback_vec.size() > 0u) ||
                 t.shutting_down;
               });
           }

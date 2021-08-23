@@ -328,30 +328,108 @@ public:
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
 
-    // Register a callback to be triggered when QoS settings are available for one or more
-    // publishers on the 'from' side of the bridge
-    // The callback may be triggered immediately if a publisher is available
-    auto create_bridge =
-      [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
-        (const QosMatchInfo & qos_match)
-      {
-        const std::string & type = topic_bridge.type_name;
+    if (!topic_options.wait_for_subscription()) {
+      // Register a callback to be triggered when QoS settings are available for one or more
+      // publishers on the 'from' side of the bridge
+      // The callback may be triggered immediately if a publisher is available
+      auto create_bridge =
+        [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
+          (const QosMatchInfo & qos_match)
+        {
+          const std::string & type = topic_bridge.type_name;
 
-        // Apply QoS overrides
-        const auto & qos_options = topic_options.qos_options();
-        rclcpp::QoS qos(qos_options.depth());
-        qos.history(qos_options.history());
-        if (qos_options.reliability()) {
+          // Apply QoS overrides
+          const auto & qos_options = topic_options.qos_options();
+          rclcpp::QoS qos(qos_options.depth());
+          qos.history(qos_options.history());
+          if (qos_options.reliability()) {
+            qos.reliability(qos_options.reliability().value());
+          } else {
+            qos.reliability(qos_match.qos.reliability());
+          }
+          if (qos_options.durability()) {
+            qos.durability(qos_options.durability().value());
+          } else {
+            qos.durability(qos_match.qos.durability());
+          }
+          if (qos_options.deadline()) {
+            const auto deadline_ns = qos_options.deadline().value();
+            if (deadline_ns < 0) {
+              qos.deadline(
+                rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
+            } else {
+              qos.deadline(rclcpp::Duration::from_nanoseconds(deadline_ns));
+            }
+          } else {
+            qos.deadline(qos_match.qos.deadline());
+          }
+          if (qos_options.lifespan()) {
+            const auto lifespan_ns = qos_options.lifespan().value();
+            if (lifespan_ns < 0) {
+              qos.lifespan(
+                rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
+            } else {
+              qos.lifespan(rclcpp::Duration::from_nanoseconds(lifespan_ns));
+            }
+          } else {
+            qos.lifespan(qos_match.qos.lifespan());
+          }
+
+          qos.liveliness(qos_match.qos.liveliness());
+          qos.liveliness_lease_duration(qos_match.qos.liveliness_lease_duration());
+
+          // Print any match warnings
+          for (const auto & warning : qos_match.warnings) {
+            std::cerr << warning << std::endl;
+          }
+
+          rclcpp::PublisherOptions publisher_options;
+          rclcpp::SubscriptionOptions subscription_options;
+
+          // Prevent endless looping on a bidirectional bridge
+          // Note: this may not be supported by all rmw implementations
+          subscription_options.ignore_local_publications = true;
+
+          publisher_options.callback_group = topic_options.callback_group();
+          subscription_options.callback_group = topic_options.callback_group();
+
+          // Create publisher for the 'to_domain'
+          // The publisher should be created first so it is available to the subscription callback
+          auto publisher = this->create_publisher(
+            to_domain_node,
+            topic_remapped,
+            type,
+            qos,
+            publisher_options);
+
+          // Create subscription for the 'from_domain'
+          auto subscription = this->create_subscription(
+            from_domain_node,
+            publisher,
+            topic,
+            type,
+            qos,
+            subscription_options);
+
+          this->bridged_topics_[topic_bridge] = {publisher, subscription};
+        };
+      wait_for_graph_events_.set_delay(topic_options.delay());
+      wait_for_graph_events_.register_on_publisher_qos_ready_callback(
+        topic, from_domain_node, create_bridge);
+    } else {
+      // Register a callback that will be triggered when a subscription is available.
+      auto create_bridge =
+        [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
+          ()
+        {
+          const std::string & type = topic_bridge.type_name;
+
+          // Apply QoS overrides
+          const auto & qos_options = topic_options.qos_options();
+          rclcpp::QoS qos(qos_options.depth());
+          qos.history(qos_options.history());
           qos.reliability(qos_options.reliability().value());
-        } else {
-          qos.reliability(qos_match.qos.reliability());
-        }
-        if (qos_options.durability()) {
           qos.durability(qos_options.durability().value());
-        } else {
-          qos.durability(qos_match.qos.durability());
-        }
-        if (qos_options.deadline()) {
           const auto deadline_ns = qos_options.deadline().value();
           if (deadline_ns < 0) {
             qos.deadline(
@@ -359,10 +437,6 @@ public:
           } else {
             qos.deadline(rclcpp::Duration::from_nanoseconds(deadline_ns));
           }
-        } else {
-          qos.deadline(qos_match.qos.deadline());
-        }
-        if (qos_options.lifespan()) {
           const auto lifespan_ns = qos_options.lifespan().value();
           if (lifespan_ns < 0) {
             qos.lifespan(
@@ -370,51 +444,41 @@ public:
           } else {
             qos.lifespan(rclcpp::Duration::from_nanoseconds(lifespan_ns));
           }
-        } else {
-          qos.lifespan(qos_match.qos.lifespan());
-        }
 
-        qos.liveliness(qos_match.qos.liveliness());
-        qos.liveliness_lease_duration(qos_match.qos.liveliness_lease_duration());
+          rclcpp::PublisherOptions publisher_options;
+          rclcpp::SubscriptionOptions subscription_options;
 
-        // Print any match warnings
-        for (const auto & warning : qos_match.warnings) {
-          std::cerr << warning << std::endl;
-        }
+          // Prevent endless looping on a bidirectional bridge
+          // Note: this may not be supported by all rmw implementations
+          subscription_options.ignore_local_publications = true;
 
-        rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> publisher_options;
-        rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> subscription_options;
+          publisher_options.callback_group = topic_options.callback_group();
+          subscription_options.callback_group = topic_options.callback_group();
 
-        // Prevent endless looping on a bidirectional bridge
-        // Note: this may not be supported by all rmw implementations
-        subscription_options.ignore_local_publications = true;
+          // Create publisher for the 'to_domain'
+          // The publisher should be created first so it is available to the subscription callback
+          auto publisher = this->create_publisher(
+            to_domain_node,
+            topic_remapped,
+            type,
+            qos,
+            publisher_options);
 
-        publisher_options.callback_group = topic_options.callback_group();
-        subscription_options.callback_group = topic_options.callback_group();
+          // Create subscription for the 'from_domain'
+          auto subscription = this->create_subscription(
+            from_domain_node,
+            publisher,
+            topic,
+            type,
+            qos,
+            subscription_options);
 
-        // Create publisher for the 'to_domain'
-        // The publisher should be created first so it is available to the subscription callback
-        auto publisher = this->create_publisher(
-          to_domain_node,
-          topic_remapped,
-          type,
-          qos,
-          publisher_options);
-
-        // Create subscription for the 'from_domain'
-        auto subscription = this->create_subscription(
-          from_domain_node,
-          publisher,
-          topic,
-          type,
-          qos,
-          subscription_options);
-
-        this->bridged_topics_[topic_bridge] = {publisher, subscription};
-      };
-    wait_for_graph_events_.set_delay(topic_options.delay());
-    wait_for_graph_events_.register_on_publisher_qos_ready_callback(
-      topic, from_domain_node, create_bridge);
+          this->bridged_topics_[topic_bridge] = {publisher, subscription};
+        };
+      wait_for_graph_events_.set_delay(topic_options.delay());
+      wait_for_graph_events_.register_on_subscription_ready_callback(
+        topic, from_domain_node, create_bridge);
+    }
   }
 
   void add_to_executor(rclcpp::Executor & executor)
