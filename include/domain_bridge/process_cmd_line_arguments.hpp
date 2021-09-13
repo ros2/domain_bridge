@@ -55,6 +55,9 @@ print_help()
     "    --wait-for-subscription  Will wait for an available subscription before"
     " bridging a topic." <<
     std::endl <<
+    "    --dont-wait-for-publisher  Will not wait for an available subscription before"
+    " bridging a topic. Default options do wait for a matching publisher." <<
+    std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
 

@@ -113,4 +113,17 @@ TopicBridgeOptions::wait_for_subscription() const
   return wait_for_subscription_;
 }
 
+TopicBridgeOptions &
+TopicBridgeOptions::wait_for_publisher(bool value)
+{
+  wait_for_publisher_ = value;
+  return *this;
+}
+
+bool
+TopicBridgeOptions::wait_for_publisher() const
+{
+  return wait_for_publisher_;
+}
+
 }  // namespace domain_bridge
