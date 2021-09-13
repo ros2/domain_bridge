@@ -53,10 +53,7 @@ print_help()
     "                             Defaults to '" << kNormalModeStr << "'." <<
     std::endl <<
     "    --wait-for-subscription  Will wait for an available subscription before"
-    " bridging a topic" <<
-    std::endl <<
-    "                             This overrides any mode set in the YAML file." << std::endl <<
-    "                             Defaults to '" << kNormalModeStr << "'." <<
+    " bridging a topic." <<
     std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
