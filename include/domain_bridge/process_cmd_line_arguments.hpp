@@ -52,11 +52,11 @@ print_help()
     "                             This overrides any mode set in the YAML file." << std::endl <<
     "                             Defaults to '" << kNormalModeStr << "'." <<
     std::endl <<
-    "    --wait-for-subscription  Will wait for an available subscription before"
-    " bridging a topic." <<
+    "    --wait-for-subscription true|false  Will wait for an available subscription before"
+    " bridging a topic. Default is false, unless overridden in yaml file or here." <<
     std::endl <<
-    "    --no-wait-for-publisher  Will not wait for an available subscription before"
-    " bridging a topic. Default options do wait for a matching publisher." <<
+    "    --wait-for-publisher true|false  Will wait for an available subscription before"
+    " bridging a topic. Default is true, unless overridden in yaml file or here." <<
     std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
@@ -74,6 +74,21 @@ parse_size_t_arg(const std::string & arg, const char * error_str)
   size_t value;
   std::istringstream iss(arg);
   iss >> value;
+  if (iss.fail() || !iss.eof()) {
+    std::cerr << "error: Failed to parse " << error_str << " '" <<
+      arg << "'" << std::endl;
+    return std::nullopt;
+  }
+  return value;
+}
+
+inline
+std::optional<bool>
+parse_bool_arg(const std::string & arg, const char * error_str)
+{
+  bool value;
+  std::istringstream iss(arg);
+  iss >> std::boolalpha >> value;
   if (iss.fail() || !iss.eof()) {
     std::cerr << "error: Failed to parse " << error_str << " '" <<
       arg << "'" << std::endl;
@@ -99,10 +114,10 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   }
   std::optional<size_t> from_domain_id;
   std::optional<size_t> to_domain_id;
-  bool wait_for_subscription = false;
+  std::optional<bool> wait_for_subscription = false;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
-  bool no_wait_for_publisher = false;
+  std::optional<bool> wait_for_publisher = false;
 
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
@@ -142,16 +157,24 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         detail::print_help();
         return std::make_pair(std::nullopt, 1);
       }
-      wait_for_subscription = true;
+      ++it;
+      wait_for_subscription = detail::parse_bool_arg(*it, "--wait-for-subscription");
+      if (!wait_for_subscription) {
+        return std::make_pair(std::nullopt, 1);
+      }
       continue;
     }
-    if (arg == "--no-wait-for-publisher") {
-      if (no_wait_for_publisher) {
-        std::cerr << "error: --no-wait-for-publisher option passed more than once" << std::endl;
+    if (arg == "--wait-for-publisher") {
+      if (wait_for_subscription) {
+        std::cerr << "error: --wait-for-publisher option passed more than once" << std::endl;
         detail::print_help();
         return std::make_pair(std::nullopt, 1);
       }
-      no_wait_for_publisher = true;
+      ++it;
+      wait_for_publisher = detail::parse_bool_arg(*it, "--wait-for-publisher");
+      if (!wait_for_publisher) {
+        return std::make_pair(std::nullopt, 1);
+      }
       continue;
     }
     if (arg == "--mode") {
@@ -190,7 +213,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
     domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
 
   // Override 'from_domain','to_domain' and 'wait_for_subscription' in config
-  if (from_domain_id || to_domain_id || wait_for_subscription) {
+  if (from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher) {
     for (auto & topic_option_pair : domain_bridge_config.topics) {
       if (from_domain_id) {
         topic_option_pair.first.from_domain_id = *from_domain_id;
@@ -199,10 +222,10 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         topic_option_pair.first.to_domain_id = *to_domain_id;
       }
       if (wait_for_subscription) {
-        topic_option_pair.second.wait_for_subscription(true);
+        topic_option_pair.second.wait_for_subscription(*wait_for_subscription);
       }
-      if (no_wait_for_publisher) {
-        topic_option_pair.second.wait_for_publisher(false);
+      if (wait_for_publisher) {
+        topic_option_pair.second.wait_for_publisher(*wait_for_publisher);
       }
     }
   }
