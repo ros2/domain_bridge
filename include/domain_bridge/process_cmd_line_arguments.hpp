@@ -55,7 +55,7 @@ print_help()
     "    --wait-for-subscription  Will wait for an available subscription before"
     " bridging a topic." <<
     std::endl <<
-    "    --dont-wait-for-publisher  Will not wait for an available subscription before"
+    "    --no-wait-for-publisher  Will not wait for an available subscription before"
     " bridging a topic. Default options do wait for a matching publisher." <<
     std::endl <<
     "    --help, -h               Print this help message." << std::endl;
@@ -102,6 +102,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   bool wait_for_subscription = false;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
+  bool no_wait_for_publisher = false;
 
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
@@ -142,6 +143,15 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       wait_for_subscription = true;
+      continue;
+    }
+    if (arg == "--no-wait-for-publisher") {
+      if (no_wait_for_publisher) {
+        std::cerr << "error: --no-wait-for-publisher option passed more than once" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      no_wait_for_publisher = true;
       continue;
     }
     if (arg == "--mode") {
@@ -190,6 +200,9 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       }
       if (wait_for_subscription) {
         topic_option_pair.second.wait_for_subscription(true);
+      }
+      if (no_wait_for_publisher) {
+        topic_option_pair.second.wait_for_publisher(false);
       }
     }
   }
