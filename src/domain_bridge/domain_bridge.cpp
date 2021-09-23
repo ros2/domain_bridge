@@ -437,18 +437,15 @@ public:
         break;
       case 2:  // WAIT FOR ONLY SUBSCRIPTION
         wait_for_graph_events_.set_delay(topic_options.delay());
-        wait_for_graph_events_.register_on_subscription_ready_callback(
-          topic, from_domain_node, [create_bridge]() {
-            domain_bridge::QosMatchInfo qos_match;  // with default qos
-            create_bridge(qos_match);
-          });
+        wait_for_graph_events_.register_on_subscription_qos_ready_callback(
+          topic, from_domain_node, create_bridge);
         break;
       case 3:  // WAIT FOR SUBSCRIPTION, THEN FOR PUBLISHER
         wait_for_graph_events_.set_delay(topic_options.delay());
-        wait_for_graph_events_.register_on_subscription_ready_callback(
+        wait_for_graph_events_.register_on_subscription_qos_ready_callback(
           topic,
           from_domain_node,
-          [this, create_bridge, topic, from_domain_node]() {
+          [this, create_bridge, topic, from_domain_node](const QosMatchInfo &) {
             this->wait_for_graph_events_.register_on_publisher_qos_ready_callback(
               topic, from_domain_node, create_bridge);
           });
