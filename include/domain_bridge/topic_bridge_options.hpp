@@ -113,6 +113,10 @@ public:
   /**
    * When set to true, the domain bridge will wait for a subscription to be available in the
    * "to domain" before creating the bridge.
+   *
+   * If wait_for_publisher() is also true, the bridge will first wait for an available publisher and
+   * then for an available subscription.
+   * QoS matching will be taken from the publisher in that case.
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions &
