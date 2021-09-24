@@ -75,7 +75,7 @@ parse_size_t_arg(const std::string & arg, const char * error_str)
   std::istringstream iss(arg);
   iss >> value;
   if (iss.fail() || !iss.eof()) {
-    std::cerr << "error: Failed to parse " << error_str << " '" <<
+    std::cerr << "error: Failed to parse " << error_str << " argument '" <<
       arg << "'" << std::endl;
     return std::nullopt;
   }
@@ -89,8 +89,8 @@ parse_bool_arg(const std::string & arg, const char * error_str)
   bool value;
   std::istringstream iss(arg);
   iss >> std::boolalpha >> value;
-  if (iss.fail() || !iss.eof()) {
-    std::cerr << "error: Failed to parse " << error_str << " '" <<
+  if (iss.fail()) {
+    std::cerr << "error: Failed to parse " << error_str << " argument '" <<
       arg << "'" << std::endl;
     return std::nullopt;
   }
@@ -114,10 +114,10 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   }
   std::optional<size_t> from_domain_id;
   std::optional<size_t> to_domain_id;
-  std::optional<bool> wait_for_subscription = false;
+  std::optional<bool> wait_for_subscription;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
-  std::optional<bool> wait_for_publisher = false;
+  std::optional<bool> wait_for_publisher;
 
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
