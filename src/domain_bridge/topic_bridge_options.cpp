@@ -100,4 +100,30 @@ TopicBridgeOptions::delay(const std::chrono::milliseconds & delay)
   return *this;
 }
 
+TopicBridgeOptions &
+TopicBridgeOptions::wait_for_subscription(bool value)
+{
+  wait_for_subscription_ = value;
+  return *this;
+}
+
+bool
+TopicBridgeOptions::wait_for_subscription() const
+{
+  return wait_for_subscription_;
+}
+
+TopicBridgeOptions &
+TopicBridgeOptions::wait_for_publisher(bool value)
+{
+  wait_for_publisher_ = value;
+  return *this;
+}
+
+bool
+TopicBridgeOptions::wait_for_publisher() const
+{
+  return wait_for_publisher_;
+}
+
 }  // namespace domain_bridge

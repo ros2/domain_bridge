@@ -179,6 +179,17 @@ For example, in the following scenario, messages coming from publisher *B* will 
 
 We consider having multiple publishers with different QoS policies on the same topic to be rare in practice, and so do not try to handle the above scenario in the proposed approach.
 
+### Waiting for subscription or publisher to bridge a topic
+
+By default, we wait for an available publisher and use its QoS settings to create a topic bridge.
+This can be modified by passing the command line arguments:
+
+- `--wait-for-subscription true|false`, default false.
+- `--wait-for-publisher true|false`, default true.
+
+If both are true, first the domain bridge will wait for a publisher and then for a subscription, and use the publisher QoS to create the bridge.
+If only wait for subscription is enabled, the QoS settings of the subscription found will be used.
+
 ### Remapping
 
 When bridging topics, users can optionally give a name to remap the topic to in the destination domain.

@@ -100,7 +100,7 @@ public:
     auto & t = it_emplaced_pair.first->second;
     {
       std::lock_guard<std::mutex> lock(t.mutex);
-      t.service_callback_vec.push_back({client, callback});
+      t.clients_callback_vec.push_back({client, callback});
     }
     // If we already have a thread for this node, then notify that there is a new callback
     if (!it_emplaced_pair.second) {
@@ -124,28 +124,21 @@ public:
     const rclcpp::Node::SharedPtr & node,
     std::function<void(const QosMatchInfo)> callback)
   {
-    // If the QoS is already available, trigger the callback immediately
-    auto opt_qos = get_topic_qos(topic, *node);
-    if (opt_qos) {
-      const QosMatchInfo & qos = opt_qos.value();
-      callback(qos);
-      return;
-    }
+    return this->register_on_qos_ready_callback(topic, node, callback, true);
+  }
 
-    std::lock_guard<std::mutex> lock(mutex_);
-    auto it_emplaced_pair = waiting_threads_.try_emplace(node);
-    auto & t = it_emplaced_pair.first->second;
-    {
-      std::lock_guard<std::mutex> lock(t.mutex);
-      t.topic_callback_vec.push_back({topic, callback});
-    }
-    // If we already have a thread for this node, then notify that there is a new callback
-    if (!it_emplaced_pair.second) {
-      t.cv.notify_all();
-      return;
-    }
-    // If we made it this far, there doesn't exist a thread for waiting so we'll create one
-    t.thread = this->launch_thread(node, t);
+  /// Register a callback that is called when a subscription is ready.
+  /**
+   * \param topic: The name of the topic to monitor.
+   * \param node: The node to use to monitor the topic.
+   * \param callback: User callback that is triggered when a subscription is found.
+   */
+  void register_on_subscription_qos_ready_callback(
+    const std::string & topic,
+    const rclcpp::Node::SharedPtr & node,
+    std::function<void(const QosMatchInfo)> callback)
+  {
+    return this->register_on_qos_ready_callback(topic, node, callback, false);
   }
 
   void set_delay(const std::chrono::milliseconds & delay)
@@ -158,6 +151,7 @@ private:
   {
     std::string topic;
     std::function<void(const QosMatchInfo)> cb;
+    bool is_publisher;
   };
   struct ClientAndCallback
   {
@@ -169,8 +163,8 @@ private:
     std::thread thread;
     std::condition_variable cv;
     std::mutex mutex;
-    std::vector<TopicAndCallback> topic_callback_vec;
-    std::vector<ClientAndCallback> service_callback_vec;
+    std::vector<TopicAndCallback> topics_callback_vec;
+    std::vector<ClientAndCallback> clients_callback_vec;
     bool shutting_down = false;
   };
   using ThreadMap = std::unordered_map<
@@ -189,7 +183,7 @@ private:
    * If there are no publishers, then no QoS is returned (i.e. the optional object is not set).
    */
   std::optional<QosMatchInfo> get_topic_qos(
-    const std::string & topic, rclcpp::Node & node) const
+    const std::string & topic, rclcpp::Node & node, bool is_publisher = true) const
   {
     // TODO(jacobperron): replace this with common implementation when it is available.
     //       See: https://github.com/ros2/rosbag2/issues/601
@@ -201,8 +195,12 @@ private:
     std::this_thread::sleep_for(delay_);
 
     // Query QoS info for publishers
-    std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
-      node.get_publishers_info_by_topic(topic);
+    std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec;
+    if (is_publisher) {
+      endpoint_info_vec = node.get_publishers_info_by_topic(topic);
+    } else {
+      endpoint_info_vec = node.get_subscriptions_info_by_topic(topic);
+    }
     std::size_t num_endpoints = endpoint_info_vec.size();
 
     // If there are no publishers, return an empty optional
@@ -293,11 +291,11 @@ private:
             }
             {
               // Check if a matching service server was found
-              auto it = t.service_callback_vec.begin();
-              while (it != t.service_callback_vec.end()) {
+              auto it = t.clients_callback_vec.begin();
+              while (it != t.clients_callback_vec.end()) {
                 if (it->client->service_is_ready()) {
                   it->cb();
-                  it = t.service_callback_vec.erase(it);
+                  it = t.clients_callback_vec.erase(it);
                 } else {
                   ++it;
                 }
@@ -305,13 +303,14 @@ private:
             }
             {
               // Check if QoS is ready for any of the topics
-              auto it = t.topic_callback_vec.begin();
-              while (it != t.topic_callback_vec.end()) {
+              auto it = t.topics_callback_vec.begin();
+              while (it != t.topics_callback_vec.end()) {
                 const std::string & topic = it->topic;
                 const auto & callback = it->cb;
+                bool is_publisher = it->is_publisher;
                 std::optional<QosMatchInfo> opt_qos;
                 try {
-                  opt_qos = this->get_topic_qos(topic, *node);
+                  opt_qos = this->get_topic_qos(topic, *node, is_publisher);
                 } catch (const rclcpp::exceptions::RCLError & ex) {
                   // If the context was shutdown, then exit cleanly
                   // This can happen if we get a SIGINT
@@ -319,16 +318,17 @@ private:
                   if (!context->is_valid()) {
                     return;
                   }
+                  auto entity_type = is_publisher ? "publisher" : "subscription";
                   // Otherwise, don't crash if there was a hiccup querying the topic endpoint
                   // Log an error instead
-                  std::cerr << "Failed to query info for topic '" << topic << "': " << ex.what() <<
-                    std::endl;
+                  std::cerr << "Failed to query " << entity_type << " info for topic '" <<
+                    topic << "': " << ex.what() << std::endl;
                 }
 
                 if (opt_qos) {
                   const QosMatchInfo & qos = opt_qos.value();
                   callback(qos);
-                  it = t.topic_callback_vec.erase(it);
+                  it = t.topics_callback_vec.erase(it);
                 } else {
                   ++it;
                 }
@@ -341,14 +341,44 @@ private:
               lock,
               [&t]
               {
-                return (t.topic_callback_vec.size() > 0u) ||
-                (t.service_callback_vec.size() > 0u) ||
+                return (t.topics_callback_vec.size() > 0u) ||
+                (t.clients_callback_vec.size() > 0u) ||
                 t.shutting_down;
               });
           }
         }
       };
     return std::thread(invoke_callback_when_qos_ready);
+  }
+
+  void register_on_qos_ready_callback(
+    const std::string & topic,
+    const rclcpp::Node::SharedPtr & node,
+    std::function<void(const QosMatchInfo)> callback,
+    bool is_publisher)
+  {
+    // If the QoS is already available, trigger the callback immediately
+    auto opt_qos = get_topic_qos(topic, *node, is_publisher);
+    if (opt_qos) {
+      const QosMatchInfo & qos = opt_qos.value();
+      callback(qos);
+      return;
+    }
+
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it_emplaced_pair = waiting_threads_.try_emplace(node);
+    auto & t = it_emplaced_pair.first->second;
+    {
+      std::lock_guard<std::mutex> lock(t.mutex);
+      t.topics_callback_vec.push_back({topic, callback, is_publisher});
+    }
+    // If we already have a thread for this node, then notify that there is a new callback
+    if (!it_emplaced_pair.second) {
+      t.cv.notify_all();
+      return;
+    }
+    // If we made it this far, there doesn't exist a thread for waiting so we'll create one
+    t.thread = this->launch_thread(node, t);
   }
 
   /// Threads used for waiting on publishers to become available

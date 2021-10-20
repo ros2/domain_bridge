@@ -82,6 +82,18 @@ private:
   PointerToMemberMethod publish_method_pointer_;
 };
 
+[[noreturn]] static void unreachable()
+{
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_unreachable)
+  __builtin_unreachable();
+#endif
+#elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
+  __builtin_unreachable();
+#endif
+  throw std::logic_error("This code should be unreachable.");
+}
+
 /// Implementation of \ref DomainBridge.
 class DomainBridgeImpl
 {
@@ -328,9 +340,6 @@ public:
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
 
-    // Register a callback to be triggered when QoS settings are available for one or more
-    // publishers on the 'from' side of the bridge
-    // The callback may be triggered immediately if a publisher is available
     auto create_bridge =
       [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
         (const QosMatchInfo & qos_match)
@@ -342,17 +351,17 @@ public:
         rclcpp::QoS qos(qos_options.depth());
         qos.history(qos_options.history());
         if (qos_options.reliability()) {
-          qos.reliability(qos_options.reliability().value());
+          qos.reliability(*qos_options.reliability());
         } else {
           qos.reliability(qos_match.qos.reliability());
         }
         if (qos_options.durability()) {
-          qos.durability(qos_options.durability().value());
+          qos.durability(*qos_options.durability());
         } else {
           qos.durability(qos_match.qos.durability());
         }
         if (qos_options.deadline()) {
-          const auto deadline_ns = qos_options.deadline().value();
+          const auto deadline_ns = *qos_options.deadline();
           if (deadline_ns < 0) {
             qos.deadline(
               rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
@@ -363,7 +372,7 @@ public:
           qos.deadline(qos_match.qos.deadline());
         }
         if (qos_options.lifespan()) {
-          const auto lifespan_ns = qos_options.lifespan().value();
+          const auto lifespan_ns = *qos_options.lifespan();
           if (lifespan_ns < 0) {
             qos.lifespan(
               rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
@@ -382,8 +391,8 @@ public:
           std::cerr << warning << std::endl;
         }
 
-        rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> publisher_options;
-        rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> subscription_options;
+        rclcpp::PublisherOptions publisher_options;
+        rclcpp::SubscriptionOptions subscription_options;
 
         // Prevent endless looping on a bidirectional bridge
         // Note: this may not be supported by all rmw implementations
@@ -412,9 +421,38 @@ public:
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
-    wait_for_graph_events_.set_delay(topic_options.delay());
-    wait_for_graph_events_.register_on_publisher_qos_ready_callback(
-      topic, from_domain_node, create_bridge);
+    auto opt_case = static_cast<int>(topic_options.wait_for_subscription()) * 2 +
+      static_cast<int>(topic_options.wait_for_publisher());
+    switch (opt_case) {
+      case 0:  // DON'T WAIT
+        {
+          domain_bridge::QosMatchInfo qos_match;  // with default qos
+          create_bridge(qos_match);
+        }
+        break;
+      case 1:  // WAIT FOR ONLY PUBLISHER, this is the default
+        wait_for_graph_events_.set_delay(topic_options.delay());
+        wait_for_graph_events_.register_on_publisher_qos_ready_callback(
+          topic, from_domain_node, create_bridge);
+        break;
+      case 2:  // WAIT FOR ONLY SUBSCRIPTION
+        wait_for_graph_events_.set_delay(topic_options.delay());
+        wait_for_graph_events_.register_on_subscription_qos_ready_callback(
+          topic, to_domain_node, create_bridge);
+        break;
+      case 3:  // WAIT FOR SUBSCRIPTION, THEN FOR PUBLISHER
+        wait_for_graph_events_.set_delay(topic_options.delay());
+        wait_for_graph_events_.register_on_subscription_qos_ready_callback(
+          topic,
+          to_domain_node,
+          [this, create_bridge, topic, from_domain_node](const QosMatchInfo &) {
+            this->wait_for_graph_events_.register_on_publisher_qos_ready_callback(
+              topic, from_domain_node, create_bridge);
+          });
+        break;
+      default:
+        unreachable();
+    }
   }
 
   void add_to_executor(rclcpp::Executor & executor)

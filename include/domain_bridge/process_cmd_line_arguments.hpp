@@ -52,6 +52,12 @@ print_help()
     "                             This overrides any mode set in the YAML file." << std::endl <<
     "                             Defaults to '" << kNormalModeStr << "'." <<
     std::endl <<
+    "    --wait-for-subscription true|false  Will wait for an available subscription before"
+    " bridging a topic. This overrides any value set in the YAML file. Defaults to false." <<
+    std::endl <<
+    "    --wait-for-publisher true|false  Will wait for an available subscription before"
+    " bridging a topic. This overrides any value set in the YAML file. Defaults to true." <<
+    std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
 
@@ -75,6 +81,21 @@ parse_size_t_arg(const std::string & arg, const char * error_str)
   }
   return value;
 }
+
+inline
+std::optional<bool>
+parse_bool_arg(const std::string & arg, const char * error_str)
+{
+  bool value;
+  std::istringstream iss(arg);
+  iss >> std::boolalpha >> value;
+  if (iss.fail()) {
+    std::cerr << "error: Failed to parse " << error_str << " argument '" <<
+      arg << "'" << std::endl;
+    return std::nullopt;
+  }
+  return value;
+}
 }  // namespace detail
 
 /// Parse command line arguments
@@ -93,8 +114,10 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   }
   std::optional<size_t> from_domain_id;
   std::optional<size_t> to_domain_id;
+  std::optional<bool> wait_for_subscription;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
+  std::optional<bool> wait_for_publisher;
 
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
@@ -124,6 +147,32 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       ++it;
       to_domain_id = detail::parse_size_t_arg(*it, "TO_DOMAIN_ID");
       if (!to_domain_id) {
+        return std::make_pair(std::nullopt, 1);
+      }
+      continue;
+    }
+    if (arg == "--wait-for-subscription") {
+      if (wait_for_subscription) {
+        std::cerr << "error: --wait-for-subscription option passed more than once" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      ++it;
+      wait_for_subscription = detail::parse_bool_arg(*it, "--wait-for-subscription");
+      if (!wait_for_subscription) {
+        return std::make_pair(std::nullopt, 1);
+      }
+      continue;
+    }
+    if (arg == "--wait-for-publisher") {
+      if (wait_for_subscription) {
+        std::cerr << "error: --wait-for-publisher option passed more than once" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      ++it;
+      wait_for_publisher = detail::parse_bool_arg(*it, "--wait-for-publisher");
+      if (!wait_for_publisher) {
         return std::make_pair(std::nullopt, 1);
       }
       continue;
@@ -163,14 +212,20 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   domain_bridge::DomainBridgeConfig domain_bridge_config =
     domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
 
-  // Override 'from_domain' and 'to_domain' in config
-  if (from_domain_id || to_domain_id) {
+  // Override 'from_domain','to_domain' and 'wait_for_subscription' in config
+  if (from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher) {
     for (auto & topic_option_pair : domain_bridge_config.topics) {
       if (from_domain_id) {
         topic_option_pair.first.from_domain_id = *from_domain_id;
       }
       if (to_domain_id) {
         topic_option_pair.first.to_domain_id = *to_domain_id;
+      }
+      if (wait_for_subscription) {
+        topic_option_pair.second.wait_for_subscription(*wait_for_subscription);
+      }
+      if (wait_for_publisher) {
+        topic_option_pair.second.wait_for_publisher(*wait_for_publisher);
       }
     }
   }

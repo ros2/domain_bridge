@@ -39,6 +39,8 @@ public:
    *    - remap_name = "" (no remap)
    *    - bidirectional = false (one-way)
    *    - reversed = false
+   *    - wait_for_subscription = false
+   *    - wait_for_publisher = true
    *    - delay = 0 (no extra delay to wait for publishers before creating bridge)
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -107,6 +109,38 @@ public:
   TopicBridgeOptions &
   delay(const std::chrono::milliseconds & delay);
 
+  /// Set wait_for_subscription to `value`.
+  /**
+   * When set to true, the domain bridge will wait for a subscription to be available in the
+   * "to domain" before creating the bridge.
+   *
+   * If wait_for_publisher() is also true, the bridge will first wait for an available publisher and
+   * then for an available subscription.
+   * QoS matching will be taken from the publisher in that case.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  wait_for_subscription(bool value);
+
+  /// Get wait_for_subscription option.
+  DOMAIN_BRIDGE_PUBLIC
+  bool
+  wait_for_subscription() const;
+
+  /// Set wait_for_publisher to value.
+  /**
+   * When set to true, the domain bridge will wait for a publisher to be available in the
+   * "from domain" before creating the bridge.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  wait_for_publisher(bool value);
+
+  /// Get wait_for_publisher option.
+  DOMAIN_BRIDGE_PUBLIC
+  bool
+  wait_for_publisher() const;
+
 private:
   std::shared_ptr<rclcpp::CallbackGroup> callback_group_{nullptr};
 
@@ -117,6 +151,10 @@ private:
   bool bidirectional_{false};
 
   bool reversed_{false};
+
+  bool wait_for_subscription_{false};
+
+  bool wait_for_publisher_{true};
 
   std::chrono::milliseconds delay_{0};
 };  // class TopicBridgeOptions
