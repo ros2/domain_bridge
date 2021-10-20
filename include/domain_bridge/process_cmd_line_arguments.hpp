@@ -75,7 +75,7 @@ parse_size_t_arg(const std::string & arg, const char * error_str)
   std::istringstream iss(arg);
   iss >> value;
   if (iss.fail() || !iss.eof()) {
-    std::cerr << "error: Failed to parse " << error_str << " argument '" <<
+    std::cerr << "error: Failed to parse " << error_str << " '" <<
       arg << "'" << std::endl;
     return std::nullopt;
   }
