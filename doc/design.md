@@ -187,7 +187,7 @@ This can be modified by passing the command line arguments:
 - `--wait-for-subscription true|false`, default false.
 - `--wait-for-publisher true|false`, default true.
 
-If both are true, first the domain bridge will wait for a publisher and then for a subscription, and use the publisher qos to create the bridge.
+If both are true, first the domain bridge will wait for a publisher and then for a subscription, and use the publisher QoS to create the bridge.
 If only wait for subscription is enabled, the qos settings of the subscription found will be used.
 
 ### Remapping
