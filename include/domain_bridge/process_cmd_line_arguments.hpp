@@ -53,7 +53,7 @@ print_help()
     "                             Defaults to '" << kNormalModeStr << "'." <<
     std::endl <<
     "    --wait-for-subscription true|false  Will wait for an available subscription before"
-    " bridging a topic. Default is false, unless overridden in yaml file or here." <<
+    " bridging a topic. This overrides any value set in the YAML file. Defaults to false." <<
     std::endl <<
     "    --wait-for-publisher true|false  Will wait for an available subscription before"
     " bridging a topic. Default is true, unless overridden in yaml file or here." <<
