@@ -310,7 +310,7 @@ private:
                 bool is_publisher = it->is_publisher;
                 std::optional<QosMatchInfo> opt_qos;
                 try {
-                  opt_qos = this->get_topic_qos(topic, *node);
+                  opt_qos = this->get_topic_qos(topic, *node, is_publisher);
                 } catch (const rclcpp::exceptions::RCLError & ex) {
                   // If the context was shutdown, then exit cleanly
                   // This can happen if we get a SIGINT
