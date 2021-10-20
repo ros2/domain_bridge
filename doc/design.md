@@ -181,7 +181,7 @@ We consider having multiple publishers with different QoS policies on the same t
 
 ### Waiting for subscription or publisher to bridge a topic
 
-By default, to bridge a topic we wait for an available publisher, and use its qos settings to create the bridge.
+By default, we wait for an available publisher and use its QoS settings to create a topic bridge.
 This can be modified by passing the command line arguments:
 
 - `--wait-for-subscription true|false`, default false.
