@@ -2,6 +2,26 @@
 Changelog for package domain_bridge
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.4.0 (2021-10-22)
+------------------
+* Make some end to end tests more reliable (`#51 <https://github.com/ros2/domain_bridge/issues/51>`_)
+* Install CLI parsing header (`#45 <https://github.com/ros2/domain_bridge/issues/45>`_)
+* Run communication-related tests with all available RMWs (`#43 <https://github.com/ros2/domain_bridge/issues/43>`_)
+* Fix bug when waiting for service to be available (`#42 <https://github.com/ros2/domain_bridge/issues/42>`_) (`#55 <https://github.com/ros2/domain_bridge/issues/55>`_)
+* Update CI to target Galactic (`#37 <https://github.com/ros2/domain_bridge/issues/37>`_)
+* Add `--mode` argument to `domain_bridge` (`#35 <https://github.com/ros2/domain_bridge/issues/35>`_)
+* Add template method to help bridging services (`#26 <https://github.com/ros2/domain_bridge/issues/26>`_)
+* Fix library target install (`#36 <https://github.com/ros2/domain_bridge/issues/36>`_)
+* Update CI workflow (`#34 <https://github.com/ros2/domain_bridge/issues/34>`_)
+* Prevent bridging from/to same domain ID (`#33 <https://github.com/ros2/domain_bridge/issues/33>`_)
+* RTI QoS profiles patch (`#25 <https://github.com/ros2/domain_bridge/issues/25>`_)
+  * Add option to run callback before creating new Domain
+  * Add a domain_bridge executable that allows to load an RTI qos profile before creating a new domain  participant
+* Add compressing and decompressing modes (`#24 <https://github.com/ros2/domain_bridge/issues/24>`_)
+* Refactor to use generic pub/sub from rclcpp (`#30 <https://github.com/ros2/domain_bridge/issues/30>`_)
+* Fix bug in generic subscription (`#27 <https://github.com/ros2/domain_bridge/issues/27>`_)
+* Contributors: Ivan Santiago Paunovic, Jacob Perron, Rebecca Butler
+
 0.3.0 (2021-05-20)
 ------------------
 * Override handle_serialized_message (`#21 <https://github.com/ros2/domain_bridge/issues/21>`_)
