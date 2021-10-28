@@ -344,10 +344,9 @@ public:
         if (qos_options.deadline()) {
           const auto deadline_ns = qos_options.deadline().value();
           if (deadline_ns < 0) {
-            qos.deadline(
-              rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
+            qos.deadline(rclcpp::Duration(std::numeric_limits<std::int64_t>::max()));
           } else {
-            qos.deadline(rclcpp::Duration::from_nanoseconds(deadline_ns));
+            qos.deadline(rclcpp::Duration(deadline_ns));
           }
         } else {
           qos.deadline(qos_match.qos.deadline());
@@ -356,9 +355,9 @@ public:
           const auto lifespan_ns = qos_options.lifespan().value();
           if (lifespan_ns < 0) {
             qos.lifespan(
-              rclcpp::Duration::from_nanoseconds(std::numeric_limits<std::int64_t>::max()));
+              rclcpp::Duration(std::numeric_limits<std::int64_t>::max()));
           } else {
-            qos.lifespan(rclcpp::Duration::from_nanoseconds(lifespan_ns));
+            qos.lifespan(rclcpp::Duration(lifespan_ns));
           }
         } else {
           qos.lifespan(qos_match.qos.lifespan());

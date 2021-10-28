@@ -95,7 +95,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
   EXPECT_EQ(bridged_qos.durability(), qos.durability());
   EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
   // Deadline and lifespan default to max
-  auto max_duration = rclcpp::Duration::from_nanoseconds(std::numeric_limits<int64_t>::max());
+  auto max_duration = rclcpp::Duration(std::numeric_limits<int64_t>::max());
   EXPECT_EQ(bridged_qos.deadline(), max_duration);
   EXPECT_EQ(bridged_qos.lifespan(), max_duration);
 }
@@ -139,7 +139,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
   EXPECT_EQ(bridged_qos.durability(), qos.durability());
   EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
   // Deadline and lifespan default to max
-  auto max_duration = rclcpp::Duration::from_nanoseconds(std::numeric_limits<int64_t>::max());
+  auto max_duration = rclcpp::Duration(std::numeric_limits<int64_t>::max());
   EXPECT_EQ(bridged_qos.deadline(), max_duration);
   EXPECT_EQ(bridged_qos.lifespan(), max_duration);
 }
@@ -181,7 +181,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   EXPECT_EQ(bridged_qos.durability(), rclcpp::DurabilityPolicy::Volatile);
   EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
   // Deadline and lifespan default to max
-  auto max_duration = rclcpp::Duration::from_nanoseconds(std::numeric_limits<int64_t>::max());
+  auto max_duration = rclcpp::Duration(std::numeric_limits<int64_t>::max());
   EXPECT_EQ(bridged_qos.deadline(), max_duration);
   EXPECT_EQ(bridged_qos.lifespan(), max_duration);
 }
