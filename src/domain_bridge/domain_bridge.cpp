@@ -30,8 +30,6 @@
 
 #include "rclcpp/executor.hpp"
 #include "rclcpp/expand_topic_or_service_name.hpp"
-#include "rclcpp/generic_publisher.hpp"
-#include "rclcpp/generic_subscription.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/serialization.hpp"
 #include "rosbag2_cpp/typesupport_helpers.hpp"
@@ -44,43 +42,24 @@
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
 
+#include "generic_publisher.hpp"
+#include "generic_subscription.hpp"
 #include "wait_for_graph_events.hpp"
 
 namespace domain_bridge
 {
 
-/// \internal
-/**
- * A hack, because PublisherBase doesn't support publishing serialized messages and because
- * GenericPublisher cannot be created with a typesupport handle :/
- */
-class SerializedPublisher
+[[noreturn]] static void unreachable()
 {
-public:
-  template<typename MessageT, typename AllocatorT>
-  explicit SerializedPublisher(std::shared_ptr<rclcpp::Publisher<MessageT, AllocatorT>> impl)
-  : impl_(std::move(impl)),
-    publish_method_pointer_(static_cast<decltype(publish_method_pointer_)>(
-        &rclcpp::Publisher<MessageT, AllocatorT>::publish))
-  {}
-
-  explicit SerializedPublisher(std::shared_ptr<rclcpp::GenericPublisher> impl)
-  : impl_(std::move(impl)),
-    publish_method_pointer_(static_cast<decltype(publish_method_pointer_)>(
-        &rclcpp::GenericPublisher::publish))
-  {}
-
-  void publish(const rclcpp::SerializedMessage & message)
-  {
-    ((*impl_).*publish_method_pointer_)(message);  // this is a bit horrible, but it works ...
-  }
-
-private:
-  std::shared_ptr<rclcpp::PublisherBase> impl_;
-  using PointerToMemberMethod =
-    void (rclcpp::PublisherBase::*)(const rclcpp::SerializedMessage & message);
-  PointerToMemberMethod publish_method_pointer_;
-};
+#if defined(__has_builtin)
+#if __has_builtin(__builtin_unreachable)
+  __builtin_unreachable();
+#endif
+#elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
+  __builtin_unreachable();
+#endif
+  throw std::logic_error("This code should be unreachable.");
+}
 
 /// Implementation of \ref DomainBridge.
 class DomainBridgeImpl
@@ -90,8 +69,8 @@ public:
   using TopicBridgeMap = std::map<
     TopicBridge,
     std::pair<
-      std::shared_ptr<SerializedPublisher>,
-      std::shared_ptr<rclcpp::SubscriptionBase>>>;
+      std::shared_ptr<GenericPublisher>,
+      std::shared_ptr<GenericSubscription>>>;
   using ServiceBridgeMap = std::map<
     detail::ServiceBridge,
     std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
@@ -195,32 +174,39 @@ public:
       type, "rosidl_typesupport_cpp");
   }
 
-  std::shared_ptr<SerializedPublisher>
+  std::shared_ptr<GenericPublisher>
   create_publisher(
     rclcpp::Node::SharedPtr node,
     const std::string & topic_name,
-    const std::string & type,
     const rclcpp::QoS & qos,
-    rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> & options)
+    const rosidl_message_type_support_t & typesupport_handle,
+    rclcpp::CallbackGroup::SharedPtr group)
   {
-    std::shared_ptr<SerializedPublisher> publisher;
     if (options_.mode() != DomainBridgeOptions::Mode::Compress) {
-      publisher = std::make_shared<SerializedPublisher>(
-        node->create_generic_publisher(topic_name, type, qos, options));
-    } else {
-      publisher = std::make_shared<SerializedPublisher>(
-        node->create_publisher<domain_bridge::msg::CompressedMsg>(topic_name, qos, options));
+      auto publisher = std::make_shared<GenericPublisher>(
+        node->get_node_base_interface().get(),
+        typesupport_handle,
+        topic_name,
+        qos);
+      node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
+      return publisher;
     }
+    auto publisher = std::make_shared<GenericPublisher>(
+      node->get_node_base_interface().get(),
+      *rosidl_typesupport_cpp::get_message_type_support_handle<domain_bridge::msg::CompressedMsg>(),
+      topic_name,
+      qos);
+    node->get_node_topics_interface()->add_publisher(publisher, std::move(group));
     return publisher;
   }
 
-  std::shared_ptr<rclcpp::SubscriptionBase> create_subscription(
+  std::shared_ptr<GenericSubscription> create_subscription(
     rclcpp::Node::SharedPtr node,
-    std::shared_ptr<SerializedPublisher> publisher,
+    std::shared_ptr<GenericPublisher> publisher,
     const std::string & topic_name,
-    const std::string & type,
     const rclcpp::QoS & qos,
-    rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> & options)
+    const rosidl_message_type_support_t & typesupport_handle,
+    rclcpp::CallbackGroup::SharedPtr group)
   {
     std::function<void(std::shared_ptr<rclcpp::SerializedMessage>)> callback;
     switch (options_.mode()) {
@@ -236,7 +222,7 @@ public:
             compressed_msg.data = domain_bridge::compress_message(cctx, std::move(*msg));
             rclcpp::SerializedMessage serialized_compressed_msg;
             serializer.serialize_message(&compressed_msg, &serialized_compressed_msg);
-            publisher->publish(serialized_compressed_msg);
+            publisher->publish(serialized_compressed_msg.get_rcl_serialized_message());
           };
         break;
       case DomainBridgeOptions::Mode::Decompress:
@@ -251,31 +237,39 @@ public:
             serializer.deserialize_message(serialized_compressed_msg.get(), &compressed_msg);
             rclcpp::SerializedMessage msg = domain_bridge::decompress_message(
               dctx, std::move(compressed_msg.data));
-            publisher->publish(msg);
+            publisher->publish(msg.get_rcl_serialized_message());
           };
         break;
       default:  // fallthrough
       case DomainBridgeOptions::Mode::Normal:
         callback = [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
             // Publish message into the other domain
-            publisher->publish(*msg);
+            publisher->publish(msg->get_rcl_serialized_message());
           };
         break;
     }
     if (options_.mode() != DomainBridgeOptions::Mode::Decompress) {
       // Create subscription
-      return node->create_generic_subscription(
+      auto subscription = std::make_shared<GenericSubscription>(
+        node->get_node_base_interface().get(),
+        typesupport_handle,
         topic_name,
-        type,
         qos,
-        callback,
-        options);
+        callback);
+      node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
+      return subscription;
     }
-    return node->create_subscription<domain_bridge::msg::CompressedMsg>(
+    auto subscription = std::make_shared<GenericSubscription>(
+      node->get_node_base_interface().get(),
+      *rosidl_typesupport_cpp::get_message_type_support_handle<domain_bridge::msg::CompressedMsg>(),
       topic_name,
       qos,
-      callback,
-      options);
+      [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
+        // Publish message into the other domain
+        publisher->publish(msg->get_rcl_serialized_message());
+      });
+    node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
+    return subscription;
   }
 
   void bridge_topic(
@@ -378,29 +372,26 @@ public:
           std::cerr << warning << std::endl;
         }
 
-        rclcpp::PublisherOptionsWithAllocator<std::allocator<void>> publisher_options;
-        rclcpp::SubscriptionOptionsWithAllocator<std::allocator<void>> subscription_options;
-
-        publisher_options.callback_group = topic_options.callback_group();
-        subscription_options.callback_group = topic_options.callback_group();
+        auto typesupport_handle = rosbag2_cpp::get_typesupport_handle(
+          type, "rosidl_typesupport_cpp", loaded_typesupports_.at(type));
 
         // Create publisher for the 'to_domain'
         // The publisher should be created first so it is available to the subscription callback
         auto publisher = this->create_publisher(
           to_domain_node,
           topic_remapped,
-          type,
           qos,
-          publisher_options);
+          *typesupport_handle,
+          topic_options.callback_group());
 
         // Create subscription for the 'from_domain'
         auto subscription = this->create_subscription(
           from_domain_node,
           publisher,
           topic,
-          type,
           qos,
-          subscription_options);
+          *typesupport_handle,
+          topic_options.callback_group());
 
         this->bridged_topics_[topic_bridge] = {publisher, subscription};
       };
