@@ -24,12 +24,10 @@
 #include "rclcpp/serialization.hpp"
 #include "test_msgs/msg/basic_types.hpp"
 
-#include "domain_bridge/component_manager.hpp"
 #include "domain_bridge/compress_messages.hpp"
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
 
-#include "wait_for_publisher.hpp"
 
 static constexpr std::size_t kDomain1{1u};
 static constexpr std::size_t kDomain2{2u};
@@ -66,20 +64,16 @@ protected:
   std::shared_ptr<rclcpp::Context> context_2_;
   std::shared_ptr<rclcpp::Node> node_1_;
   std::shared_ptr<rclcpp::Node> node_2_;
-  // use a qos profile with transient local volatility to make the tests simple.
-  // it's hard to guarantee that all pub/sub have matched and so the first few messages
-  // can be lost if using a profile with volatile durability.
-  rclcpp::QoS pub_sub_qos_ = rclcpp::QoS(1).transient_local();
 };
 
 static
 bool
 poll_condition(std::function<bool()> condition, std::chrono::seconds timeout)
 {
-  auto start = std::chrono::steady_clock::now();
+  auto start = std::chrono::system_clock::now();
   while (
     !condition() &&
-    (start + timeout > std::chrono::steady_clock::now()))
+    (start + timeout > std::chrono::system_clock::now()))
   {
     std::this_thread::sleep_for(50ms);
   }
@@ -90,10 +84,9 @@ class ScopedAsyncSpinner
 {
 public:
   explicit ScopedAsyncSpinner(std::shared_ptr<rclcpp::Context> context)
-  : executor_{std::make_shared<rclcpp::executors::SingleThreadedExecutor>(
-        get_executor_options_with_context(std::move(context)))},
+  : executor_{get_executor_options_with_context(std::move(context))},
     thread_{[this, stop_token = promise_.get_future()] {
-        executor_->spin_until_future_complete(stop_token);
+        executor_.spin_until_future_complete(stop_token);
       }}
   {}
 
@@ -103,18 +96,12 @@ public:
     // TODO(ivanpauno): Report bug in rclcpp.
     // This shouldn't be needed if spin_until_future_complete() worked
     // correctly.
-    executor_->cancel();
+    executor_.cancel();
     thread_.join();
   }
 
   rclcpp::Executor &
   get_executor()
-  {
-    return *executor_;
-  }
-
-  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> &
-  get_executor_ptr()
   {
     return executor_;
   }
@@ -129,7 +116,7 @@ private:
     return ret;
   }
 
-  std::shared_ptr<rclcpp::executors::SingleThreadedExecutor> executor_;
+  rclcpp::executors::SingleThreadedExecutor executor_;
   std::promise<void> promise_;
   std::thread thread_;
 };
@@ -141,10 +128,10 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
 
   std::atomic<bool> got_message = false;
 
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     remap_name,
-    pub_sub_qos_,
+    1,
     [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -154,12 +141,13 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
 
+  EXPECT_TRUE(poll_condition([sub]() {return sub->get_publisher_count() == 1u;}, 3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
@@ -172,10 +160,10 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   std::atomic<bool> got_message = false;
 
   // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     expected_name,
-    pub_sub_qos_,
+    1,
     [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -187,47 +175,13 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
 
+  EXPECT_TRUE(poll_condition([sub]() {return sub->get_publisher_count() == 1u;}, 3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
-}
-
-TEST_F(TestDomainBridgeEndToEnd, wait_for_subscription)
-{
-  const std::string topic_name("test_wait_for_subscription");
-  const std::string domain_bridge_name("test_wait_for_subscription_domain_bridge");
-
-  std::atomic<bool> got_message = false;
-
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
-
-  // Bridge the publisher topic to domain 2 with a remap option
-  domain_bridge::DomainBridgeOptions domain_bridge_options;
-  domain_bridge_options.name(domain_bridge_name);
-  domain_bridge::DomainBridge bridge{domain_bridge_options};
-  domain_bridge::TopicBridgeOptions topic_bridge_options;
-  topic_bridge_options.wait_for_subscription(true);
-  ASSERT_TRUE(topic_bridge_options.wait_for_subscription());
-  bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
-
-  // bridge shouldn't be created until the subscription is up
-  EXPECT_FALSE(poll_condition([pub]() {return pub->get_subscription_count() > 0;}, 5s));
-
-  auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
-    topic_name,
-    pub_sub_qos_,
-    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
-
-  pub->publish(test_msgs::msg::BasicTypes{});
-  ScopedAsyncSpinner spinner{context_1_};
-  spinner.get_executor().add_node(node_1_);
-  spinner.get_executor().add_node(node_2_);
-  bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, compress_mode)
@@ -238,10 +192,10 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   std::atomic<bool> got_message = false;
 
   // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
   auto sub = node_2_->create_subscription<domain_bridge::msg::CompressedMsg>(
     topic_name,
-    pub_sub_qos_,
+    1,
     [&got_message](const domain_bridge::msg::CompressedMsg &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -252,12 +206,13 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
 
+  EXPECT_TRUE(poll_condition([sub]() {return sub->get_publisher_count() == 1u;}, 3s));
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
 }
 
 TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
@@ -268,10 +223,10 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   std::atomic<bool> got_message = false;
 
   // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<domain_bridge::msg::CompressedMsg>(topic_name, pub_sub_qos_);
+  auto pub = node_1_->create_publisher<domain_bridge::msg::CompressedMsg>(topic_name, 1);
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     topic_name,
-    pub_sub_qos_,
+    1,
     [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
@@ -282,6 +237,7 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   bridge.bridge_topic(
     topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
 
+  EXPECT_TRUE(poll_condition([sub]() {return sub->get_publisher_count() == 1u;}, 3s));
   rclcpp::Serialization<test_msgs::msg::BasicTypes> serializer;
   test_msgs::msg::BasicTypes msg;
   rclcpp::SerializedMessage serialized_msg;
@@ -294,97 +250,5 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   spinner.get_executor().add_node(node_1_);
   spinner.get_executor().add_node(node_2_);
   bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
-}
-
-TEST_F(TestDomainBridgeEndToEnd, create_bidirectional_bridge)
-{
-  const std::string topic_name("test_bidirectional");
-
-  // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
-
-  // Bridge the publisher topic bidirectionally
-  domain_bridge::TopicBridgeOptions topic_bridge_options;
-  topic_bridge_options.bidirectional(true);
-  domain_bridge::DomainBridgeConfig config;
-  config.topics.push_back(
-  {
-    {topic_name, "test_msgs/msg/BasicTypes", kDomain2, kDomain1},
-    topic_bridge_options
-  });
-  domain_bridge::DomainBridge bridge(config);
-
-  // 'to' domain is 1, but since we are bridging both ways, publisher should also appear on domain 2
-  ASSERT_TRUE(wait_for_publisher(node_1_, topic_name));
-  ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
-}
-
-TEST_F(TestDomainBridgeEndToEnd, create_reversed_bridge)
-{
-  const std::string topic_name("test_reversed");
-
-  // Create a publisher on domain 1
-  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, 1);
-
-  // Bridge the publisher topic in the reversed direction
-  domain_bridge::DomainBridge bridge;
-  domain_bridge::TopicBridgeOptions topic_bridge_options;
-  topic_bridge_options.reversed(true);
-  bridge.bridge_topic(
-    {topic_name, "test_msgs/msg/BasicTypes", kDomain2, kDomain1},
-    topic_bridge_options
-  );
-
-  // 'to' domain is 1, but since the bridge is reversed, publisher should only appear on domain 2
-  ASSERT_TRUE(wait_for_publisher(node_2_, topic_name));
-}
-
-TEST_F(TestDomainBridgeEndToEnd, domain_bridge_component_manager)
-{
-  rclcpp::init(0, nullptr);
-  auto client_node = std::make_shared<rclcpp::Node>("client_node");
-  std::shared_ptr<domain_bridge::ComponentManager> manager = nullptr;
-
-  // Bridge topic
-  const std::string topic_name("test_domain_bridge_component_manager");
-  domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
-
-  // Add component manager, client, and node_2 (to receive the message)
-  ScopedAsyncSpinner spinner{context_1_};
-  manager = std::make_shared<domain_bridge::ComponentManager>(spinner.get_executor_ptr());
-  spinner.get_executor().add_node(manager);
-  spinner.get_executor().add_node(client_node);
-  spinner.get_executor().add_node(node_2_);
-
-  // Wait for LoadNode service
-  auto client = client_node->create_client<composition_interfaces::srv::LoadNode>(
-    "/ComponentManager/_container/load_node");
-  if (!client->wait_for_service(5s)) {
-    ASSERT_TRUE(false) << "service not available after waiting";
-  }
-
-  // Load publisher component on domain 1
-  auto resources = manager->get_component_resources("domain_bridge");
-  EXPECT_EQ("domain_bridge::TestComponent", resources[0].first);
-  auto request = std::make_shared<composition_interfaces::srv::LoadNode::Request>();
-  request->package_name = "domain_bridge";
-  request->plugin_name = "domain_bridge::TestComponent";
-  rclcpp::Parameter domain_id_1("domain_id", rclcpp::ParameterValue(1));
-  request->extra_arguments.push_back(domain_id_1.to_parameter_msg());
-  auto result = client->async_send_request(request);
-  EXPECT_TRUE(result.get()->success);
-
-  // Create subscriber on domain 2
-  std::atomic<bool> got_message = false;
-  auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
-    topic_name,
-    1,
-    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
-
-  // Add bridge and verify message from component is received
-  bridge.add_to_executor(spinner.get_executor());
-  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 1s));
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 3s));
 }

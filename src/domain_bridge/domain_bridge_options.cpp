@@ -12,16 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "domain_bridge/domain_bridge_options.hpp"
-
-#include <functional>
 #include <string>
-#include <utility>
+
+#include "domain_bridge/domain_bridge_options.hpp"
 
 namespace domain_bridge
 {
 
-const std::string &
+std::string
 DomainBridgeOptions::name() const
 {
   return this->name_;
@@ -44,13 +42,6 @@ DomainBridgeOptions &
 DomainBridgeOptions::mode(DomainBridgeOptions::Mode mode)
 {
   mode_ = mode;
-  return *this;
-}
-
-DomainBridgeOptions &
-DomainBridgeOptions::on_new_domain_callback(std::function<void(size_t)> callback)
-{
-  this->on_new_domain_callback_ = std::move(callback);
   return *this;
 }
 

@@ -15,16 +15,12 @@
 #ifndef DOMAIN_BRIDGE__DOMAIN_BRIDGE_OPTIONS_HPP_
 #define DOMAIN_BRIDGE__DOMAIN_BRIDGE_OPTIONS_HPP_
 
-#include <functional>
 #include <string>
 
 #include "domain_bridge/visibility_control.hpp"
 
 namespace domain_bridge
 {
-
-// forward declare
-class DomainBridgeImpl;
 
 /// Options for domain bridge.
 class DomainBridgeOptions
@@ -63,7 +59,7 @@ public:
 
   /// Get the name of the domain bridge.
   DOMAIN_BRIDGE_PUBLIC
-  const std::string &
+  std::string
   name() const;
 
   /// Set the name of the domain bridge.
@@ -84,21 +80,9 @@ public:
   DomainBridgeOptions &
   mode(Mode mode);
 
-  /// Callback which is called before creating a new context/node for a new domain.
-  /**
-   * The only argument passed to the callback is the domain id.
-   * This is an horrible hack that allows you to configure vendor specific qos settings just
-   * before a new domain participant is going to be created.
-   */
-  DOMAIN_BRIDGE_PUBLIC
-  DomainBridgeOptions &
-  on_new_domain_callback(std::function<void(size_t)> callback);
-
 private:
   std::string name_{"domain_bridge"};
   Mode mode_{Mode::Normal};
-  std::function<void(size_t)> on_new_domain_callback_;
-  friend domain_bridge::DomainBridgeImpl;
 };  // class DomainBridgeOptions
 
 }  // namespace domain_bridge
