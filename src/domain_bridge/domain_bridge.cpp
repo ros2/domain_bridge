@@ -45,6 +45,7 @@
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
 #include "wait_for_graph_events.hpp"
+#include "utils.hpp"
 
 namespace domain_bridge
 {
@@ -349,7 +350,9 @@ public:
             qos.deadline(rclcpp::Duration(deadline_ns));
           }
         } else {
-          qos.deadline(qos_match.qos.deadline());
+          rmw_time_t rmw_deadline{qos_match.qos.get_rmw_qos_profile().deadline};
+          rclcpp::Duration deadline{utils::from_rmw_time(rmw_deadline)};
+          qos.deadline(deadline);
         }
         if (qos_options.lifespan()) {
           const auto lifespan_ns = qos_options.lifespan().value();
@@ -360,7 +363,9 @@ public:
             qos.lifespan(rclcpp::Duration(lifespan_ns));
           }
         } else {
-          qos.lifespan(qos_match.qos.lifespan());
+          rmw_time_t rmw_lifespan{qos_match.qos.get_rmw_qos_profile().lifespan};
+          rclcpp::Duration lifespan{utils::from_rmw_time(rmw_lifespan)};
+          qos.lifespan(lifespan);
         }
 
         qos.liveliness(qos_match.qos.get_rmw_qos_profile().liveliness);

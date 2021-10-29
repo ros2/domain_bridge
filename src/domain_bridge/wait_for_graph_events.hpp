@@ -30,10 +30,13 @@
 
 #include "rcl/node_options.h"
 #include "rclcpp/client.hpp"
+#include "rclcpp/duration.hpp"
 #include "rclcpp/node.hpp"
 #include "rclcpp/qos.hpp"
 #include "rmw/qos_profiles.h"
 #include "rmw/types.h"
+
+#include "utils.hpp"
 
 namespace domain_bridge
 {
@@ -231,11 +234,13 @@ private:
       if (profile.durability == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
         transient_local_count++;
       }
-      if (profile.deadline() > max_deadline) {
-        max_deadline = profile.deadline();
+      rclcpp::Duration deadline{utils::from_rmw_time(profile.deadline)};
+      if (deadline > max_deadline) {
+        max_deadline = deadline;
       }
-      if (profile.lifespan() > max_lifespan) {
-        max_lifespan = profile.lifespan();
+      rclcpp::Duration lifespan{utils::from_rmw_time(profile.lifespan)};
+      if (lifespan > max_lifespan) {
+        max_lifespan = lifespan;
       }
     }
 
