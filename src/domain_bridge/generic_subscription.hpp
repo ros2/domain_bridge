@@ -71,8 +71,8 @@ public:
 
   // Post-Galactic, handle_serialized_message is a pure virtual function in
   // rclcpp::SubscriptionBase, so we must override it.  However, in order to
-  // make this change compatible with both Galactic and later, we leave off
-  // the 'override' flag.
+  // make this change compatible with all of Foxy, Galactic, and later, we
+  // leave off the 'override' flag.
   void
   handle_serialized_message(
     const std::shared_ptr<rclcpp::SerializedMessage> & serialized_message,
