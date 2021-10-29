@@ -334,12 +334,12 @@ public:
         if (qos_options.reliability()) {
           qos.reliability(qos_options.reliability().value());
         } else {
-          qos.reliability(qos_match.qos.reliability());
+          qos.reliability(qos_match.qos.get_rmw_qos_profile().reliability);
         }
         if (qos_options.durability()) {
           qos.durability(qos_options.durability().value());
         } else {
-          qos.durability(qos_match.qos.durability());
+          qos.durability(qos_match.qos.get_rmw_qos_profile().durability);
         }
         if (qos_options.deadline()) {
           const auto deadline_ns = qos_options.deadline().value();
@@ -363,8 +363,9 @@ public:
           qos.lifespan(qos_match.qos.lifespan());
         }
 
-        qos.liveliness(qos_match.qos.liveliness());
-        qos.liveliness_lease_duration(qos_match.qos.liveliness_lease_duration());
+        qos.liveliness(qos_match.qos.get_rmw_qos_profile().liveliness);
+        qos.liveliness_lease_duration(
+          qos_match.qos.get_rmw_qos_profile().liveliness_lease_duration);
 
         // Print any match warnings
         for (const auto & warning : qos_match.warnings) {

@@ -32,6 +32,8 @@
 #include "rclcpp/client.hpp"
 #include "rclcpp/node.hpp"
 #include "rclcpp/qos.hpp"
+#include "rmw/qos_profiles.h"
+#include "rmw/types.h"
 
 namespace domain_bridge
 {
@@ -205,10 +207,14 @@ private:
     // Initialize QoS
     QosMatchInfo result_qos;
     // Default reliability and durability to value of first endpoint
-    result_qos.qos.reliability(endpoint_info_vec[0].qos_profile().reliability());
-    result_qos.qos.durability(endpoint_info_vec[0].qos_profile().durability());
+    rmw_qos_reliability_policy_t reliability_policy =
+      endpoint_info_vec[0].qos_profile().get_rmw_qos_profile().reliability;
+    rmw_qos_durability_policy_t durability_policy =
+      endpoint_info_vec[0].qos_profile().get_rmw_qos_profile().durability;
+    result_qos.qos.reliability(reliability_policy);
+    result_qos.qos.durability(durability_policy);
     // Always use automatic liveliness
-    result_qos.qos.liveliness(rclcpp::LivelinessPolicy::Automatic);
+    result_qos.qos.liveliness(RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
 
     // Reliability and durability policies can cause trouble with enpoint matching
     // Count number of "reliable" publishers and number of "transient local" publishers
@@ -218,11 +224,11 @@ private:
     rclcpp::Duration max_deadline(0, 0u);
     rclcpp::Duration max_lifespan(0, 0u);
     for (const auto & info : endpoint_info_vec) {
-      const auto & profile = info.qos_profile();
-      if (profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) {
+      const auto & profile = info.qos_profile().get_rmw_qos_profile();
+      if (profile.reliability == RMW_QOS_POLICY_RELIABILITY_RELIABLE) {
         reliable_count++;
       }
-      if (profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) {
+      if (profile.durability == RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL) {
         transient_local_count++;
       }
       if (profile.deadline() > max_deadline) {

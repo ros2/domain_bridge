@@ -58,6 +58,7 @@ ament_target_dependencies(${PROJECT_NAME}_lib
   rcutils
   rosbag2_cpp
   rosidl_typesupport_cpp
+  rmw
   yaml_cpp_vendor
   zstd
 )
@@ -128,8 +129,9 @@ ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   rcl
   rclcpp
-  rosbag2_cpp
   rcutils
+  rosbag2_cpp
+  rmw
   yaml_cpp_vendor
   zstd_vendor
   zstd

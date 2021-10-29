@@ -11,6 +11,7 @@
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
   <build_depend>rcl</build_depend>
+  <build_depend>rmw</build_depend>
 
   <depend>rclcpp</depend>
   <depend>rcutils</depend>
