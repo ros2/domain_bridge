@@ -50,18 +50,6 @@
 namespace domain_bridge
 {
 
-[[noreturn]] static void unreachable()
-{
-#if defined(__has_builtin)
-#if __has_builtin(__builtin_unreachable)
-  __builtin_unreachable();
-#endif
-#elif (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 5))
-  __builtin_unreachable();
-#endif
-  throw std::logic_error("This code should be unreachable.");
-}
-
 /// Implementation of \ref DomainBridge.
 class DomainBridgeImpl
 {
