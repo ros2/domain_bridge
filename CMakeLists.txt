@@ -16,6 +16,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(rcl REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
@@ -52,6 +53,7 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 ament_target_dependencies(${PROJECT_NAME}_lib
+  rcl
   rclcpp
   rcutils
   rosbag2_cpp
@@ -124,6 +126,7 @@ install(DIRECTORY examples launch
 
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
+  rcl
   rclcpp
   rosbag2_cpp
   rcutils
