@@ -86,24 +86,6 @@ public:
 
   ~DomainBridgeImpl() = default;
 
-  rclcpp::Context::SharedPtr create_context_with_domain_id(std::size_t domain_id)
-  {
-    auto context = std::make_shared<rclcpp::Context>();
-    rclcpp::InitOptions options;
-    options.auto_initialize_logging(false).set_domain_id(domain_id);
-    context->init(0, nullptr, options);
-    return context;
-  }
-
-  rclcpp::NodeOptions create_node_options(rclcpp::Context::SharedPtr context)
-  {
-    rclcpp::NodeOptions options;
-    return options.context(context)
-           .use_global_arguments(false)
-           .start_parameter_services(false)
-           .start_parameter_event_publisher(false);
-  }
-
   rclcpp::Node::SharedPtr get_node_for_domain(std::size_t domain_id)
   {
     auto domain_id_node_pair = node_map_.find(domain_id);
@@ -113,11 +95,9 @@ public:
       if (options_.on_new_domain_callback_) {
         options_.on_new_domain_callback_(domain_id);
       }
-      auto context = create_context_with_domain_id(domain_id);
-      auto node_options = create_node_options(context);
       std::ostringstream oss;
       oss << options_.name() << "_" << std::to_string(domain_id);
-      auto node = std::make_shared<rclcpp::Node>(oss.str(), node_options);
+      auto node = utils::create_node_with_name_and_domain_id(oss.str(), domain_id);
       node_map_[domain_id] = node;
       return node;
     }

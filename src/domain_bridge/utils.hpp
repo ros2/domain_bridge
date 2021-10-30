@@ -15,8 +15,18 @@
 #ifndef DOMAIN_BRIDGE__UTILS_HPP_
 #define DOMAIN_BRIDGE__UTILS_HPP_
 
+#include <limits>
+#include <memory>
+#include <string>
+
+#include "rcl/node.h"
+#include "rcl/node_options.h"
 #include "rcl/time.h"
+#include "rclcpp/context.hpp"
 #include "rclcpp/duration.hpp"
+#include "rclcpp/init_options.hpp"
+#include "rclcpp/node.hpp"
+#include "rclcpp/node_interfaces/node_base.hpp"
 #include "rmw/types.h"
 
 namespace domain_bridge
@@ -35,6 +45,32 @@ namespace domain_bridge
           return rclcpp::Duration{limit_ns};
         }
         return rclcpp::Duration{static_cast<rcl_duration_value_t>(total_ns)};
+      }
+
+      rclcpp::Node::SharedPtr
+      create_node_with_name_and_domain_id(
+        const std::string & name,
+        std::size_t domain_id)
+      {
+        auto context = std::make_shared<rclcpp::Context>();
+        rclcpp::InitOptions init_options;
+        init_options.auto_initialize_logging(false);
+        context->init(0, nullptr, init_options);
+
+        rclcpp::NodeOptions node_options;
+        node_options.context(context)
+                    .use_global_arguments(false)
+                    .start_parameter_services(false)
+                    .start_parameter_event_publisher(false);
+
+        auto node = std::make_shared<rclcpp::Node>(name, node_options);
+        auto node_base_interface = node->get_node_base_interface();
+        rcl_node_t * rcl_node_handle = node_base_interface->get_rcl_node_handle();
+        // Hacky work-around because setting domain ID is not a feature in the rclcpp layer
+        const_cast<rcl_node_options_t*>(
+          rcl_node_get_options(rcl_node_handle))->domain_id = domain_id;
+
+        return node;
       }
     }  // namespace utils
 }  // namespace domain_bridge
