@@ -40,7 +40,7 @@ protected:
 constexpr std::size_t TestDomainBridgeQosMatching::domain_1_;
 constexpr std::size_t TestDomainBridgeQosMatching::domain_2_;
 
-std::ostream& operator<<(std::ostream& os, const rclcpp::TopicEndpointInfo& t)
+std::ostream & operator<<(std::ostream & os, const rclcpp::TopicEndpointInfo & t)
 {
   os << t.node_namespace() << '/' << t.node_name() << ": " << t.topic_type();
   return os;
