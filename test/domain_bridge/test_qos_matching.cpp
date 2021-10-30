@@ -24,51 +24,27 @@
 #include "test_msgs/msg/basic_types.hpp"
 
 #include "domain_bridge/domain_bridge.hpp"
+#include "domain_bridge/utils.hpp"
 
 #include "wait_for_publisher.hpp"
 
 class TestDomainBridgeQosMatching : public ::testing::Test
 {
 protected:
-  static void SetUpTestCase()
-  {
-    // Initialize contexts in different domains
-    context_1_ = std::make_shared<rclcpp::Context>();
-    rclcpp::InitOptions context_options_1;
-    context_options_1.auto_initialize_logging(false).set_domain_id(domain_1_);
-    context_1_->init(0, nullptr, context_options_1);
-
-    context_2_ = std::make_shared<rclcpp::Context>();
-    rclcpp::InitOptions context_options_2;
-    context_options_2.auto_initialize_logging(false).set_domain_id(domain_2_);
-    context_2_->init(0, nullptr, context_options_2);
-
-    node_options_1_.context(context_1_);
-    node_options_2_.context(context_2_);
-  }
-
-  static const std::size_t domain_1_{1u};
-  static const std::size_t domain_2_{2u};
-  static std::shared_ptr<rclcpp::Context> context_1_;
-  static std::shared_ptr<rclcpp::Context> context_2_;
-  static rclcpp::NodeOptions node_options_1_;
-  static rclcpp::NodeOptions node_options_2_;
+  static constexpr std::size_t domain_1_{1u};
+  static constexpr std::size_t domain_2_{2u};
 };
 
-const std::size_t TestDomainBridgeQosMatching::domain_1_;
-const std::size_t TestDomainBridgeQosMatching::domain_2_;
-std::shared_ptr<rclcpp::Context> TestDomainBridgeQosMatching::context_1_;
-std::shared_ptr<rclcpp::Context> TestDomainBridgeQosMatching::context_2_;
-rclcpp::NodeOptions TestDomainBridgeQosMatching::node_options_1_;
-rclcpp::NodeOptions TestDomainBridgeQosMatching::node_options_2_;
+constexpr std::size_t TestDomainBridgeQosMatching::domain_1_;
+constexpr std::size_t TestDomainBridgeQosMatching::domain_2_;
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
 {
   const std::string topic_name("test_topic_exists_before_bridge");
 
   // Create a publisher on domain 1
-  auto node_1 = std::make_shared<rclcpp::Node>(
-    "test_topic_exists_before_bridge_node_1", node_options_1_);
+  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_exists_before_bridge_node_1", domain_1_);
   rclcpp::QoS qos(1);
   qos.best_effort()
   .transient_local()
@@ -82,8 +58,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = std::make_shared<rclcpp::Node>(
-    "test_topic_exists_before_bridge_node_2", node_options_2_);
+  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_exists_before_bridge_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
   // Assert the QoS of the bridged publisher matches
@@ -104,8 +80,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
 {
   const std::string topic_name("test_topic_exists_after_bridge");
 
-  auto node_1 = std::make_shared<rclcpp::Node>(
-    "test_topic_exists_after_bridge_node_1", node_options_1_);
+  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_exists_after_bridge_node_1", domain_1_);
 
   // Bridge the publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
@@ -113,8 +89,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
 
   // Wait for bridge publisher to appear on domain 2
   // It shouldn't be available yet
-  auto node_2 = std::make_shared<rclcpp::Node>(
-    "test_topic_exists_after_bridge_node_2", node_options_2_);
+  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_exists_after_bridge_node_2", domain_2_);
   ASSERT_FALSE(wait_for_publisher(node_2, topic_name, std::chrono::milliseconds(300)));
 
   // Create a publisher on domain 1
@@ -149,8 +125,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   const std::string topic_name("test_topic_exists_multiple_publishers");
 
   // Create two publishers on domain 1
-  auto node_1 = std::make_shared<rclcpp::Node>(
-    "test_topic_exists_multiple_publishers_node_1", node_options_1_);
+  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_exists_multiple_publishers_node_1", domain_1_);
   rclcpp::QoS qos(1);
   qos.reliable()
   .durability_volatile()
@@ -167,8 +143,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = std::make_shared<rclcpp::Node>(
-    "test_topic_exists_multiple_publishers_node_2", node_options_2_);
+  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_exists_multiple_publishers_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
   // Assert the QoS of the bridged publishers matches both publishers
@@ -195,8 +171,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_does_not_exist)
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // We do not expect a bridge publisher to appear because there is no input publisher
-  auto node_2 = std::make_shared<rclcpp::Node>(
-    "test_topic_does_not_exist_node_2", node_options_2_);
+  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_topic_does_not_exist_node_2", domain_2_);
   ASSERT_FALSE(wait_for_publisher(node_2, topic_name, std::chrono::seconds(1)));
 }
 
@@ -205,8 +181,9 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
   const std::string topic_name("test_always_automatic_liveliness");
 
   // Create a publisher on domain 1 with liveliness set to "manual by topic"
-  auto node_1 = std::make_shared<rclcpp::Node>(
-    "test_always_automatic_liveliness_node_1", node_options_1_);
+  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_always_automatic_liveliness_node_1", domain_1_);
+
   rclcpp::QoS qos(1);
   qos.liveliness(rclcpp::LivelinessPolicy::ManualByTopic);
   auto pub = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
@@ -216,8 +193,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = std::make_shared<rclcpp::Node>(
-    "test_always_automatic_liveliness_node_2", node_options_2_);
+  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_always_automatic_liveliness_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
   // Assert the liveliness policy is "automatic", not "manual by topic"
@@ -235,8 +212,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
   // Create two publishers on domain 1
   // The first deadline will be greater than the second deadline
   // The second lifespan will be greater than the first lifespan
-  auto node_1 = std::make_shared<rclcpp::Node>(
-    "test_max_of_duration_policy_node_1", node_options_1_);
+  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_max_of_duration_policy_node_1", domain_1_);
   rclcpp::QoS qos_1(1);
   qos_1.deadline(rclcpp::Duration(554, 321u))
   .lifespan(rclcpp::Duration(123, 456u));
@@ -257,8 +234,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
     topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = std::make_shared<rclcpp::Node>(
-    "test_max_of_duration_policy_node_2", node_options_2_);
+  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+    "test_max_of_duration_policy_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
   // Assert max of the two deadline and lifespan policies are used for the bridge QoS

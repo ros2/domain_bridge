@@ -26,6 +26,7 @@
 #include "test_msgs/srv/empty.hpp"
 
 #include "domain_bridge/domain_bridge.hpp"
+#include "domain_bridge/utils.hpp"
 
 
 static constexpr std::size_t kDomain1{1u};
@@ -38,28 +39,12 @@ class TestDomainBridgeServices : public ::testing::Test
 protected:
   void SetUp() override
   {
-    // Initialize contexts in different domains
-    rclcpp::InitOptions context_options;
-
-    context_1_ = std::make_shared<rclcpp::Context>();
-    context_options.auto_initialize_logging(true).set_domain_id(kDomain1);
-    context_1_->init(0, nullptr, context_options);
-
-    context_2_ = std::make_shared<rclcpp::Context>();
-    context_options.auto_initialize_logging(false).set_domain_id(kDomain2);
-    context_2_->init(0, nullptr, context_options);
-
     // Initialize one node in each domain
-    rclcpp::NodeOptions node_options;
-
-    node_options.context(context_1_);
-    node_1_ = std::make_shared<rclcpp::Node>("node_1", node_options);
-
-    node_options.context(context_2_);
-    node_2_ = std::make_shared<rclcpp::Node>("node_2", node_options);
+    auto node_1_ = domain_bridge::utils::create_node_with_name_and_domain_id(
+      "node_1", kDomain1);
+    auto node_2_ = domain_bridge::utils::create_node_with_name_and_domain_id(
+      "node_2", kDomain2);
   }
-  std::shared_ptr<rclcpp::Context> context_1_;
-  std::shared_ptr<rclcpp::Context> context_2_;
   std::shared_ptr<rclcpp::Node> node_1_;
   std::shared_ptr<rclcpp::Node> node_2_;
 };
