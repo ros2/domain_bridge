@@ -16,6 +16,7 @@
 #define DOMAIN_BRIDGE__UTILS_HPP_
 
 #include <string>
+#include <memory>
 
 #include "rclcpp/duration.hpp"
 #include "rclcpp/node.hpp"
@@ -29,12 +30,15 @@ namespace domain_bridge
 namespace utils
 {
 
-  DOMAIN_BRIDGE_PUBLIC
-  rclcpp::Duration from_rmw_time(rmw_time_t duration);
+DOMAIN_BRIDGE_PUBLIC
+rclcpp::Duration from_rmw_time(rmw_time_t duration);
 
-  DOMAIN_BRIDGE_PUBLIC
-  rclcpp::Node::SharedPtr
-  create_node_with_name_and_domain_id(const std::string & name, std::size_t domain_id);
+DOMAIN_BRIDGE_PUBLIC
+rclcpp::Node::SharedPtr
+create_node(
+  const std::string & name,
+  std::size_t domain_id,
+  std::shared_ptr<rclcpp::Context> context = nullptr);
 
 }  // namespace utils
 
