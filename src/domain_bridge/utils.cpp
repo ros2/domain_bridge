@@ -14,6 +14,7 @@
 
 #include <limits>
 #include <memory>
+#include <stdexcept>
 #include <string>
 
 #include "rcl/node.h"
@@ -75,7 +76,27 @@ create_node(
   return node;
 }
 
+std::size_t
+get_domain_id_from_node(
+  rclcpp::Node & node)
+{
+  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_interface =
+    node.get_node_base_interface();
+  rcl_node_t * rcl_node_handle = node_base_interface->get_rcl_node_handle();
+
+  std::size_t domain_id;
+  rcl_ret_t ret = rcl_node_get_domain_id(rcl_node_handle, &domain_id);
+  if (ret == RCL_RET_OK) {
+    return domain_id;
+  } else if (ret == RCL_RET_NODE_INVALID) {
+    throw std::runtime_error("[get_domain_id_from_node] Node invalid.");
+  } else if (ret == RCL_RET_INVALID_ARGUMENT) {
+    throw std::runtime_error("[get_domain_id_from_node] Invalid argument.");
+  } else {
+    throw std::runtime_error("[get_domain_id_from_node] Unspecified error.");
   }
+  // return (node.get_node_options().get_rcl_node_options())->domain_id;
+}
 
 }  // namespace utils
 

@@ -40,6 +40,11 @@ create_node(
   std::size_t domain_id,
   std::shared_ptr<rclcpp::Context> context = nullptr);
 
+DOMAIN_BRIDGE_PUBLIC
+std::size_t
+get_domain_id_from_node(
+  rclcpp::Node & node);
+
 }  // namespace utils
 
 }  // namespace domain_bridge
