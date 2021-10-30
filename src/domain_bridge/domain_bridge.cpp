@@ -41,11 +41,11 @@
 #include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
+#include "domain_bridge/utils.hpp"
 
 #include "generic_publisher.hpp"
 #include "generic_subscription.hpp"
 #include "wait_for_graph_events.hpp"
-#include "utils.hpp"
 
 namespace domain_bridge
 {

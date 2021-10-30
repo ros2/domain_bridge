@@ -36,7 +36,7 @@
 #include "rmw/qos_profiles.h"
 #include "rmw/types.h"
 
-#include "utils.hpp"
+#include "domain_bridge/utils.hpp"
 
 namespace domain_bridge
 {

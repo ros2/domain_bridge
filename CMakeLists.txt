@@ -42,6 +42,7 @@ add_library(${PROJECT_NAME}_lib SHARED
   src/${PROJECT_NAME}/qos_options.cpp
   src/${PROJECT_NAME}/service_bridge_options.cpp
   src/${PROJECT_NAME}/topic_bridge_options.cpp
+  src/${PROJECT_NAME}/utils.cpp
 )
 
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
