@@ -248,7 +248,7 @@ private:
     // and print a warning
     if (reliable_count > 0u && reliable_count != num_endpoints) {
       result_qos.qos.best_effort();
-      const size_t domain_id = (node.get_node_options().get_rcl_node_options())->domain_id;
+      const size_t domain_id = domain_bridge::utils::get_domain_id_from_node(node);
       std::string warning = "Some, but not all, publishers on topic '" + topic +
         "' on domain ID " + std::to_string(domain_id) +
         " offer 'reliable' reliability. Falling back to 'best effort' reliability in order "
@@ -260,7 +260,7 @@ private:
     // and print a warning
     if (transient_local_count > 0u && transient_local_count != num_endpoints) {
       result_qos.qos.durability_volatile();
-      const size_t domain_id = (node.get_node_options().get_rcl_node_options())->domain_id;
+      const size_t domain_id = domain_bridge::utils::get_domain_id_from_node(node);
       std::string warning = "Some, but not all, publishers on topic '" + topic +
         "' on domain ID " + std::to_string(domain_id) +
         " offer 'transient local' durability. Falling back to 'volatile' durability in order "

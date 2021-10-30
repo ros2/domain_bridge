@@ -97,7 +97,7 @@ public:
       }
       std::ostringstream oss;
       oss << options_.name() << "_" << std::to_string(domain_id);
-      auto node = utils::create_node_with_name_and_domain_id(oss.str(), domain_id);
+      auto node = utils::create_node(oss.str(), domain_id);
       node_map_[domain_id] = node;
       return node;
     }
