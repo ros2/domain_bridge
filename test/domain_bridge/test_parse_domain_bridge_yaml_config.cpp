@@ -19,6 +19,8 @@
 #include <string>
 #include <vector>
 
+#include "rmw/types.h"
+
 #include "domain_bridge/domain_bridge_config.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
 #include "domain_bridge/topic_bridge.hpp"
@@ -116,9 +118,9 @@ TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
     domain_bridge::TopicBridgeOptions(),
     domain_bridge::TopicBridgeOptions().qos_options(
       domain_bridge::QosOptions()
-      .reliability(rclcpp::ReliabilityPolicy::BestEffort)
-      .durability(rclcpp::DurabilityPolicy::TransientLocal)
-      .history(rclcpp::HistoryPolicy::KeepAll)
+      .reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT)
+      .durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL)
+      .history(RMW_QOS_POLICY_HISTORY_KEEP_ALL)
       .depth(42u)
       .deadline(123456)
       .lifespan_auto())

@@ -39,12 +39,14 @@ class TestDomainBridgeServices : public ::testing::Test
 protected:
   void SetUp() override
   {
+    context_1_ = std::make_shared<rclcpp::Context>();
     // Initialize one node in each domain
-    auto node_1_ = domain_bridge::utils::create_node_with_name_and_domain_id(
-      "node_1", kDomain1);
-    auto node_2_ = domain_bridge::utils::create_node_with_name_and_domain_id(
+    node_1_ = domain_bridge::utils::create_node(
+      "node_1", kDomain1, context_1_);
+    node_2_ = domain_bridge::utils::create_node(
       "node_2", kDomain2);
   }
+  std::shared_ptr<rclcpp::Context> context_1_;
   std::shared_ptr<rclcpp::Node> node_1_;
   std::shared_ptr<rclcpp::Node> node_2_;
 };
@@ -68,7 +70,7 @@ class ScopedAsyncSpinner
 public:
   explicit ScopedAsyncSpinner(std::shared_ptr<rclcpp::Context> context)
   : executor_{get_executor_options_with_context(std::move(context))},
-    thread_{[this, stop_token = promise_.get_future()] {
+    thread_{[this, stop_token = std::shared_future<void>{promise_.get_future()}] {
         executor_.spin_until_future_complete(stop_token);
       }}
   {}

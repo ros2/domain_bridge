@@ -14,6 +14,7 @@
 
 #include <gtest/gtest.h>
 
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <string>
@@ -21,6 +22,7 @@
 
 #include "rclcpp/context.hpp"
 #include "rclcpp/node.hpp"
+#include "rmw/types.h"
 #include "test_msgs/msg/basic_types.hpp"
 
 #include "domain_bridge/domain_bridge.hpp"
@@ -38,19 +40,25 @@ protected:
 constexpr std::size_t TestDomainBridgeQosMatching::domain_1_;
 constexpr std::size_t TestDomainBridgeQosMatching::domain_2_;
 
+std::ostream& operator<<(std::ostream& os, const rclcpp::TopicEndpointInfo& t)
+{
+  os << t.node_namespace() << '/' << t.node_name() << ": " << t.topic_type();
+  return os;
+}
+
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
 {
   const std::string topic_name("test_topic_exists_before_bridge");
 
   // Create a publisher on domain 1
-  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_1 = domain_bridge::utils::create_node(
     "test_topic_exists_before_bridge_node_1", domain_1_);
   rclcpp::QoS qos(1);
   qos.best_effort()
   .transient_local()
   .deadline(rclcpp::Duration(123, 456u))
   .lifespan(rclcpp::Duration(554, 321u))
-  .liveliness(rclcpp::LivelinessPolicy::Automatic);
+  .liveliness(RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
   auto pub = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
 
   // Bridge the publisher topic to domain 2
@@ -58,29 +66,41 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_2 = domain_bridge::utils::create_node(
     "test_topic_exists_before_bridge_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
   // Assert the QoS of the bridged publisher matches
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
-  ASSERT_EQ(endpoint_info_vec.size(), 1u);
+  for (auto & t : endpoint_info_vec) {
+    std::cout << t << '\n';
+  }
+  EXPECT_EQ(domain_bridge::utils::get_domain_id_from_node(*node_1), domain_1_);
+  EXPECT_EQ(domain_bridge::utils::get_domain_id_from_node(*node_2), domain_2_);
+  EXPECT_EQ(endpoint_info_vec.size(), 1u);
+  // ASSERT_EQ(endpoint_info_vec.size(), 1u);
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
-  EXPECT_EQ(bridged_qos.reliability(), qos.reliability());
-  EXPECT_EQ(bridged_qos.durability(), qos.durability());
-  EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
+  rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
+  rmw_qos_profile_t rmw_qos_profile = qos.get_rmw_qos_profile();
+  EXPECT_EQ(rmw_bridged_qos_profile.reliability, rmw_qos_profile.reliability);
+  EXPECT_EQ(rmw_bridged_qos_profile.durability, rmw_qos_profile.durability);
+  EXPECT_EQ(rmw_bridged_qos_profile.liveliness, rmw_qos_profile.liveliness);
   // Deadline and lifespan default to max
   auto max_duration = rclcpp::Duration(std::numeric_limits<int64_t>::max());
-  EXPECT_EQ(bridged_qos.deadline(), max_duration);
-  EXPECT_EQ(bridged_qos.lifespan(), max_duration);
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.deadline),
+    max_duration);
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.lifespan),
+    max_duration);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
 {
   const std::string topic_name("test_topic_exists_after_bridge");
 
-  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_1 = domain_bridge::utils::create_node(
     "test_topic_exists_after_bridge_node_1", domain_1_);
 
   // Bridge the publisher topic to domain 2
@@ -89,7 +109,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
 
   // Wait for bridge publisher to appear on domain 2
   // It shouldn't be available yet
-  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_2 = domain_bridge::utils::create_node(
     "test_topic_exists_after_bridge_node_2", domain_2_);
   ASSERT_FALSE(wait_for_publisher(node_2, topic_name, std::chrono::milliseconds(300)));
 
@@ -99,7 +119,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
   .transient_local()
   .deadline(rclcpp::Duration(123, 456u))
   .lifespan(rclcpp::Duration(554, 321u))
-  .liveliness(rclcpp::LivelinessPolicy::Automatic);
+  .liveliness(RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
   auto pub = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
 
   // Wait for bridge publihser to appear on domain 2
@@ -111,13 +131,19 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
-  EXPECT_EQ(bridged_qos.reliability(), qos.reliability());
-  EXPECT_EQ(bridged_qos.durability(), qos.durability());
-  EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
+  rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
+  rmw_qos_profile_t rmw_qos_profile = qos.get_rmw_qos_profile();
+  EXPECT_EQ(rmw_bridged_qos_profile.reliability, rmw_qos_profile.reliability);
+  EXPECT_EQ(rmw_bridged_qos_profile.durability, rmw_qos_profile.durability);
+  EXPECT_EQ(rmw_bridged_qos_profile.liveliness, rmw_qos_profile.liveliness);
   // Deadline and lifespan default to max
   auto max_duration = rclcpp::Duration(std::numeric_limits<int64_t>::max());
-  EXPECT_EQ(bridged_qos.deadline(), max_duration);
-  EXPECT_EQ(bridged_qos.lifespan(), max_duration);
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.deadline),
+    max_duration);
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.lifespan),
+    max_duration);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers)
@@ -125,14 +151,14 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   const std::string topic_name("test_topic_exists_multiple_publishers");
 
   // Create two publishers on domain 1
-  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_1 = domain_bridge::utils::create_node(
     "test_topic_exists_multiple_publishers_node_1", domain_1_);
   rclcpp::QoS qos(1);
   qos.reliable()
   .durability_volatile()
   .deadline(rclcpp::Duration(123, 456u))
   .lifespan(rclcpp::Duration(554, 321u))
-  .liveliness(rclcpp::LivelinessPolicy::Automatic);
+  .liveliness(RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
   auto pub_1 = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
   // Second publisher has different QoS
   qos.best_effort().transient_local();
@@ -143,7 +169,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_2 = domain_bridge::utils::create_node(
     "test_topic_exists_multiple_publishers_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
@@ -153,13 +179,19 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
-  EXPECT_EQ(bridged_qos.reliability(), rclcpp::ReliabilityPolicy::BestEffort);
-  EXPECT_EQ(bridged_qos.durability(), rclcpp::DurabilityPolicy::Volatile);
-  EXPECT_EQ(bridged_qos.liveliness(), qos.liveliness());
+  rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
+  rmw_qos_profile_t rmw_qos_profile = qos.get_rmw_qos_profile();
+  EXPECT_EQ(rmw_bridged_qos_profile.reliability, RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
+  EXPECT_EQ(rmw_bridged_qos_profile.durability, RMW_QOS_POLICY_DURABILITY_VOLATILE);
+  EXPECT_EQ(rmw_bridged_qos_profile.liveliness, rmw_qos_profile.liveliness);
   // Deadline and lifespan default to max
   auto max_duration = rclcpp::Duration(std::numeric_limits<int64_t>::max());
-  EXPECT_EQ(bridged_qos.deadline(), max_duration);
-  EXPECT_EQ(bridged_qos.lifespan(), max_duration);
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.deadline),
+    max_duration);
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.lifespan),
+    max_duration);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_does_not_exist)
@@ -171,7 +203,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_does_not_exist)
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // We do not expect a bridge publisher to appear because there is no input publisher
-  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_2 = domain_bridge::utils::create_node(
     "test_topic_does_not_exist_node_2", domain_2_);
   ASSERT_FALSE(wait_for_publisher(node_2, topic_name, std::chrono::seconds(1)));
 }
@@ -181,11 +213,11 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
   const std::string topic_name("test_always_automatic_liveliness");
 
   // Create a publisher on domain 1 with liveliness set to "manual by topic"
-  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_1 = domain_bridge::utils::create_node(
     "test_always_automatic_liveliness_node_1", domain_1_);
 
   rclcpp::QoS qos(1);
-  qos.liveliness(rclcpp::LivelinessPolicy::ManualByTopic);
+  qos.liveliness(RMW_QOS_POLICY_LIVELINESS_MANUAL_BY_TOPIC);
   auto pub = node_1->create_publisher<test_msgs::msg::BasicTypes>(topic_name, qos);
 
   // Bridge the publisher topic to domain 2
@@ -193,7 +225,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
   bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_2 = domain_bridge::utils::create_node(
     "test_always_automatic_liveliness_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
@@ -202,7 +234,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
-  EXPECT_EQ(bridged_qos.liveliness(), rclcpp::LivelinessPolicy::Automatic);
+  rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
+  EXPECT_EQ(rmw_bridged_qos_profile.liveliness, RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
 }
 
 TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
@@ -212,7 +245,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
   // Create two publishers on domain 1
   // The first deadline will be greater than the second deadline
   // The second lifespan will be greater than the first lifespan
-  auto node_1 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_1 = domain_bridge::utils::create_node(
     "test_max_of_duration_policy_node_1", domain_1_);
   rclcpp::QoS qos_1(1);
   qos_1.deadline(rclcpp::Duration(554, 321u))
@@ -234,7 +267,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
     topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);
 
   // Wait for bridge publisher to appear on domain 2
-  auto node_2 = domain_bridge::utils::create_node_with_name_and_domain_id(
+  auto node_2 = domain_bridge::utils::create_node(
     "test_max_of_duration_policy_node_2", domain_2_);
   ASSERT_TRUE(wait_for_publisher(node_2, topic_name));
 
@@ -243,6 +276,11 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
-  EXPECT_EQ(bridged_qos.deadline(), rclcpp::Duration(554, 321u));
-  EXPECT_EQ(bridged_qos.lifespan(), rclcpp::Duration(554, 321u));
+  rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.deadline),
+    rclcpp::Duration(554, 321u));
+  EXPECT_EQ(
+    domain_bridge::utils::from_rmw_time(rmw_bridged_qos_profile.lifespan),
+    rclcpp::Duration(554, 321u));
 }
