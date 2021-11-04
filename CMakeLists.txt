@@ -18,6 +18,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rcl REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
@@ -57,6 +58,7 @@ endif()
 ament_target_dependencies(${PROJECT_NAME}_lib
   rcl
   rclcpp
+  rcpputils
   rcutils
   rosbag2_cpp
   rosidl_typesupport_cpp
@@ -82,7 +84,6 @@ target_link_libraries(${PROJECT_NAME}_exec
 
 # Only needed to build domain_bridge_rti_qos executable.
 find_package(rti_connext_dds_cmake_module QUIET)
-find_package(rcpputils QUIET)
 
 set(executables ${PROJECT_NAME}_exec)
 
@@ -131,6 +132,7 @@ ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   rcl
   rclcpp
+  rcpputils
   rcutils
   rosbag2_cpp
   rmw

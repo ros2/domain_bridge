@@ -34,6 +34,10 @@ DOMAIN_BRIDGE_PUBLIC
 rclcpp::Duration from_rmw_time(rmw_time_t duration);
 
 DOMAIN_BRIDGE_PUBLIC
+std::shared_ptr<rclcpp::Context>
+create_context_with_domain_id(std::size_t domain_id);
+
+DOMAIN_BRIDGE_PUBLIC
 rclcpp::Node::SharedPtr
 create_node(
   const std::string & name,
@@ -42,7 +46,7 @@ create_node(
 
 DOMAIN_BRIDGE_PUBLIC
 std::size_t
-get_domain_id_from_node(
+get_node_domain_id(
   rclcpp::Node & node);
 
 }  // namespace utils

@@ -17,6 +17,8 @@
 #include <stdexcept>
 #include <string>
 
+#include "rcl/allocator.h"
+#include "rcl/init_options.h"
 #include "rcl/node.h"
 #include "rcl/node_options.h"
 #include "rcl/time.h"
@@ -47,6 +49,30 @@ rclcpp::Duration from_rmw_time(rmw_time_t duration)
   return rclcpp::Duration{static_cast<rcl_duration_value_t>(total_ns)};
 }
 
+/// THROWS
+std::shared_ptr<rclcpp::Context>
+create_context_with_domain_id(std::size_t domain_id)
+{
+  rcl_init_options_t rcl_init_options = rcl_get_zero_initialized_init_options();
+  rcl_ret_t ret = rcl_init_options_init(
+    &rcl_init_options, rcl_get_default_allocator());
+  if (RCL_RET_OK != ret) {
+    std::runtime_error("Failed to initialize rcl_init_options");
+  }
+
+  ret = rcl_init_options_set_domain_id(&rcl_init_options, domain_id);
+  if (RCL_RET_OK != ret) {
+    std::runtime_error("Failed to set domain ID to rcl_init_options");
+  }
+
+  rclcpp::InitOptions init_options(rcl_init_options);
+  init_options.auto_initialize_logging(false);
+
+  auto context = std::make_shared<rclcpp::Context>();
+  context->init(0, nullptr, init_options);
+  return context;
+}
+
 rclcpp::Node::SharedPtr
 create_node(
   const std::string & name,
@@ -54,11 +80,8 @@ create_node(
   std::shared_ptr<rclcpp::Context> context)
 {
   if (context == nullptr) {
-    context = std::make_shared<rclcpp::Context>();
+    context = create_context_with_domain_id(domain_id);
   }
-  rclcpp::InitOptions init_options;
-  init_options.auto_initialize_logging(false);
-  context->init(0, nullptr, init_options);
 
   rclcpp::NodeOptions node_options;
   node_options.context(context)
@@ -66,36 +89,27 @@ create_node(
   .start_parameter_services(false)
   .start_parameter_event_publisher(false);
 
-  auto node = std::make_shared<rclcpp::Node>(name, node_options);
-  auto node_base_interface = node->get_node_base_interface();
-  rcl_node_t * rcl_node_handle = node_base_interface->get_rcl_node_handle();
-  // Hacky work-around because setting domain ID is not a feature in the rclcpp layer
-  const_cast<rcl_node_options_t *>(
-    rcl_node_get_options(rcl_node_handle))->domain_id = domain_id;
-
-  return node;
+  return std::make_shared<rclcpp::Node>(name, node_options);
 }
 
 std::size_t
-get_domain_id_from_node(
+get_node_domain_id(
   rclcpp::Node & node)
 {
-  rclcpp::node_interfaces::NodeBaseInterface::SharedPtr node_base_interface =
-    node.get_node_base_interface();
-  rcl_node_t * rcl_node_handle = node_base_interface->get_rcl_node_handle();
+  const rcl_init_options_t * rcl_init_options =
+    node.get_node_base_interface()->get_context()->get_init_options().get_rcl_init_options();
 
   std::size_t domain_id;
-  rcl_ret_t ret = rcl_node_get_domain_id(rcl_node_handle, &domain_id);
-  if (ret == RCL_RET_OK) {
-    return domain_id;
-  } else if (ret == RCL_RET_NODE_INVALID) {
-    throw std::runtime_error("[get_domain_id_from_node] Node invalid.");
-  } else if (ret == RCL_RET_INVALID_ARGUMENT) {
-    throw std::runtime_error("[get_domain_id_from_node] Invalid argument.");
-  } else {
-    throw std::runtime_error("[get_domain_id_from_node] Unspecified error.");
+  // const_cast is safe because `rcl_init_options_get_domain_id` only reads the input structure
+  rcl_ret_t ret =
+    rcl_init_options_get_domain_id(
+    const_cast<rcl_init_options_t *>(rcl_init_options),
+    &domain_id);
+  if (RCL_RET_OK != ret) {
+    throw std::runtime_error("Failed to get domain ID from rcl_init_options");
   }
-  // return (node.get_node_options().get_rcl_node_options())->domain_id;
+
+  return domain_id;
 }
 
 }  // namespace utils
