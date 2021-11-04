@@ -41,13 +41,15 @@ class TestDomainBridgeEndToEnd : public ::testing::Test
 protected:
   void SetUp() override
   {
-    context_1_ = std::make_shared<rclcpp::Context>();
+    context_1_ = domain_bridge::utils::create_context_with_domain_id(kDomain1);
     node_1_ = domain_bridge::utils::create_node(
       "node_1", kDomain1, context_1_);
+    context_2_ = domain_bridge::utils::create_context_with_domain_id(kDomain2);
     node_2_ = domain_bridge::utils::create_node(
-      "node_2", kDomain2);
+      "node_2", kDomain2, context_2_);
   }
   std::shared_ptr<rclcpp::Context> context_1_;
+  std::shared_ptr<rclcpp::Context> context_2_;
   std::shared_ptr<rclcpp::Node> node_1_;
   std::shared_ptr<rclcpp::Node> node_2_;
   // use a qos profile with transient local volatility to make the tests simple.
@@ -70,6 +72,11 @@ poll_condition(std::function<bool()> condition, std::chrono::seconds timeout)
   return condition();
 }
 
+/*
+ * Can't call spin_until_future_complete() inside a callback executed by an executor.
+ *
+ * https://github.com/ros2/rclcpp/blob/d7804e1b3fd9676d302ec72f02c49ba04cbed5e6/rclcpp/include/rclcpp/executor.hpp#L198-L199
+ */
 class ScopedAsyncSpinner
 {
 public:

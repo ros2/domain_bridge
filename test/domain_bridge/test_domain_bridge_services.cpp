@@ -39,7 +39,7 @@ class TestDomainBridgeServices : public ::testing::Test
 protected:
   void SetUp() override
   {
-    context_1_ = std::make_shared<rclcpp::Context>();
+    context_1_ = domain_bridge::utils::create_context_with_domain_id(kDomain1);
     // Initialize one node in each domain
     node_1_ = domain_bridge::utils::create_node(
       "node_1", kDomain1, context_1_);
