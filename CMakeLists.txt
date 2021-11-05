@@ -156,6 +156,12 @@ if(BUILD_TESTING)
   rclcpp_components_register_node(${PROJECT_NAME}_test_component_lib
     PLUGIN "domain_bridge::TestComponent"
     EXECUTABLE test_component)
+
+  install(TARGETS ${PROJECT_NAME}_test_component_lib
+    ARCHIVE DESTINATION lib
+    LIBRARY DESTINATION lib
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
+  )
 endif()
 
 ament_package()
