@@ -158,7 +158,6 @@ if(BUILD_TESTING)
     EXECUTABLE test_component)
 
   install(TARGETS ${PROJECT_NAME}_test_component_lib
-    EXPORT export_${PROJECT_NAME}
     ARCHIVE DESTINATION lib
     LIBRARY DESTINATION lib
     RUNTIME DESTINATION lib/${PROJECT_NAME}
