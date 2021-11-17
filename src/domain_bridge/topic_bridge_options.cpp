@@ -126,4 +126,17 @@ TopicBridgeOptions::wait_for_publisher() const
   return wait_for_publisher_;
 }
 
+TopicBridgeOptions &
+TopicBridgeOptions::auto_remove(TopicBridgeOptions::AutoRemove value)
+{
+  auto_remove_ = value;
+  return *this;
+}
+
+TopicBridgeOptions::AutoRemove
+TopicBridgeOptions::auto_remove() const
+{
+  return auto_remove_;
+}
+
 }  // namespace domain_bridge

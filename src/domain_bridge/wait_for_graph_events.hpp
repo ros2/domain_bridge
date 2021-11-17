@@ -122,9 +122,9 @@ public:
   void register_on_publisher_qos_ready_callback(
     const std::string & topic,
     const rclcpp::Node::SharedPtr & node,
-    std::function<void(const QosMatchInfo)> callback)
+    std::function<void(const QosMatchInfo &)> callback)
   {
-    return this->register_on_qos_ready_callback(topic, node, callback, true);
+    return this->register_on_pubsub_callback(topic, node, callback, true);
   }
 
   /// Register a callback that is called when a subscription is ready.
@@ -136,9 +136,39 @@ public:
   void register_on_subscription_qos_ready_callback(
     const std::string & topic,
     const rclcpp::Node::SharedPtr & node,
-    std::function<void(const QosMatchInfo)> callback)
+    std::function<void(const QosMatchInfo &)> callback)
   {
-    return this->register_on_qos_ready_callback(topic, node, callback, false);
+    return this->register_on_pubsub_callback(topic, node, callback, false);
+  }
+
+  /// Register a callback that is called when QoS is ready for one or more publishers.
+  /**
+   * \param topic: The name of the topic to monitor.
+   * \param node: The node to use to monitor the topic.
+   * \param callback: User callback that is triggered when there's no more publishers
+   *  available in that topic.
+   */
+  void register_on_no_publisher_callback(
+    const std::string & topic,
+    const rclcpp::Node::SharedPtr & node,
+    std::function<void()> callback)
+  {
+    return this->register_on_pubsub_callback(topic, node, callback, true);
+  }
+
+  /// Register a callback that is called when a subscription is ready.
+  /**
+   * \param topic: The name of the topic to monitor.
+   * \param node: The node to use to monitor the topic.
+   * \param callback: User callback that is triggered when there's no more subscriptions
+   *  available in that topic.
+   */
+  void register_on_no_subscription_callback(
+    const std::string & topic,
+    const rclcpp::Node::SharedPtr & node,
+    std::function<void()> callback)
+  {
+    return this->register_on_pubsub_callback(topic, node, callback, false);
   }
 
   void set_delay(const std::chrono::milliseconds & delay)
@@ -150,7 +180,10 @@ private:
   struct TopicAndCallback
   {
     std::string topic;
-    std::function<void(const QosMatchInfo)> cb;
+    std::variant<
+      std::function<void(const QosMatchInfo &)>,  // used to wait for discovered entity
+      std::function<void()>>  // used to wait for no entity available in topic
+    cb;
     bool is_publisher;
   };
   struct ClientAndCallback
@@ -306,7 +339,7 @@ private:
               auto it = t.topics_callback_vec.begin();
               while (it != t.topics_callback_vec.end()) {
                 const std::string & topic = it->topic;
-                const auto & callback = it->cb;
+                const auto & callback_variant = it->cb;
                 bool is_publisher = it->is_publisher;
                 std::optional<QosMatchInfo> opt_qos;
                 try {
@@ -324,13 +357,26 @@ private:
                   std::cerr << "Failed to query " << entity_type << " info for topic '" <<
                     topic << "': " << ex.what() << std::endl;
                 }
-
-                if (opt_qos) {
-                  const QosMatchInfo & qos = opt_qos.value();
-                  callback(qos);
-                  it = t.topics_callback_vec.erase(it);
+                if (std::holds_alternative<std::function<void()>>(callback_variant)) {
+                  // waiting until no entity is available
+                  if (!opt_qos) {
+                    auto callback = std::get<std::function<void()>>(callback_variant);
+                    callback();
+                    it = t.topics_callback_vec.erase(it);
+                  } else {
+                    ++it;
+                  }
                 } else {
-                  ++it;
+                  // waiting for discovered entity
+                  if (opt_qos) {
+                    auto callback = std::get<std::function<void(const QosMatchInfo &)>>(
+                      callback_variant);
+                    const QosMatchInfo & qos = opt_qos.value();
+                    callback(qos);
+                    it = t.topics_callback_vec.erase(it);
+                  } else {
+                    ++it;
+                  }
                 }
               }
             }
@@ -351,18 +397,37 @@ private:
     return std::thread(invoke_callback_when_qos_ready);
   }
 
-  void register_on_qos_ready_callback(
+  // helper
+  template<class> static inline constexpr bool always_false_v = false;
+
+  template<typename CallbackT>
+  void register_on_pubsub_callback(
     const std::string & topic,
     const rclcpp::Node::SharedPtr & node,
-    std::function<void(const QosMatchInfo)> callback,
+    CallbackT callback,
     bool is_publisher)
   {
     // If the QoS is already available, trigger the callback immediately
     auto opt_qos = get_topic_qos(topic, *node, is_publisher);
-    if (opt_qos) {
-      const QosMatchInfo & qos = opt_qos.value();
-      callback(qos);
-      return;
+    using T = std::decay_t<CallbackT>;
+
+    if constexpr (std::is_same_v<T, std::function<void(const QosMatchInfo &)>>) {
+      // notify when entity discovered
+      if (opt_qos) {
+        const QosMatchInfo & qos = opt_qos.value();
+        callback(qos);
+        return;
+      }
+    } else if constexpr (std::is_same_v<T, std::function<void()>>) {
+      // notify when no entity is available
+      if (!opt_qos) {
+        callback();
+        return;
+      }
+    } else {
+      static_assert(
+        always_false_v<T>,
+        "callback should either be std::function<void(const QosMatchInfo)> or std::function<void()>");
     }
 
     std::lock_guard<std::mutex> lock(mutex_);
