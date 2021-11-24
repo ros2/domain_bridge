@@ -413,13 +413,11 @@ private:
       if (opt_qos) {
         const QosMatchInfo & qos = opt_qos.value();
         callback(qos);
-        return;
       }
     } else if constexpr (std::is_same_v<T, std::function<void()>>) {  // NOLINT, cpplint false positive
       // notify when no entity is available
       if (!opt_qos) {
         callback();
-        return;
       }
     } else {
       static_assert(
