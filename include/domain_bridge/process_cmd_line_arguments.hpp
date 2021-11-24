@@ -94,6 +94,11 @@ inline
 std::optional<bool>
 parse_bool_arg(const std::string & arg, const char * error_str)
 {
+  if (arg.empty()) {
+    std::cerr << "error: Failed to parse " << error_str << " argument. " <<
+      "Must be followed by true|false" << std::endl;
+    return std::nullopt;
+  }
   bool value;
   std::istringstream iss(arg);
   iss >> std::boolalpha >> value;
@@ -141,6 +146,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--from must be followed by a domain id" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       from_domain_id = detail::parse_size_t_arg(*it, "FROM_DOMAIN_ID");
       if (!from_domain_id) {
         return std::make_pair(std::nullopt, 1);
@@ -154,6 +164,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--to must be followed by a domain id" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       to_domain_id = detail::parse_size_t_arg(*it, "TO_DOMAIN_ID");
       if (!to_domain_id) {
         return std::make_pair(std::nullopt, 1);
@@ -167,6 +182,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--wait-for-subscription must be followed by true|false" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       wait_for_subscription = detail::parse_bool_arg(*it, "--wait-for-subscription");
       if (!wait_for_subscription) {
         return std::make_pair(std::nullopt, 1);
@@ -180,6 +200,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--wait-for-publisher must be followed by true|false" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       wait_for_publisher = detail::parse_bool_arg(*it, "--wait-for-publisher");
       if (!wait_for_publisher) {
         return std::make_pair(std::nullopt, 1);
@@ -193,6 +218,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--mode must be followed by compress|decompress|normal" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       const auto & mode_str = *it;
       if (mode_str == detail::kCompressModeStr) {
         mode = domain_bridge::DomainBridgeOptions::Mode::Compress;
@@ -214,6 +244,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--auto-remove must be followed by true|false" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       auto_remove = detail::parse_bool_arg(*it, "--auto-remove");
       if (!auto_remove) {
         return std::make_pair(std::nullopt, 1);
@@ -253,17 +288,19 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         topic_option_pair.second.wait_for_publisher(*wait_for_publisher);
       }
       if (auto_remove) {
-        bool actual_wait_for_publisher = topic_option_pair.second.wait_for_publisher();
-        bool actual_wait_for_subscription = topic_option_pair.second.wait_for_subscription();
-        auto auto_remove_opt = TopicBridgeOptions::AutoRemove::Disabled;
-        if (actual_wait_for_publisher && actual_wait_for_subscription) {
-          auto_remove_opt = TopicBridgeOptions::AutoRemove::OnNoPublisherOrSubscription;
-        } else if (actual_wait_for_publisher) {
-          auto_remove_opt = TopicBridgeOptions::AutoRemove::OnNoPublisher;
-        } else if (actual_wait_for_subscription) {
-          auto_remove_opt = TopicBridgeOptions::AutoRemove::OnNoSubscription;
+        auto auto_remove_enum = TopicBridgeOptions::AutoRemove::Disabled;
+        if (*auto_remove) {
+          bool actual_wait_for_publisher = topic_option_pair.second.wait_for_publisher();
+          bool actual_wait_for_subscription = topic_option_pair.second.wait_for_subscription();
+          if (actual_wait_for_publisher && actual_wait_for_subscription) {
+            auto_remove_enum = TopicBridgeOptions::AutoRemove::OnNoPublisherOrSubscription;
+          } else if (actual_wait_for_publisher) {
+            auto_remove_enum = TopicBridgeOptions::AutoRemove::OnNoPublisher;
+          } else if (actual_wait_for_subscription) {
+            auto_remove_enum = TopicBridgeOptions::AutoRemove::OnNoSubscription;
+          }
         }
-        topic_option_pair.second.auto_remove(auto_remove_opt);
+        topic_option_pair.second.auto_remove(auto_remove_enum);
       }
     }
   }
