@@ -344,6 +344,12 @@ public:
       [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
         (const QosMatchInfo & qos_match)
       {
+        if (
+          nullptr != std::get<0>(bridged_topics_[topic_bridge]) &&
+          nullptr != std::get<1>(bridged_topics_[topic_bridge]))
+        {
+          return;  // bridge already running
+        }
         const std::string & type = topic_bridge.type_name;
 
         // Apply QoS overrides
@@ -452,6 +458,24 @@ public:
         break;
       default:
         unreachable();
+    }
+    if (
+      domain_bridge::TopicBridgeOptions::AutoRemove::OnNoPublisher == topic_options.auto_remove())
+    {
+      this->wait_for_graph_events_.register_on_no_publisher_callback(
+        topic, from_domain_node, [this, topic_bridge]() {
+          this->bridged_topics_[topic_bridge] = {nullptr, nullptr};
+        }
+      );
+    } else if (
+      domain_bridge::TopicBridgeOptions::AutoRemove::OnNoSubscription ==
+      topic_options.auto_remove())
+    {
+      this->wait_for_graph_events_.register_on_no_subscription_callback(
+        topic, to_domain_node, [this, topic_bridge]() {
+          this->bridged_topics_[topic_bridge] = {nullptr, nullptr};
+        }
+      );
     }
   }
 

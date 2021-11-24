@@ -362,10 +362,8 @@ private:
                   if (!opt_qos) {
                     auto callback = std::get<std::function<void()>>(callback_variant);
                     callback();
-                    it = t.topics_callback_vec.erase(it);
-                  } else {
-                    ++it;
                   }
+                  ++it;
                 } else {
                   // waiting for discovered entity
                   if (opt_qos) {
@@ -373,10 +371,8 @@ private:
                       callback_variant);
                     const QosMatchInfo & qos = opt_qos.value();
                     callback(qos);
-                    it = t.topics_callback_vec.erase(it);
-                  } else {
-                    ++it;
                   }
+                  ++it;
                 }
               }
             }
