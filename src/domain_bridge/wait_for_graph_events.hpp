@@ -394,7 +394,8 @@ private:
   }
 
   // helper
-  template<class> static inline constexpr bool always_false_v = false;
+  template<class>
+  static inline constexpr bool always_false_v = false;
 
   template<typename CallbackT>
   void register_on_pubsub_callback(
@@ -414,7 +415,7 @@ private:
         callback(qos);
         return;
       }
-    } else if constexpr (std::is_same_v<T, std::function<void()>>) {
+    } else if constexpr (std::is_same_v<T, std::function<void()>>) {  // NOLINT, cpplint false positive
       // notify when no entity is available
       if (!opt_qos) {
         callback();
@@ -423,7 +424,8 @@ private:
     } else {
       static_assert(
         always_false_v<T>,
-        "callback should either be std::function<void(const QosMatchInfo)> or std::function<void()>");
+        "callback should either be std::function<void(const QosMatchInfo)>"
+        " or std::function<void()>");
     }
 
     std::lock_guard<std::mutex> lock(mutex_);

@@ -146,6 +146,7 @@ public:
   {
     OnNoPublisher,
     OnNoSubscription,
+    OnNoPublisherOrSubscription,
     Disabled,
   };
 

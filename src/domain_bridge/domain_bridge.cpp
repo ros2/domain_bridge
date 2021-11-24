@@ -460,15 +460,21 @@ public:
         unreachable();
     }
     if (
-      domain_bridge::TopicBridgeOptions::AutoRemove::OnNoPublisher == topic_options.auto_remove())
+      domain_bridge::TopicBridgeOptions::AutoRemove::OnNoPublisher ==
+      topic_options.auto_remove() ||
+      domain_bridge::TopicBridgeOptions::AutoRemove::OnNoPublisherOrSubscription ==
+      topic_options.auto_remove())
     {
       this->wait_for_graph_events_.register_on_no_publisher_callback(
         topic, from_domain_node, [this, topic_bridge]() {
           this->bridged_topics_[topic_bridge] = {nullptr, nullptr};
         }
       );
-    } else if (
+    }
+    if (
       domain_bridge::TopicBridgeOptions::AutoRemove::OnNoSubscription ==
+      topic_options.auto_remove() ||
+      domain_bridge::TopicBridgeOptions::AutoRemove::OnNoPublisherOrSubscription ==
       topic_options.auto_remove())
     {
       this->wait_for_graph_events_.register_on_no_subscription_callback(
