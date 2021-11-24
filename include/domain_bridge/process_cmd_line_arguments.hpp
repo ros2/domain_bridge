@@ -58,6 +58,14 @@ print_help()
     "    --wait-for-publisher true|false  Will wait for an available subscription before"
     " bridging a topic. This overrides any value set in the YAML file. Defaults to true." <<
     std::endl <<
+    "    --auto-remove true|false  If true, the bridge will be removed if endpoint was waited"
+    " for is removed. i.e. if both --wait-for-subscription and --wait-for-publisher where "
+    " passed, when either the subscrption or publisher is removed also will the bridge."
+    " If only --wait-for-subscription was passed, the bridge will only be removed if the"
+    " subscription is."
+    " The bridge will be created again when the original \"wait for\" condition is satisfied"
+    " again." <<
+    std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
 
@@ -118,6 +126,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
   std::optional<bool> wait_for_publisher;
+  std::optional<bool> auto_remove;
 
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
@@ -198,6 +207,19 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       }
       continue;
     }
+    if (arg == "--auto-remove") {
+      if (auto_remove) {
+        std::cerr << "error: --auto-remove option passed more than once" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      ++it;
+      auto_remove = detail::parse_bool_arg(*it, "--auto-remove");
+      if (!auto_remove) {
+        return std::make_pair(std::nullopt, 1);
+      }
+      continue;
+    }
     if (yaml_config) {
       std::cerr << "error: Can only specify one yaml configuration file '" <<
         *it << "'" << std::endl;
@@ -213,7 +235,10 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
     domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
 
   // Override 'from_domain','to_domain' and 'wait_for_subscription' in config
-  if (from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher) {
+  if (
+    from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher ||
+    auto_remove)
+  {
     for (auto & topic_option_pair : domain_bridge_config.topics) {
       if (from_domain_id) {
         topic_option_pair.first.from_domain_id = *from_domain_id;
@@ -226,6 +251,19 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       }
       if (wait_for_publisher) {
         topic_option_pair.second.wait_for_publisher(*wait_for_publisher);
+      }
+      if (auto_remove) {
+        bool actual_wait_for_publisher = topic_option_pair.second.wait_for_publisher();
+        bool actual_wait_for_subscription = topic_option_pair.second.wait_for_subscription();
+        auto auto_remove_opt = TopicBridgeOptions::AutoRemove::Disabled;
+        if (actual_wait_for_publisher && actual_wait_for_subscription) {
+          auto_remove_opt = TopicBridgeOptions::AutoRemove::OnNoPublisherOrSubscription;
+        } else if (actual_wait_for_publisher) {
+          auto_remove_opt = TopicBridgeOptions::AutoRemove::OnNoPublisher;
+        } else if (actual_wait_for_subscription) {
+          auto_remove_opt = TopicBridgeOptions::AutoRemove::OnNoSubscription;
+        }
+        topic_option_pair.second.auto_remove(auto_remove_opt);
       }
     }
   }
