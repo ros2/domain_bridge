@@ -268,7 +268,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   domain_bridge::DomainBridgeConfig domain_bridge_config =
     domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
 
-  // Override 'from_domain','to_domain' and 'wait_for_subscription' in config
+  // Override domain bridge configuration options
   if (
     from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher ||
     auto_remove)
