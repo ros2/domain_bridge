@@ -41,7 +41,7 @@ public:
    *    - reversed = false
    *    - wait_for_subscription = false
    *    - wait_for_publisher = true
-   *    - auto_remove = Autoremove::Disabled
+   *    - auto_remove = AutoRemove::Disabled
    *    - delay = 0 (no extra delay to wait for publishers before creating bridge)
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -152,15 +152,15 @@ public:
 
   /// Set auto_remove to value.
   /**
-   * If set to Autoremove::OnNoPublisher the domain bridge will stop bridging when no publisher is
+   * If set to AutoRemove::OnNoPublisher the domain bridge will stop bridging when no publisher is
    * available in the "from domain".
    * The bridge will automatically be created again when a new publisher is discovered.
    *
-   * If set to Autoremove::OnNoSubscription the domain bridge will stop bridging when no
+   * If set to AutoRemove::OnNoSubscription the domain bridge will stop bridging when no
    * subscription is available in the "to domain".
    * The bridge will automatically be created again when a new subscription is discovered.
    *
-   * When set to Autoremove::Disabled, the bridge will keep running forever once created.
+   * When set to AutoRemove::Disabled, the bridge will keep running forever once created.
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions &
