@@ -160,7 +160,7 @@ public:
    * subscription is available in the "to domain".
    * The bridge will automatically be created again when a new subscription is discovered.
    *
-   * When set to Autoremove::Disabled, the bridge will keep running for ever once created.
+   * When set to Autoremove::Disabled, the bridge will keep running forever once created.
    */
   DOMAIN_BRIDGE_PUBLIC
   TopicBridgeOptions &
