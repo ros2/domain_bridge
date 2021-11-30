@@ -63,8 +63,7 @@ print_help()
     " passed, when either the subscrption or publisher is removed also will the bridge."
     " If only --wait-for-subscription was passed, the bridge will only be removed if the"
     " subscription is."
-    " The bridge will be created again when the original \"wait for\" condition is satisfied"
-    " again." <<
+    " The bridge will be recreated when the original \"wait for\" condition is satisfied." <<
     std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
