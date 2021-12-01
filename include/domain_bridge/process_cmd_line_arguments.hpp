@@ -58,9 +58,10 @@ print_help()
     "    --wait-for-publisher true|false  Will wait for an available subscription before"
     " bridging a topic. This overrides any value set in the YAML file. Defaults to true." <<
     std::endl <<
-    "    --auto-remove true|false  If true, the bridge will be removed if the endpoint that was waited"
-    " on is removed. I.e. if both --wait-for-subscription and --wait-for-publisher were "
-    " passed, then when either the subscription or publisher is removed, the bridge will also be removed."
+    "    --auto-remove true|false  If true, the bridge will be removed if the endpoint that was"
+    " waited on is removed. I.e. if both --wait-for-subscription and --wait-for-publisher were"
+    " passed, then when either the subscription or publisher is removed, the bridge will also be"
+    " removed."
     " If only --wait-for-subscription was passed, the bridge will only be removed if the"
     " subscription is."
     " The bridge will be recreated when the original \"wait for\" condition is satisfied." <<

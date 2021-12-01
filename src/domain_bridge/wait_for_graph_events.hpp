@@ -15,8 +15,9 @@
 #ifndef DOMAIN_BRIDGE__WAIT_FOR_GRAPH_EVENTS_HPP_
 #define DOMAIN_BRIDGE__WAIT_FOR_GRAPH_EVENTS_HPP_
 
-// Silly cpplint thinks this is a C system header
+// Silly cpplint thinks these are C system headers
 #include <optional>
+#include <variant>
 
 #include <atomic>
 #include <chrono>
@@ -27,7 +28,6 @@
 #include <thread>
 #include <unordered_map>
 #include <utility>
-#include <variant>
 #include <vector>
 
 #include "rclcpp/client.hpp"
