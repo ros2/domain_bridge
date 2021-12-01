@@ -21,6 +21,7 @@
 #include <limits>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -172,6 +173,7 @@ public:
   bool
   is_bridging_service(const detail::ServiceBridge & service_bridge) const
   {
+    std::lock_guard guard{data_mutex_};
     return bridged_services_.find(service_bridge) != bridged_services_.end();
   }
 
@@ -182,15 +184,21 @@ public:
     std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
     std::shared_ptr<rclcpp::ClientBase> client)
   {
-    auto it_emplaced_pair = bridged_services_.try_emplace(
-      std::move(service_bridge), nullptr, client);
+    std::pair<ServiceBridgeMap::iterator, bool> it_emplaced_pair;
+    {
+      std::lock_guard guard{data_mutex_};
+      it_emplaced_pair = bridged_services_.try_emplace(
+        std::move(service_bridge), nullptr, client);
+    }
     wait_for_graph_events_.register_on_server_ready_callback(
       std::move(client),
       node,
       [
+        this,
         & service = std::get<0>(it_emplaced_pair.first->second),
         create_service = std::move(create_service)]()
       {
+        std::lock_guard guard{data_mutex_};
         service = create_service();
       }
     );
@@ -326,16 +334,19 @@ public:
     // Front-loading lets us fail early on invalid type names
     load_typesupport_library(type);
 
-    // Check if already bridged
-    if (bridged_topics_.find(topic_bridge) != bridged_topics_.end()) {
-      std::cerr << "Topic '" << topic << "' with type '" << type << "'" <<
-        " already bridged from domain " << std::to_string(from_domain_id) <<
-        " to domain " << std::to_string(to_domain_id) << ", ignoring" << std::endl;
-      return;
-    }
+    {
+      std::lock_guard guard{data_mutex_};
+      // Check if already bridged
+      if (bridged_topics_.find(topic_bridge) != bridged_topics_.end()) {
+        std::cerr << "Topic '" << topic << "' with type '" << type << "'" <<
+          " already bridged from domain " << std::to_string(from_domain_id) <<
+          " to domain " << std::to_string(to_domain_id) << ", ignoring" << std::endl;
+        return;
+      }
 
-    // Create a null entry to avoid duplicate bridges
-    bridged_topics_[topic_bridge] = {nullptr, nullptr};
+      // Create a null entry to avoid duplicate bridges
+      bridged_topics_[topic_bridge] = {nullptr, nullptr};
+    }
 
     rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
     rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
@@ -344,11 +355,14 @@ public:
       [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
         (const QosMatchInfo & qos_match)
       {
-        if (
-          nullptr != std::get<0>(bridged_topics_[topic_bridge]) &&
-          nullptr != std::get<1>(bridged_topics_[topic_bridge]))
         {
-          return;  // bridge already running
+          std::lock_guard guard{data_mutex_};
+          if (
+            nullptr != std::get<0>(bridged_topics_[topic_bridge]) &&
+            nullptr != std::get<1>(bridged_topics_[topic_bridge]))
+          {
+            return;  // bridge already running
+          }
         }
         const std::string & type = topic_bridge.type_name;
 
@@ -425,7 +439,10 @@ public:
           qos,
           subscription_options);
 
-        this->bridged_topics_[topic_bridge] = {publisher, subscription};
+        {
+          std::lock_guard guard{data_mutex_};
+          this->bridged_topics_[topic_bridge] = {publisher, subscription};
+        }
       };
     auto opt_case = static_cast<int>(topic_options.wait_for_subscription()) * 2 +
       static_cast<int>(topic_options.wait_for_publisher());
@@ -466,7 +483,9 @@ public:
       topic_options.auto_remove())
     {
       this->wait_for_graph_events_.register_on_no_publisher_callback(
-        topic, from_domain_node, [this, topic_bridge]() {
+        topic, from_domain_node, [this, topic_bridge]()
+        {
+          std::lock_guard guard{data_mutex_};
           this->bridged_topics_[topic_bridge] = {nullptr, nullptr};
         }
       );
@@ -478,7 +497,9 @@ public:
       topic_options.auto_remove())
     {
       this->wait_for_graph_events_.register_on_no_subscription_callback(
-        topic, to_domain_node, [this, topic_bridge]() {
+        topic, to_domain_node, [this, topic_bridge]()
+        {
+          std::lock_guard guard{data_mutex_};
           this->bridged_topics_[topic_bridge] = {nullptr, nullptr};
         }
       );
@@ -495,6 +516,7 @@ public:
   std::vector<TopicBridge> get_bridged_topics() const
   {
     std::vector<TopicBridge> result;
+    std::lock_guard guard{data_mutex_};
     for (const auto & bridge : bridged_topics_) {
       result.push_back(bridge.first);
     }
@@ -505,6 +527,9 @@ public:
 
   /// Map of domain IDs to ROS nodes
   NodeMap node_map_;
+
+  /// Mutex used to sync all data shared with the WaitForGraphEvents instance.
+  mutable std::mutex data_mutex_;
 
   /// Set of bridged topics
   TopicBridgeMap bridged_topics_;
