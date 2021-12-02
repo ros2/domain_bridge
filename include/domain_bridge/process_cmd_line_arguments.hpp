@@ -15,6 +15,7 @@
 #ifndef DOMAIN_BRIDGE__PROCESS_CMD_LINE_ARGUMENTS_HPP_
 #define DOMAIN_BRIDGE__PROCESS_CMD_LINE_ARGUMENTS_HPP_
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <utility>
@@ -129,7 +130,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   std::optional<size_t> to_domain_id;
   std::optional<bool> wait_for_subscription;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
-  std::vector<std::string> yaml_config;
+  std::vector<std::filesystem::path> yaml_configs;
   std::optional<bool> wait_for_publisher;
   std::optional<bool> auto_remove;
 
@@ -255,14 +256,14 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       }
       continue;
     }
-    yaml_config.push_back(*it);
+    yaml_configs.push_back(std::filesystem::path{*it});
   }
-  if (yaml_config.empty()) {
+  if (yaml_configs.empty()) {
     std::cerr << "error: Must specify at least one yaml configuration file" << std::endl;
     return std::make_pair(std::nullopt, 1);
   }
   domain_bridge::DomainBridgeConfig domain_bridge_config =
-    domain_bridge::parse_domain_bridge_yaml_config(yaml_config[0]);
+    domain_bridge::parse_domain_bridge_yaml_configs(yaml_configs);
 
   // Override domain bridge configuration options
   if (
