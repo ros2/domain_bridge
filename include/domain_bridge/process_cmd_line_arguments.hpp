@@ -35,7 +35,7 @@ void
 print_help()
 {
   std::cerr << "Usage: domain_bridge "
-    "[--from FROM_DOMAIN_ID] [--to TO_DOMAIN_ID] [-h] YAML_CONFIG" << std::endl <<
+    "[--from FROM_DOMAIN_ID] [--to TO_DOMAIN_ID] [-h] YAML_CONFIG ..." << std::endl <<
     std::endl <<
     "Arguments:" << std::endl <<
     "    YAML_CONFIG    path to a YAML configuration file." << std::endl <<
@@ -129,7 +129,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   std::optional<size_t> to_domain_id;
   std::optional<bool> wait_for_subscription;
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
-  std::optional<std::string> yaml_config;
+  std::vector<std::string> yaml_config;
   std::optional<bool> wait_for_publisher;
   std::optional<bool> auto_remove;
 
@@ -255,19 +255,14 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       }
       continue;
     }
-    if (yaml_config) {
-      std::cerr << "error: Can only specify one yaml configuration file '" <<
-        *it << "'" << std::endl;
-      return std::make_pair(std::nullopt, 1);
-    }
-    yaml_config = *it;
+    yaml_config.push_back(*it);
   }
-  if (!yaml_config) {
-    std::cerr << "error: Must specify one yaml configuration file" << std::endl;
+  if (yaml_config.empty()) {
+    std::cerr << "error: Must specify at least one yaml configuration file" << std::endl;
     return std::make_pair(std::nullopt, 1);
   }
   domain_bridge::DomainBridgeConfig domain_bridge_config =
-    domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
+    domain_bridge::parse_domain_bridge_yaml_config(yaml_config[0]);
 
   // Override domain bridge configuration options
   if (
