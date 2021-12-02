@@ -90,6 +90,31 @@ TEST_F(TestParseDomainBridgeYamlConfig, topics)
   }
 }
 
+TEST_F(TestParseDomainBridgeYamlConfig, multiple_files)
+{
+  std::vector<domain_bridge::TopicBridge> expected = {
+    {"baz", "test_msgs/msg/Empty", 10, 7},
+    {"/foo/bar", "test_msgs/msg/BasicTypes", 6, 10},
+    {"foo", "test_msgs/msg/Strings", 3, 4},
+    {"foo", "test_msgs/msg/Strings", 3, 4},
+    {"baz", "test_msgs/msg/Empty", 7, 11},
+    {"/foo/bar", "test_msgs/msg/BasicTypes", 6, 11},
+    {"foo", "test_msgs/msg/Strings", 7, 4},
+    {"foobar", "test_msgs/msg/Strings", 3, 4}
+  };
+  std::vector<std::filesystem::path> file_paths;
+  file_paths.push_back((test_yaml_dir_ / std::filesystem::path{"topics.yaml"}));
+  file_paths.push_back((test_yaml_dir_ / std::filesystem::path{"default_domain_ids.yaml"}));
+  auto config = domain_bridge::parse_domain_bridge_yaml_configs(file_paths);
+  ASSERT_EQ(config.topics.size(), expected.size());
+  for (std::size_t i = 0u; i < config.topics.size(); ++i) {
+    EXPECT_EQ(config.topics[i].first.topic_name, expected[i].topic_name);
+    EXPECT_EQ(config.topics[i].first.type_name, expected[i].type_name);
+    EXPECT_EQ(config.topics[i].first.from_domain_id, expected[i].from_domain_id);
+    EXPECT_EQ(config.topics[i].first.to_domain_id, expected[i].to_domain_id);
+  }
+}
+
 TEST_F(TestParseDomainBridgeYamlConfig, default_domain_ids)
 {
   std::vector<domain_bridge::TopicBridge> expected = {
