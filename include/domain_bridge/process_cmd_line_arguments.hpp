@@ -58,6 +58,14 @@ print_help()
     "    --wait-for-publisher true|false  Will wait for an available subscription before"
     " bridging a topic. This overrides any value set in the YAML file. Defaults to true." <<
     std::endl <<
+    "    --auto-remove true|false  If true, the bridge will be removed if the endpoint that was"
+    " waited on is removed. I.e. if both --wait-for-subscription and --wait-for-publisher were"
+    " passed, then when either the subscription or publisher is removed, the bridge will also be"
+    " removed."
+    " If only --wait-for-subscription was passed, the bridge will only be removed if the"
+    " subscription is."
+    " The bridge will be recreated when the original \"wait for\" condition is satisfied." <<
+    std::endl <<
     "    --help, -h               Print this help message." << std::endl;
 }
 
@@ -86,6 +94,11 @@ inline
 std::optional<bool>
 parse_bool_arg(const std::string & arg, const char * error_str)
 {
+  if (arg.empty()) {
+    std::cerr << "error: Failed to parse " << error_str << " argument. " <<
+      "Must be followed by true|false" << std::endl;
+    return std::nullopt;
+  }
   bool value;
   std::istringstream iss(arg);
   iss >> std::boolalpha >> value;
@@ -118,6 +131,7 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   std::optional<domain_bridge::DomainBridgeOptions::Mode> mode;
   std::optional<std::string> yaml_config;
   std::optional<bool> wait_for_publisher;
+  std::optional<bool> auto_remove;
 
   for (auto it = ++args.cbegin() /*skip executable name*/; it != args.cend(); ++it) {
     const auto & arg = *it;
@@ -132,6 +146,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--from must be followed by a domain id" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       from_domain_id = detail::parse_size_t_arg(*it, "FROM_DOMAIN_ID");
       if (!from_domain_id) {
         return std::make_pair(std::nullopt, 1);
@@ -145,6 +164,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--to must be followed by a domain id" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       to_domain_id = detail::parse_size_t_arg(*it, "TO_DOMAIN_ID");
       if (!to_domain_id) {
         return std::make_pair(std::nullopt, 1);
@@ -158,6 +182,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--wait-for-subscription must be followed by true|false" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       wait_for_subscription = detail::parse_bool_arg(*it, "--wait-for-subscription");
       if (!wait_for_subscription) {
         return std::make_pair(std::nullopt, 1);
@@ -171,6 +200,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--wait-for-publisher must be followed by true|false" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       wait_for_publisher = detail::parse_bool_arg(*it, "--wait-for-publisher");
       if (!wait_for_publisher) {
         return std::make_pair(std::nullopt, 1);
@@ -184,6 +218,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
         return std::make_pair(std::nullopt, 1);
       }
       ++it;
+      if (it == args.cend()) {
+        std::cerr << "--mode must be followed by compress|decompress|normal" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
       const auto & mode_str = *it;
       if (mode_str == detail::kCompressModeStr) {
         mode = domain_bridge::DomainBridgeOptions::Mode::Compress;
@@ -194,6 +233,24 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       } else {
         std::cerr << "error: Invalid '--mode' option '" <<
           mode_str << "'" << std::endl;
+        return std::make_pair(std::nullopt, 1);
+      }
+      continue;
+    }
+    if (arg == "--auto-remove") {
+      if (auto_remove) {
+        std::cerr << "error: --auto-remove option passed more than once" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      ++it;
+      if (it == args.cend()) {
+        std::cerr << "--auto-remove must be followed by true|false" << std::endl;
+        detail::print_help();
+        return std::make_pair(std::nullopt, 1);
+      }
+      auto_remove = detail::parse_bool_arg(*it, "--auto-remove");
+      if (!auto_remove) {
         return std::make_pair(std::nullopt, 1);
       }
       continue;
@@ -212,8 +269,11 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
   domain_bridge::DomainBridgeConfig domain_bridge_config =
     domain_bridge::parse_domain_bridge_yaml_config(*yaml_config);
 
-  // Override 'from_domain','to_domain' and 'wait_for_subscription' in config
-  if (from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher) {
+  // Override domain bridge configuration options
+  if (
+    from_domain_id || to_domain_id || wait_for_subscription || wait_for_publisher ||
+    auto_remove)
+  {
     for (auto & topic_option_pair : domain_bridge_config.topics) {
       if (from_domain_id) {
         topic_option_pair.first.from_domain_id = *from_domain_id;
@@ -226,6 +286,21 @@ process_cmd_line_arguments(const std::vector<std::string> & args)
       }
       if (wait_for_publisher) {
         topic_option_pair.second.wait_for_publisher(*wait_for_publisher);
+      }
+      if (auto_remove) {
+        auto auto_remove_enum = TopicBridgeOptions::AutoRemove::Disabled;
+        if (*auto_remove) {
+          bool actual_wait_for_publisher = topic_option_pair.second.wait_for_publisher();
+          bool actual_wait_for_subscription = topic_option_pair.second.wait_for_subscription();
+          if (actual_wait_for_publisher && actual_wait_for_subscription) {
+            auto_remove_enum = TopicBridgeOptions::AutoRemove::OnNoPublisherOrSubscription;
+          } else if (actual_wait_for_publisher) {
+            auto_remove_enum = TopicBridgeOptions::AutoRemove::OnNoPublisher;
+          } else if (actual_wait_for_subscription) {
+            auto_remove_enum = TopicBridgeOptions::AutoRemove::OnNoSubscription;
+          }
+        }
+        topic_option_pair.second.auto_remove(auto_remove_enum);
       }
     }
   }

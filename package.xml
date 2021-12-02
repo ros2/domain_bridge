@@ -28,6 +28,7 @@
   <test_depend>launch_testing</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
   <test_depend>rmw_implementation_cmake</test_depend>
+  <test_depend>rosgraph_msgs</test_depend>
   <test_depend>test_msgs</test_depend>
 
   <!-- Ensure the following Tier 1 RMW implementations are available for testing -->

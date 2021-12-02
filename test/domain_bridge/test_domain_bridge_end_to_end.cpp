@@ -230,6 +230,44 @@ TEST_F(TestDomainBridgeEndToEnd, wait_for_subscription)
   EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
 }
 
+TEST_F(TestDomainBridgeEndToEnd, auto_remove_no_subscription)
+{
+  const std::string topic_name("test_auto_remove_no_subscription");
+  const std::string domain_bridge_name("test_auto_remove_no_subscription_domain_bridge");
+
+  std::atomic<bool> got_message = false;
+
+  auto pub = node_1_->create_publisher<test_msgs::msg::BasicTypes>(topic_name, pub_sub_qos_);
+
+  // Bridge the publisher topic to domain 2 with a remap option
+  domain_bridge::DomainBridgeOptions domain_bridge_options;
+  domain_bridge_options.name(domain_bridge_name);
+  domain_bridge::DomainBridge bridge{domain_bridge_options};
+  domain_bridge::TopicBridgeOptions topic_bridge_options;
+  topic_bridge_options.wait_for_subscription(true);
+  topic_bridge_options.auto_remove(domain_bridge::TopicBridgeOptions::AutoRemove::OnNoSubscription);
+  ASSERT_TRUE(topic_bridge_options.wait_for_subscription());
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
+
+  // bridge shouldn't be created until the subscription is up
+  EXPECT_FALSE(poll_condition([pub]() {return pub->get_subscription_count() > 0;}, 5s));
+
+  auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
+    topic_name,
+    pub_sub_qos_,
+    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
+
+  pub->publish(test_msgs::msg::BasicTypes{});
+  ScopedAsyncSpinner spinner{context_1_};
+  spinner.get_executor().add_node(node_1_);
+  spinner.get_executor().add_node(node_2_);
+  bridge.add_to_executor(spinner.get_executor());
+  EXPECT_TRUE(poll_condition([&got_message]() {return got_message.load();}, 10s));
+  sub.reset();
+  EXPECT_FALSE(poll_condition([pub]() {return pub->get_subscription_count() == 0;}, 10s));
+}
+
 TEST_F(TestDomainBridgeEndToEnd, compress_mode)
 {
   const std::string topic_name("test_compress");

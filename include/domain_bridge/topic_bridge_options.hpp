@@ -41,6 +41,7 @@ public:
    *    - reversed = false
    *    - wait_for_subscription = false
    *    - wait_for_publisher = true
+   *    - auto_remove = AutoRemove::Disabled
    *    - delay = 0 (no extra delay to wait for publishers before creating bridge)
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -141,6 +142,35 @@ public:
   bool
   wait_for_publisher() const;
 
+  enum class AutoRemove
+  {
+    OnNoPublisher,
+    OnNoSubscription,
+    OnNoPublisherOrSubscription,
+    Disabled,
+  };
+
+  /// Set auto_remove to value.
+  /**
+   * If set to AutoRemove::OnNoPublisher the domain bridge will stop bridging when no publisher is
+   * available in the "from domain".
+   * The bridge will automatically be created again when a new publisher is discovered.
+   *
+   * If set to AutoRemove::OnNoSubscription the domain bridge will stop bridging when no
+   * subscription is available in the "to domain".
+   * The bridge will automatically be created again when a new subscription is discovered.
+   *
+   * When set to AutoRemove::Disabled, the bridge will keep running forever once created.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  TopicBridgeOptions &
+  auto_remove(AutoRemove value);
+
+  /// Get remove_if_no_publisher option.
+  DOMAIN_BRIDGE_PUBLIC
+  AutoRemove
+  auto_remove() const;
+
 private:
   std::shared_ptr<rclcpp::CallbackGroup> callback_group_{nullptr};
 
@@ -155,6 +185,8 @@ private:
   bool wait_for_subscription_{false};
 
   bool wait_for_publisher_{true};
+
+  AutoRemove auto_remove_{AutoRemove::Disabled};
 
   std::chrono::milliseconds delay_{0};
 };  // class TopicBridgeOptions
