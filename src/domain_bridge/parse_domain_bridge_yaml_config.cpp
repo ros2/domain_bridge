@@ -153,7 +153,7 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
 }
 
 DomainBridgeConfig
-parse_domain_bridge_yaml_configs(std::vector<std::filesystem::path> file_paths)
+parse_domain_bridge_yaml_configs(const std::vector<std::filesystem::path> & file_paths)
 {
   DomainBridgeConfig domain_bridge_config;
   for (const auto & file_path : file_paths) {

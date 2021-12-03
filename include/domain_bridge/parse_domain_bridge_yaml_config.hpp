@@ -111,7 +111,7 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
  */
 DOMAIN_BRIDGE_PUBLIC
 DomainBridgeConfig
-parse_domain_bridge_yaml_configs(std::vector<std::filesystem::path> file_paths);
+parse_domain_bridge_yaml_configs(const std::vector<std::filesystem::path> & file_paths);
 
 /// Updates domain bridge config with a yaml file.
 /**
