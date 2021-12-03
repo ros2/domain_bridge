@@ -17,6 +17,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 #include "domain_bridge/domain_bridge_config.hpp"
 #include "domain_bridge/visibility_control.hpp"
@@ -101,6 +102,29 @@ public:
  */
 DOMAIN_BRIDGE_PUBLIC
 DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_path);
+
+/// Create a DomainBridgeConfig object from some YAML files.
+/**
+ * If the passed files have overlapping settings, the one specified in a later file will apply.
+ *
+ * See \ref parse_domain_bridge_yaml_config() for more details.
+ */
+DOMAIN_BRIDGE_PUBLIC
+DomainBridgeConfig
+parse_domain_bridge_yaml_configs(const std::vector<std::filesystem::path> & file_paths);
+
+/// Updates domain bridge config with a yaml file.
+/**
+ * Updates the contents of a `DomainBridgeConfig` object with the settings specified in the yaml file.
+ * Settings not specified in the yaml file are not modified.
+ *
+ * See \ref parse_domain_bridge_yaml_config() for more details.
+ */
+DOMAIN_BRIDGE_PUBLIC
+void
+update_domain_bridge_config_from_yaml(
+  std::filesystem::path file_path,
+  DomainBridgeConfig & domain_bridge_config);
 
 }  // namespace domain_bridge
 

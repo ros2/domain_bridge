@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "domain_bridge/domain_bridge_config.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
@@ -146,6 +147,27 @@ static QosOptions parse_qos_options(YAML::Node yaml_node, const std::string & fi
 
 DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_path)
 {
+  DomainBridgeConfig domain_bridge_config;
+  update_domain_bridge_config_from_yaml(file_path, domain_bridge_config);
+  return domain_bridge_config;
+}
+
+DomainBridgeConfig
+parse_domain_bridge_yaml_configs(const std::vector<std::filesystem::path> & file_paths)
+{
+  DomainBridgeConfig domain_bridge_config;
+  for (const auto & file_path : file_paths) {
+    update_domain_bridge_config_from_yaml(file_path, domain_bridge_config);
+  }
+  return domain_bridge_config;
+}
+
+
+void
+update_domain_bridge_config_from_yaml(
+  std::filesystem::path file_path,
+  DomainBridgeConfig & domain_bridge_config)
+{
   // Check if file exists
   if (!std::filesystem::is_regular_file(file_path)) {
     throw YamlParsingError(file_path, "file does not exist");
@@ -153,7 +175,6 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
 
   YAML::Node config = YAML::LoadFile(file_path);
 
-  DomainBridgeConfig domain_bridge_config;
   if (config["name"]) {
     domain_bridge_config.options.name(config["name"].as<std::string>());
   }
@@ -241,8 +262,6 @@ DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_pa
       domain_bridge_config.topics.push_back({{topic, type, from_domain_id, to_domain_id}, options});
     }
   }
-
-  return domain_bridge_config;
 }
 
 }  // namespace domain_bridge
