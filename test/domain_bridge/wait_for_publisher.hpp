@@ -47,8 +47,8 @@ inline bool wait_for_publisher(
     node->wait_for_graph_change(graph_event, sleep_period);
     time_slept = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start);
-  } while (!predicate() &&
-    time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout));
+  } while (
+    !predicate() && time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout));
 
   return predicate();
 }
