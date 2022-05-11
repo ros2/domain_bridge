@@ -4,7 +4,9 @@ PROJECT_NAME           = "domain_bridge"
 PROJECT_NUMBER         = main
 PROJECT_BRIEF          = "A ROS 2 domain bridge"
 
-INPUT                  = ./include
+INPUT                  = README.md
+INPUT                  += ./include
+USE_MDFILE_AS_MAINPAGE = README.md
 
 RECURSIVE              = YES
 OUTPUT_DIRECTORY       = doc_output
