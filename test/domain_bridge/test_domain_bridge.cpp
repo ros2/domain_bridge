@@ -47,7 +47,7 @@ TEST_F(TestDomainBridge, construction_destruction)
   }
   // With options
   {
-    domain_bridge::DomainBridge bridge(domain_bridge::DomainBridgeOptions());
+    domain_bridge::DomainBridge bridge{domain_bridge::DomainBridgeOptions()};
   }
 }
 
