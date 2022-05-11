@@ -48,7 +48,7 @@ inline bool wait_for_publisher(
     time_slept = std::chrono::duration_cast<std::chrono::microseconds>(
       std::chrono::steady_clock::now() - start);
   } while (!predicate() &&
-    time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout));
+  time_slept < std::chrono::duration_cast<std::chrono::microseconds>(timeout));
 
   return predicate();
 }
