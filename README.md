@@ -96,4 +96,4 @@ Here is an example of including the domain bridge launch script into your own:
 
 ### C++ library
 
-There is a C++ API that can be integrated into your own process, you can find the [API docs here](TODO).
+There is a C++ API that can be integrated into your own process, you can find the [API docs here](https://docs.ros.org/en/ros2_packages/rolling/api/domain_bridge/index.html).
