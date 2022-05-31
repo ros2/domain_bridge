@@ -191,7 +191,9 @@ public:
             compressed_msg.data = domain_bridge::compress_message(cctx, std::move(*msg));
             rclcpp::SerializedMessage serialized_compressed_msg;
             serializer.serialize_message(&compressed_msg, &serialized_compressed_msg);
-            publisher->publish(serialized_compressed_msg.get_rcl_serialized_message());
+            auto serialized_data_ptr = std::make_shared<rcl_serialized_message_t>(
+              serialized_compressed_msg.get_rcl_serialized_message());
+            publisher->publish(serialized_data_ptr);
           };
         break;
       case DomainBridgeOptions::Mode::Decompress:
@@ -206,14 +208,18 @@ public:
             serializer.deserialize_message(serialized_compressed_msg.get(), &compressed_msg);
             rclcpp::SerializedMessage msg = domain_bridge::decompress_message(
               dctx, std::move(compressed_msg.data));
-            publisher->publish(msg.get_rcl_serialized_message());
+            auto serialized_data_ptr = std::make_shared<rcl_serialized_message_t>(
+              msg.get_rcl_serialized_message());
+            publisher->publish(serialized_data_ptr);
           };
         break;
       default:  // fallthrough
       case DomainBridgeOptions::Mode::Normal:
         callback = [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
             // Publish message into the other domain
-            publisher->publish(msg->get_rcl_serialized_message());
+            auto serialized_data_ptr = std::make_shared<rcl_serialized_message_t>(
+              msg->get_rcl_serialized_message());
+            publisher->publish(serialized_data_ptr);
           };
         break;
     }
@@ -233,10 +239,7 @@ public:
       *rosidl_typesupport_cpp::get_message_type_support_handle<domain_bridge::msg::CompressedMsg>(),
       topic_name,
       qos,
-      [publisher](std::shared_ptr<rclcpp::SerializedMessage> msg) {
-        // Publish message into the other domain
-        publisher->publish(msg->get_rcl_serialized_message());
-      });
+      callback);
     node->get_node_topics_interface()->add_subscription(subscription, std::move(group));
     return subscription;
   }

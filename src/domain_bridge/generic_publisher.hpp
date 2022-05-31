@@ -38,7 +38,7 @@ public:
 
   virtual ~GenericPublisher() = default;
 
-  void publish(const rmw_serialized_message_t & message);
+  void publish(std::shared_ptr<rmw_serialized_message_t> message);
 };
 
 }  // namespace domain_bridge

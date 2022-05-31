@@ -42,10 +42,10 @@ GenericPublisher::GenericPublisher(
 : rclcpp::PublisherBase(node_base, topic_name, type_support, rosbag2_get_publisher_options(qos))
 {}
 
-void GenericPublisher::publish(const rmw_serialized_message_t & message)
+void GenericPublisher::publish(std::shared_ptr<rmw_serialized_message_t> message)
 {
   auto return_code = rcl_publish_serialized_message(
-    get_publisher_handle().get(), &message, nullptr);
+    get_publisher_handle().get(), message.get(), NULL);
 
   if (return_code != RCL_RET_OK) {
     rclcpp::exceptions::throw_from_rcl_error(return_code, "failed to publish serialized message");
