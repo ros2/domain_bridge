@@ -96,8 +96,9 @@ std::size_t
 get_node_domain_id(
   rclcpp::Node & node)
 {
-  const rcl_init_options_t * rcl_init_options =
-    node.get_node_base_interface()->get_context()->get_init_options().get_rcl_init_options();
+  const rclcpp::InitOptions init_options =
+    node.get_node_base_interface()->get_context()->get_init_options();
+  const rcl_init_options_t * rcl_init_options = init_options.get_rcl_init_options();
 
   std::size_t domain_id;
   // const_cast is safe because `rcl_init_options_get_domain_id` only reads the input structure
