@@ -37,6 +37,7 @@ namespace utils
 
 rclcpp::Duration from_rmw_time(const rmw_time_t duration)
 {
+  // From https://github.com/ros2/rclcpp/pull/1467/commits/b6bfc5868035b3cc8774275e08c6194b0f484e37
   constexpr rcl_duration_value_t limit_ns = std::numeric_limits<rcl_duration_value_t>::max();
   constexpr rcl_duration_value_t limit_sec = RCL_NS_TO_S(limit_ns);
   if (duration.sec > limit_sec || duration.nsec > limit_ns) {
