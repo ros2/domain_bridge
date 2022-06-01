@@ -30,13 +30,30 @@ namespace domain_bridge
 namespace utils
 {
 
+/// Convert a duration represented as rmw_time_t to rclcpp::Duration.
+/**
+ * \param duration: The duration to be converted.
+ * \return The provided duration as an rclcpp::Duration instance.
+ */
 DOMAIN_BRIDGE_PUBLIC
 rclcpp::Duration from_rmw_time(rmw_time_t duration);
 
+/// Create a ROS context with a given domain ID.
+/**
+ * \param domain_id: The integral domain ID for the context.
+ * \return Shared pointer to an instance of a context with the given domain ID.
+ */
 DOMAIN_BRIDGE_PUBLIC
 std::shared_ptr<rclcpp::Context>
 create_context_with_domain_id(std::size_t domain_id);
 
+/// Create a ROS node with a given name, domain ID, and context instance.
+/**
+ * \param name: The name of the generated node.
+ * \param context: The context instance (if not null) to which this node should belong.
+ * \param domain_id: The integral domain ID for the node.
+ * \return Shared pointer to an instance of a node with the given constraints.
+ */
 DOMAIN_BRIDGE_PUBLIC
 rclcpp::Node::SharedPtr
 create_node(
@@ -44,6 +61,11 @@ create_node(
   std::size_t domain_id,
   std::shared_ptr<rclcpp::Context> context = nullptr);
 
+/// Get the domain ID of a ROS node.
+/**
+ * \param node: The node whose domain ID will be obtained.
+ * \return The integral domain ID for the argument node.
+ */
 DOMAIN_BRIDGE_PUBLIC
 std::size_t
 get_node_domain_id(
