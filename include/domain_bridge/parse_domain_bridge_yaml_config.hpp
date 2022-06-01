@@ -54,7 +54,7 @@ public:
  * - remap: Remap topic name to this name in 'to_domain'.
  *
  * QoS options are a map of policy kinds to policy values.
- * If an option for a policy is not provided then a default value is used (\see QosOptions).
+ * If an option for a policy is not provided then a default value is used.
  * For each QoS option provided, it will override the default policy.
  *
  * Supported QoS options:
@@ -67,6 +67,8 @@ public:
  *             or the string 'auto' to automatically match the value of a publisher.
  * - lifespan: an integer representing number of nanoseconds (negative for "infinite"),
  *             or the string 'auto' to automatically match the value of a publisher.
+ *
+ * \see QosOptions
  *
  * For example,
  *
