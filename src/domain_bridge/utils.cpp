@@ -35,23 +35,22 @@ namespace domain_bridge
 namespace utils
 {
 
-rclcpp::Duration from_rmw_time(rmw_time_t duration)
+rclcpp::Duration from_rmw_time(const rmw_time_t duration)
 {
   constexpr rcl_duration_value_t limit_ns = std::numeric_limits<rcl_duration_value_t>::max();
   constexpr rcl_duration_value_t limit_sec = RCL_NS_TO_S(limit_ns);
   if (duration.sec > limit_sec || duration.nsec > limit_ns) {
     return rclcpp::Duration{limit_ns};
   }
-  uint64_t total_ns = RCL_S_TO_NS(duration.sec) + duration.nsec;
+  const uint64_t total_ns = RCL_S_TO_NS(duration.sec) + duration.nsec;
   if (total_ns > limit_ns) {
     return rclcpp::Duration{limit_ns};
   }
   return rclcpp::Duration{static_cast<rcl_duration_value_t>(total_ns)};
 }
 
-/// THROWS
 std::shared_ptr<rclcpp::Context>
-create_context_with_domain_id(std::size_t domain_id)
+create_context_with_domain_id(const std::size_t domain_id)
 {
   rcl_init_options_t rcl_init_options = rcl_get_zero_initialized_init_options();
   rcl_ret_t ret = rcl_init_options_init(
@@ -76,8 +75,8 @@ create_context_with_domain_id(std::size_t domain_id)
 rclcpp::Node::SharedPtr
 create_node(
   const std::string & name,
-  std::size_t domain_id,
   std::shared_ptr<rclcpp::Context> context)
+  const std::size_t domain_id,
 {
   if (context == nullptr) {
     context = create_context_with_domain_id(domain_id);
@@ -96,13 +95,14 @@ std::size_t
 get_node_domain_id(
   rclcpp::Node & node)
 {
+  // Need separate instance for InitOptions so that it stays in scope till domain ID is obtained
   const rclcpp::InitOptions init_options =
     node.get_node_base_interface()->get_context()->get_init_options();
   const rcl_init_options_t * rcl_init_options = init_options.get_rcl_init_options();
 
   std::size_t domain_id;
   // const_cast is safe because `rcl_init_options_get_domain_id` only reads the input structure
-  rcl_ret_t ret =
+  const rcl_ret_t ret =
     rcl_init_options_get_domain_id(
     const_cast<rcl_init_options_t *>(rcl_init_options),
     &domain_id);
