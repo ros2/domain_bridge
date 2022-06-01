@@ -49,7 +49,7 @@ rclcpp::Duration from_rmw_time(const rmw_time_t duration)
   return rclcpp::Duration{static_cast<rcl_duration_value_t>(total_ns)};
 }
 
-std::shared_ptr<rclcpp::Context>
+rclcpp::Context::SharedPtr
 create_context_with_domain_id(const std::size_t domain_id)
 {
   rcl_init_options_t rcl_init_options = rcl_get_zero_initialized_init_options();
@@ -75,8 +75,8 @@ create_context_with_domain_id(const std::size_t domain_id)
 rclcpp::Node::SharedPtr
 create_node(
   const std::string & name,
-  std::shared_ptr<rclcpp::Context> context)
   const std::size_t domain_id,
+  rclcpp::Context::SharedPtr context)
 {
   if (context == nullptr) {
     context = create_context_with_domain_id(domain_id);

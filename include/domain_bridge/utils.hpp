@@ -58,8 +58,8 @@ DOMAIN_BRIDGE_PUBLIC
 rclcpp::Node::SharedPtr
 create_node(
   const std::string & name,
-  std::shared_ptr<rclcpp::Context> context = nullptr);
   const std::size_t domain_id,
+  rclcpp::Context::SharedPtr context = nullptr);
 
 /// Get the domain ID of a ROS node.
 /**
