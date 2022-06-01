@@ -91,13 +91,8 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
   // Assert the QoS of the bridged publisher matches
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
-  for (auto & t : endpoint_info_vec) {
-    std::cout << t << '\n';
-  }
-  EXPECT_EQ(domain_bridge::utils::get_node_domain_id(*node_1), domain_1_);
-  EXPECT_EQ(domain_bridge::utils::get_node_domain_id(*node_2), domain_2_);
-  EXPECT_EQ(endpoint_info_vec.size(), 1u);
-  // ASSERT_EQ(endpoint_info_vec.size(), 1u);
+  ASSERT_EQ(endpoint_info_vec.size(), 1u);
+
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
   rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
   rmw_qos_profile_t rmw_qos_profile = qos.get_rmw_qos_profile();
@@ -148,6 +143,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
+
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
   rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
   rmw_qos_profile_t rmw_qos_profile = qos.get_rmw_qos_profile();
@@ -196,6 +192,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
+
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
   rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
   rmw_qos_profile_t rmw_qos_profile = qos.get_rmw_qos_profile();
@@ -251,6 +248,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
+
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
   rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
   EXPECT_EQ(rmw_bridged_qos_profile.liveliness, RMW_QOS_POLICY_LIVELINESS_AUTOMATIC);
@@ -293,6 +291,7 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
   std::vector<rclcpp::TopicEndpointInfo> endpoint_info_vec =
     node_2->get_publishers_info_by_topic(topic_name);
   ASSERT_EQ(endpoint_info_vec.size(), 1u);
+
   const rclcpp::QoS & bridged_qos = endpoint_info_vec[0].qos_profile();
   rmw_qos_profile_t rmw_bridged_qos_profile = bridged_qos.get_rmw_qos_profile();
   EXPECT_EQ(
