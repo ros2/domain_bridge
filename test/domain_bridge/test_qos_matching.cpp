@@ -58,12 +58,6 @@ std::shared_ptr<rclcpp::Context> TestDomainBridgeQosMatching::context_2_;
 rclcpp::NodeOptions TestDomainBridgeQosMatching::node_options_1_;
 rclcpp::NodeOptions TestDomainBridgeQosMatching::node_options_2_;
 
-std::ostream & operator<<(std::ostream & os, const rclcpp::TopicEndpointInfo & t)
-{
-  os << t.node_namespace() << '/' << t.node_name() << ": " << t.topic_type();
-  return os;
-}
-
 TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
 {
   const std::string topic_name("test_topic_exists_before_bridge");
