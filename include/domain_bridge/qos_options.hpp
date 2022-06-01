@@ -17,7 +17,7 @@
 
 #include <optional>
 
-#include "rclcpp/qos.hpp"
+#include "rmw/types.h"
 
 #include "domain_bridge/visibility_control.hpp"
 
@@ -34,7 +34,7 @@ public:
    *
    *    - reliability = nullopt_t (detect automatically)
    *    - durability = nullopt_t (detect automatically)
-   *    - history = rclcpp::HistoryPolicy::KeepLast
+   *    - history = RMW_QOS_POLICY_HISTORY_KEEP_LAST
    *    - depth = 10
    *    - deadline = 0 (RMW default)
    *    - lifespan = 0 (RMW default)
@@ -44,33 +44,33 @@ public:
 
   /// Get reliability.
   DOMAIN_BRIDGE_PUBLIC
-  std::optional<rclcpp::ReliabilityPolicy>
+  std::optional<rmw_qos_reliability_policy_t>
   reliability() const;
 
   /// Set reliability.
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  reliability(const rclcpp::ReliabilityPolicy & reliability);
+  reliability(rmw_qos_reliability_policy_t reliability);
 
   /// Get durability.
   DOMAIN_BRIDGE_PUBLIC
-  std::optional<rclcpp::DurabilityPolicy>
+  std::optional<rmw_qos_durability_policy_t>
   durability() const;
 
   /// Set durability.
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  durability(const rclcpp::DurabilityPolicy & durability);
+  durability(rmw_qos_durability_policy_t durability);
 
   /// Get history.
   DOMAIN_BRIDGE_PUBLIC
-  rclcpp::HistoryPolicy
+  rmw_qos_history_policy_t
   history() const;
 
   /// Set history.
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  history(const rclcpp::HistoryPolicy & history);
+  history(rmw_qos_history_policy_t history);
 
   /// Get history depth.
   DOMAIN_BRIDGE_PUBLIC
@@ -129,9 +129,9 @@ public:
   lifespan_auto();
 
 private:
-  std::optional<rclcpp::ReliabilityPolicy> reliability_;
-  std::optional<rclcpp::DurabilityPolicy> durability_;
-  rclcpp::HistoryPolicy history_{rclcpp::HistoryPolicy::KeepLast};
+  std::optional<rmw_qos_reliability_policy_t> reliability_;
+  std::optional<rmw_qos_durability_policy_t> durability_;
+  rmw_qos_history_policy_t history_{RMW_QOS_POLICY_HISTORY_KEEP_LAST};
   std::size_t depth_{10};
   std::optional<std::int64_t> deadline_{0};
   std::optional<std::int64_t> lifespan_{0};

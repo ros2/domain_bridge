@@ -16,12 +16,15 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(rcl REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rcpputils REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
 find_package(rosbag2_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
+find_package(rmw REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
 find_package(zstd_vendor REQUIRED)
 find_package(zstd REQUIRED)
@@ -34,10 +37,13 @@ add_library(${PROJECT_NAME}_lib SHARED
   src/${PROJECT_NAME}/compress_messages.cpp
   src/${PROJECT_NAME}/domain_bridge.cpp
   src/${PROJECT_NAME}/domain_bridge_options.cpp
+  src/${PROJECT_NAME}/generic_publisher.cpp
+  src/${PROJECT_NAME}/generic_subscription.cpp
   src/${PROJECT_NAME}/parse_domain_bridge_yaml_config.cpp
   src/${PROJECT_NAME}/qos_options.cpp
   src/${PROJECT_NAME}/service_bridge_options.cpp
   src/${PROJECT_NAME}/topic_bridge_options.cpp
+  src/${PROJECT_NAME}/utils.cpp
 )
 
 target_include_directories(${PROJECT_NAME}_lib PUBLIC
@@ -50,10 +56,13 @@ if(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
 ament_target_dependencies(${PROJECT_NAME}_lib
+  rcl
   rclcpp
+  rcpputils
   rcutils
   rosbag2_cpp
   rosidl_typesupport_cpp
+  rmw
   yaml_cpp_vendor
   zstd
 )
@@ -75,7 +84,6 @@ target_link_libraries(${PROJECT_NAME}_exec
 
 # Only needed to build domain_bridge_rti_qos executable.
 find_package(rti_connext_dds_cmake_module QUIET)
-find_package(rcpputils QUIET)
 
 set(executables ${PROJECT_NAME}_exec)
 
@@ -122,9 +130,12 @@ install(DIRECTORY examples launch
 
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
+  rcl
   rclcpp
-  rosbag2_cpp
+  rcpputils
   rcutils
+  rosbag2_cpp
+  rmw
   yaml_cpp_vendor
   zstd_vendor
   zstd

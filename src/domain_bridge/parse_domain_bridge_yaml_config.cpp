@@ -24,7 +24,7 @@
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/qos_options.hpp"
 
-#include "rclcpp/qos.hpp"
+#include "rmw/types.h"
 
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
 
@@ -49,9 +49,9 @@ static QosOptions parse_qos_options(YAML::Node yaml_node, const std::string & fi
     try {
       auto reliability_str = qos_node["reliability"].as<std::string>();
       if ("reliable" == reliability_str) {
-        options.reliability(rclcpp::ReliabilityPolicy::Reliable);
+        options.reliability(RMW_QOS_POLICY_RELIABILITY_RELIABLE);
       } else if ("best_effort" == reliability_str) {
-        options.reliability(rclcpp::ReliabilityPolicy::BestEffort);
+        options.reliability(RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT);
       } else {
         throw YamlParsingError(
                 file_path, "unsupported reliability policy value '" + reliability_str + "'");
@@ -65,9 +65,9 @@ static QosOptions parse_qos_options(YAML::Node yaml_node, const std::string & fi
     try {
       auto durability_str = qos_node["durability"].as<std::string>();
       if ("volatile" == durability_str) {
-        options.durability(rclcpp::DurabilityPolicy::Volatile);
+        options.durability(RMW_QOS_POLICY_DURABILITY_VOLATILE);
       } else if ("transient_local" == durability_str) {
-        options.durability(rclcpp::DurabilityPolicy::TransientLocal);
+        options.durability(RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL);
       } else {
         throw YamlParsingError(
                 file_path, "unsupported durability policy value '" + durability_str + "'");
@@ -81,9 +81,9 @@ static QosOptions parse_qos_options(YAML::Node yaml_node, const std::string & fi
     try {
       auto history_str = qos_node["history"].as<std::string>();
       if ("keep_last" == history_str) {
-        options.history(rclcpp::HistoryPolicy::KeepLast);
+        options.history(RMW_QOS_POLICY_HISTORY_KEEP_LAST);
       } else if ("keep_all" == history_str) {
-        options.history(rclcpp::HistoryPolicy::KeepAll);
+        options.history(RMW_QOS_POLICY_HISTORY_KEEP_ALL);
       } else {
         throw YamlParsingError(file_path, "unsupported history policy value '" + history_str + "'");
       }

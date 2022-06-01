@@ -10,8 +10,8 @@ jobs:
     - uses: ros-tooling/setup-ros@v0.2
       with:
         install-connext: true
-        required-ros-distributions: galactic
+        required-ros-distributions: foxy
     - uses: ros-tooling/action-ros-ci@v0.2
       with:
         package-name: domain_bridge
-        target-ros2-distro: galactic
+        target-ros2-distro: foxy

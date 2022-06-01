@@ -16,47 +16,45 @@
 
 #include <cstdint>
 
-#include "rclcpp/qos.hpp"
-
 #include "domain_bridge/qos_options.hpp"
 
 namespace domain_bridge
 {
 
-std::optional<rclcpp::ReliabilityPolicy>
+std::optional<rmw_qos_reliability_policy_t>
 QosOptions::reliability() const
 {
   return reliability_;
 }
 
 QosOptions &
-QosOptions::reliability(const rclcpp::ReliabilityPolicy & reliability)
+QosOptions::reliability(rmw_qos_reliability_policy_t reliability)
 {
   reliability_.emplace(reliability);
   return *this;
 }
 
-std::optional<rclcpp::DurabilityPolicy>
+std::optional<rmw_qos_durability_policy_t>
 QosOptions::durability() const
 {
   return durability_;
 }
 
 QosOptions &
-QosOptions::durability(const rclcpp::DurabilityPolicy & durability)
+QosOptions::durability(rmw_qos_durability_policy_t durability)
 {
   durability_.emplace(durability);
   return *this;
 }
 
-rclcpp::HistoryPolicy
+rmw_qos_history_policy_t
 QosOptions::history() const
 {
   return history_;
 }
 
 QosOptions &
-QosOptions::history(const rclcpp::HistoryPolicy & history)
+QosOptions::history(rmw_qos_history_policy_t history)
 {
   history_ = history;
   return *this;

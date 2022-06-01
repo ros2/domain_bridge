@@ -10,8 +10,11 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
 
+  <depend>rcl</depend>
   <depend>rclcpp</depend>
   <depend>rcutils</depend>
+  <depend>rcpputils</depend>
+  <depend>rmw</depend>
   <depend>rosbag2_cpp</depend>
   <depend>rosidl_typesupport_cpp</depend>
   <depend>yaml-cpp</depend>
@@ -30,7 +33,7 @@
   <test_depend>test_msgs</test_depend>
 
   <!-- Ensure the following Tier 1 RMW implementations are available for testing -->
-  <test_depend>rmw_connextdds</test_depend>
+  <test_depend>rmw_connext_cpp</test_depend>
   <test_depend>rmw_cyclonedds_cpp</test_depend>
   <test_depend>rmw_fastrtps_cpp</test_depend>
 

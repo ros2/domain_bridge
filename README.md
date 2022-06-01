@@ -7,7 +7,7 @@ See the [design document](doc/design.md) for more details about how the bridge w
 
 ## Prerequisites
 
-- [ROS 2](https://index.ros.org/doc/ros2/Installation) (Galactic or newer)
+- [ROS 2](https://index.ros.org/doc/ros2/Installation) (Foxy or newer)
 
 ## Installation
 

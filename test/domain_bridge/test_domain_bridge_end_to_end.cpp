@@ -27,6 +27,7 @@
 #include "domain_bridge/compress_messages.hpp"
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
+#include "domain_bridge/utils.hpp"
 
 
 static constexpr std::size_t kDomain1{1u};
@@ -40,25 +41,12 @@ class TestDomainBridgeEndToEnd : public ::testing::Test
 protected:
   void SetUp() override
   {
-    // Initialize contexts in different domains
-    rclcpp::InitOptions context_options;
-
-    context_1_ = std::make_shared<rclcpp::Context>();
-    context_options.auto_initialize_logging(true).set_domain_id(kDomain1);
-    context_1_->init(0, nullptr, context_options);
-
-    context_2_ = std::make_shared<rclcpp::Context>();
-    context_options.auto_initialize_logging(false).set_domain_id(kDomain2);
-    context_2_->init(0, nullptr, context_options);
-
-    // Initialize one node in each domain
-    rclcpp::NodeOptions node_options;
-
-    node_options.context(context_1_);
-    node_1_ = std::make_shared<rclcpp::Node>("node_1", node_options);
-
-    node_options.context(context_2_);
-    node_2_ = std::make_shared<rclcpp::Node>("node_2", node_options);
+    context_1_ = domain_bridge::utils::create_context_with_domain_id(kDomain1);
+    node_1_ = domain_bridge::utils::create_node(
+      "node_1", kDomain1, context_1_);
+    context_2_ = domain_bridge::utils::create_context_with_domain_id(kDomain2);
+    node_2_ = domain_bridge::utils::create_node(
+      "node_2", kDomain2, context_2_);
   }
   std::shared_ptr<rclcpp::Context> context_1_;
   std::shared_ptr<rclcpp::Context> context_2_;
@@ -84,12 +72,17 @@ poll_condition(std::function<bool()> condition, std::chrono::seconds timeout)
   return condition();
 }
 
+/*
+ * Can't call spin_until_future_complete() inside a callback executed by an executor.
+ *
+ * https://github.com/ros2/rclcpp/blob/d7804e1b3fd9676d302ec72f02c49ba04cbed5e6/rclcpp/include/rclcpp/executor.hpp#L198-L199
+ */
 class ScopedAsyncSpinner
 {
 public:
   explicit ScopedAsyncSpinner(std::shared_ptr<rclcpp::Context> context)
   : executor_{get_executor_options_with_context(std::move(context))},
-    thread_{[this, stop_token = promise_.get_future()] {
+    thread_{[this, stop_token = std::shared_future<void>{promise_.get_future()}] {
         executor_.spin_until_future_complete(stop_token);
       }}
   {}
@@ -136,7 +129,7 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     remap_name,
     pub_sub_qos_,
-    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
+    [&got_message](test_msgs::msg::BasicTypes::SharedPtr) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
   domain_bridge::DomainBridge bridge;
@@ -167,7 +160,7 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     expected_name,
     pub_sub_qos_,
-    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
+    [&got_message](test_msgs::msg::BasicTypes::SharedPtr) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
   domain_bridge::DomainBridgeOptions domain_bridge_options;
@@ -198,7 +191,7 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   auto sub = node_2_->create_subscription<domain_bridge::msg::CompressedMsg>(
     topic_name,
     pub_sub_qos_,
-    [&got_message](const domain_bridge::msg::CompressedMsg &) {got_message = true;});
+    [&got_message](domain_bridge::msg::CompressedMsg::SharedPtr) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
   domain_bridge::DomainBridgeOptions domain_bridge_options;
@@ -228,7 +221,7 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   auto sub = node_2_->create_subscription<test_msgs::msg::BasicTypes>(
     topic_name,
     pub_sub_qos_,
-    [&got_message](const test_msgs::msg::BasicTypes &) {got_message = true;});
+    [&got_message](test_msgs::msg::BasicTypes::SharedPtr) {got_message = true;});
 
   // Bridge the publisher topic to domain 2 with a remap option
   domain_bridge::DomainBridgeOptions domain_bridge_options;
