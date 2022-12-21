@@ -128,6 +128,31 @@ public:
   QosOptions &
   lifespan_auto();
 
+  /// Get liveliness.
+  DOMAIN_BRIDGE_PUBLIC
+  std::optional<rclcpp::LivelinessPolicy>
+  liveliness() const;
+
+  /// Set history.
+  DOMAIN_BRIDGE_PUBLIC
+  QosOptions &
+  liveliness(const rclcpp::LivelinessPolicy & liveliness);
+
+  /// Set liveliness policy to automatically match available publishers.
+  DOMAIN_BRIDGE_PUBLIC
+  QosOptions &
+  liveliness_auto();
+
+  /// Get liveliness.
+  DOMAIN_BRIDGE_PUBLIC
+  std::optional<int64_t>
+  liveliness_lease_duration() const;
+
+  /// Set history.
+  DOMAIN_BRIDGE_PUBLIC
+  QosOptions &
+  liveliness_lease_duration(int64_t & liveliness_lease_duration);
+
 private:
   std::optional<rclcpp::ReliabilityPolicy> reliability_;
   std::optional<rclcpp::DurabilityPolicy> durability_;
@@ -135,6 +160,8 @@ private:
   std::size_t depth_{10};
   std::optional<std::int64_t> deadline_{0};
   std::optional<std::int64_t> lifespan_{0};
+  std::optional<rclcpp::LivelinessPolicy> liveliness_;
+  std::optional<std::int64_t> liveliness_lease_duration_{0};
 };  // class QosOptions
 
 }  // namespace domain_bridge

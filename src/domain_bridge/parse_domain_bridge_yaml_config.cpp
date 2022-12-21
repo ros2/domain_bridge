@@ -142,6 +142,34 @@ static QosOptions parse_qos_options(YAML::Node yaml_node, const std::string & fi
     }
   }
 
+  if (qos_node["liveliness"]) {
+    try {
+      auto liveliness_str = qos_node["liveliness"].as<std::string>();
+      if (0u == std::strcmp(liveliness_str.c_str(), "manual_by_topic")) {
+        options.liveliness(rclcpp::LivelinessPolicy::ManualByTopic);
+      } else if (0u == std::strcmp(liveliness_str.c_str(), "automatic")) {
+        options.liveliness(rclcpp::LivelinessPolicy::Automatic);
+      } else if (0u == std::strcmp(liveliness_str.c_str(), "system_default")) {
+        options.liveliness(rclcpp::LivelinessPolicy::SystemDefault);
+      } else {
+        throw YamlParsingError(
+                file_path, "livelines must be manual_by_topic/automatic/system_default");
+      }
+    } catch (const YAML::BadConversion &) {
+      throw YamlParsingError(file_path, "livelines must be an string");
+    }
+  }
+
+  if (qos_node["liveliness_lease_duration"]) {
+    // First, try to get lifespan as an integer, then check if it is the string 'auto'
+    try {
+      auto lifespan_ns = qos_node["liveliness_lease_duration"].as<std::int64_t>();
+      options.lifespan(lifespan_ns);
+    } catch (const YAML::BadConversion &) {
+      throw YamlParsingError(file_path, "lifespan policy must be an integer");
+    }
+  }
+
   return options;
 }
 

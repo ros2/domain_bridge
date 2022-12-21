@@ -115,4 +115,37 @@ QosOptions::lifespan_auto()
   return *this;
 }
 
+std::optional<rclcpp::LivelinessPolicy>
+QosOptions::liveliness() const
+{
+  return liveliness_;
+}
+
+QosOptions &
+QosOptions::liveliness(const rclcpp::LivelinessPolicy & liveliness)
+{
+  liveliness_ = liveliness;
+  return *this;
+}
+
+QosOptions &
+QosOptions::liveliness_auto()
+{
+  liveliness_ = std::nullopt;
+  return *this;
+}
+
+std::optional<int64_t>
+QosOptions::liveliness_lease_duration() const
+{
+  return liveliness_lease_duration_;
+}
+
+QosOptions &
+QosOptions::liveliness_lease_duration(int64_t & liveliness_lease_duration)
+{
+  liveliness_lease_duration_ = liveliness_lease_duration;
+  return *this;
+}
+
 }  // namespace domain_bridge
