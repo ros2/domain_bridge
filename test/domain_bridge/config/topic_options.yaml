@@ -14,6 +14,8 @@ topics:
       depth: 42
       deadline: 123456
       lifespan: auto
+      liveliness: manual_by_topic
+      liveliness_lease_duration: 1000
     remap: bar/remapped
     bidirectional: True
   baz:
@@ -22,5 +24,6 @@ topics:
     qos:
       deadline: auto
       lifespan: -5
+      liveliness_lease_duration: -1000
     remap: ''
     reversed: True

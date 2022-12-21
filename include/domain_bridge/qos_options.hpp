@@ -87,7 +87,7 @@ public:
    * If nullopt_t is returned, then use automatic matching.
    */
   DOMAIN_BRIDGE_PUBLIC
-  std::optional<std::int64_t>
+  std::optional<int64_t>
   deadline() const;
 
   /// Set deadline.
@@ -98,7 +98,7 @@ public:
    */
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  deadline(const std::int64_t & deadline);
+  deadline(int64_t deadline);
 
   /// Set deadline policy to automatically match available publishers.
   DOMAIN_BRIDGE_PUBLIC
@@ -110,7 +110,7 @@ public:
    * If nullopt_t is returned, then use automatic matching.
    */
   DOMAIN_BRIDGE_PUBLIC
-  std::optional<std::int64_t>
+  std::optional<int64_t>
   lifespan() const;
 
   /// Set lifespan in nanoseconds.
@@ -121,7 +121,7 @@ public:
    */
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  lifespan(const std::int64_t & lifespan);
+  lifespan(int64_t lifespan);
 
   /// Set lifespan policy to automatically match available publihsers.
   DOMAIN_BRIDGE_PUBLIC
@@ -151,17 +151,17 @@ public:
   /// Set history.
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  liveliness_lease_duration(int64_t & liveliness_lease_duration);
+  liveliness_lease_duration(int64_t liveliness_lease_duration);
 
 private:
   std::optional<rclcpp::ReliabilityPolicy> reliability_;
   std::optional<rclcpp::DurabilityPolicy> durability_;
   rclcpp::HistoryPolicy history_{rclcpp::HistoryPolicy::KeepLast};
   std::size_t depth_{10};
-  std::optional<std::int64_t> deadline_{0};
-  std::optional<std::int64_t> lifespan_{0};
+  std::optional<int64_t> deadline_{0};
+  std::optional<int64_t> lifespan_{0};
   std::optional<rclcpp::LivelinessPolicy> liveliness_;
-  std::optional<std::int64_t> liveliness_lease_duration_{0};
+  std::optional<int64_t> liveliness_lease_duration_{0};
 };  // class QosOptions
 
 }  // namespace domain_bridge

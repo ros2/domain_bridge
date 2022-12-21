@@ -75,14 +75,14 @@ QosOptions::depth(const std::size_t & depth)
   return *this;
 }
 
-std::optional<std::int64_t>
+std::optional<int64_t>
 QosOptions::deadline() const
 {
   return deadline_;
 }
 
 QosOptions &
-QosOptions::deadline(const std::int64_t & deadline)
+QosOptions::deadline(int64_t deadline)
 {
   deadline_.emplace(deadline);
   return *this;
@@ -95,14 +95,14 @@ QosOptions::deadline_auto()
   return *this;
 }
 
-std::optional<std::int64_t>
+std::optional<int64_t>
 QosOptions::lifespan() const
 {
   return lifespan_;
 }
 
 QosOptions &
-QosOptions::lifespan(const std::int64_t & lifespan)
+QosOptions::lifespan(int64_t lifespan)
 {
   lifespan_.emplace(lifespan);
   return *this;
@@ -142,7 +142,7 @@ QosOptions::liveliness_lease_duration() const
 }
 
 QosOptions &
-QosOptions::liveliness_lease_duration(int64_t & liveliness_lease_duration)
+QosOptions::liveliness_lease_duration(int64_t liveliness_lease_duration)
 {
   liveliness_lease_duration_ = liveliness_lease_duration;
   return *this;
