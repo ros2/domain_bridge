@@ -74,13 +74,13 @@ public:
 
   /// Get history depth.
   DOMAIN_BRIDGE_PUBLIC
-  std::size_t
+  size_t
   depth() const;
 
   /// Set history depth.
   DOMAIN_BRIDGE_PUBLIC
   QosOptions &
-  depth(const std::size_t & depth);
+  depth(const size_t & depth);
 
   /// Get deadline in nanoseconds.
   /**
@@ -157,7 +157,7 @@ private:
   std::optional<rclcpp::ReliabilityPolicy> reliability_;
   std::optional<rclcpp::DurabilityPolicy> durability_;
   rclcpp::HistoryPolicy history_{rclcpp::HistoryPolicy::KeepLast};
-  std::size_t depth_{10};
+  size_t depth_{10};
   std::optional<int64_t> deadline_{0};
   std::optional<int64_t> lifespan_{0};
   std::optional<rclcpp::LivelinessPolicy> liveliness_;

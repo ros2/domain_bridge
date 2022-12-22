@@ -62,14 +62,14 @@ QosOptions::history(const rclcpp::HistoryPolicy & history)
   return *this;
 }
 
-std::size_t
+size_t
 QosOptions::depth() const
 {
   return depth_;
 }
 
 QosOptions &
-QosOptions::depth(const std::size_t & depth)
+QosOptions::depth(const size_t & depth)
 {
   depth_ = depth;
   return *this;
