@@ -146,13 +146,16 @@ TEST_F(TestParseDomainBridgeYamlConfig, topic_options)
       .history(rclcpp::HistoryPolicy::KeepAll)
       .depth(42u)
       .deadline(123456)
-      .lifespan_auto())
+      .lifespan_auto()
+      .liveliness(rclcpp::LivelinessPolicy::ManualByTopic)
+      .liveliness_lease_duration(1000))
     .remap_name("bar/remapped")
     .bidirectional(true),
     domain_bridge::TopicBridgeOptions().qos_options(
       domain_bridge::QosOptions()
       .deadline_auto()
-      .lifespan(-5))
+      .lifespan(-5)
+      .liveliness_lease_duration(-1000))
     .remap_name("")
     .reversed(true)
   };

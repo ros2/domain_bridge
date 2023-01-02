@@ -62,27 +62,27 @@ QosOptions::history(const rclcpp::HistoryPolicy & history)
   return *this;
 }
 
-std::size_t
+size_t
 QosOptions::depth() const
 {
   return depth_;
 }
 
 QosOptions &
-QosOptions::depth(const std::size_t & depth)
+QosOptions::depth(const size_t & depth)
 {
   depth_ = depth;
   return *this;
 }
 
-std::optional<std::int64_t>
+std::optional<int64_t>
 QosOptions::deadline() const
 {
   return deadline_;
 }
 
 QosOptions &
-QosOptions::deadline(const std::int64_t & deadline)
+QosOptions::deadline(int64_t deadline)
 {
   deadline_.emplace(deadline);
   return *this;
@@ -95,14 +95,14 @@ QosOptions::deadline_auto()
   return *this;
 }
 
-std::optional<std::int64_t>
+std::optional<int64_t>
 QosOptions::lifespan() const
 {
   return lifespan_;
 }
 
 QosOptions &
-QosOptions::lifespan(const std::int64_t & lifespan)
+QosOptions::lifespan(int64_t lifespan)
 {
   lifespan_.emplace(lifespan);
   return *this;
@@ -112,6 +112,39 @@ QosOptions &
 QosOptions::lifespan_auto()
 {
   lifespan_.reset();
+  return *this;
+}
+
+std::optional<rclcpp::LivelinessPolicy>
+QosOptions::liveliness() const
+{
+  return liveliness_;
+}
+
+QosOptions &
+QosOptions::liveliness(const rclcpp::LivelinessPolicy & liveliness)
+{
+  liveliness_ = liveliness;
+  return *this;
+}
+
+QosOptions &
+QosOptions::liveliness_auto()
+{
+  liveliness_ = std::nullopt;
+  return *this;
+}
+
+std::optional<int64_t>
+QosOptions::liveliness_lease_duration() const
+{
+  return liveliness_lease_duration_;
+}
+
+QosOptions &
+QosOptions::liveliness_lease_duration(int64_t liveliness_lease_duration)
+{
+  liveliness_lease_duration_ = liveliness_lease_duration;
   return *this;
 }
 
