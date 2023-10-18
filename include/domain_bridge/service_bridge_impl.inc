@@ -50,7 +50,7 @@ add_service_bridge(
   std::shared_ptr<rclcpp::ClientBase> client);
 
 rclcpp::Node::SharedPtr
-get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id);
+get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id, domain_bridge::DomainBridgeOptions::LocalHostOnly local_host_only);
 
 const std::string &
 get_node_name(const DomainBridgeImpl & impl);
@@ -67,6 +67,8 @@ DomainBridge::bridge_service(
   const std::string & service_name,
   size_t from_domain_id,
   size_t to_domain_id,
+  DomainBridgeOptions::LocalHostOnly from_local_host_only,
+  DomainBridgeOptions::LocalHostOnly to_local_host_only,
   const ServiceBridgeOptions & options)
 {
   const auto & node_name = detail::get_node_name(*impl_);
@@ -97,8 +99,8 @@ DomainBridge::bridge_service(
     return;
   }
 
-  rclcpp::Node::SharedPtr from_domain_node = detail::get_node_for_domain(*impl_, from_domain_id);
-  rclcpp::Node::SharedPtr to_domain_node = detail::get_node_for_domain(*impl_, to_domain_id);
+  rclcpp::Node::SharedPtr from_domain_node = detail::get_node_for_domain(*impl_, from_domain_id, from_local_host_only);
+  rclcpp::Node::SharedPtr to_domain_node = detail::get_node_for_domain(*impl_, to_domain_id, to_local_host_only);
 
   // Create a client for the 'from_domain'
   auto client = from_domain_node->create_client<ServiceT>(

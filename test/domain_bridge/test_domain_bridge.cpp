@@ -65,7 +65,10 @@ TEST_F(TestDomainBridge, bridge_topic_valid)
   // Individual parameters
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
   }
   // Struct parameter
   {
@@ -81,21 +84,42 @@ TEST_F(TestDomainBridge, bridge_topic_valid)
   // Topic with namespace
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo/bar/baz", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic(
+      "foo/bar/baz", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
   }
   // Multiple topics
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
-    bridge.bridge_topic("bar", "test_msgs/msg/BasicTypes", 1u, 2u);
-    bridge.bridge_topic("baz", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "bar", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "baz", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
   }
   // Same topic, different domains
   {
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 3u);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 2u, 1u);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 3u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 2u, 1u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
   }
   // Same topic, different types
   // This use-case isn't clearly supported by ROS 2, see https://github.com/ros2/ros2/issues/1095
@@ -113,20 +137,29 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
   {
     domain_bridge::DomainBridge bridge;
     EXPECT_THROW(
-      bridge.bridge_topic("Not a v@lid topic name!", "test_msgs/msg/BasicTypes", 1u, 2u),
+      bridge.bridge_topic(
+        "Not a v@lid topic name!", "test_msgs/msg/BasicTypes", 1u, 2u,
+        domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+        domain_bridge::DomainBridgeOptions::LocalHostOnly::Default),
       rclcpp::exceptions::InvalidTopicNameError);
   }
   // Invalid type name
   {
     domain_bridge::DomainBridge bridge;
     EXPECT_THROW(
-      bridge.bridge_topic("foo", "not a valid message type", 1u, 2u), std::runtime_error);
+      bridge.bridge_topic(
+        "foo", "not a valid message type", 1u, 2u,
+        domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+        domain_bridge::DomainBridgeOptions::LocalHostOnly::Default), std::runtime_error);
   }
   // Same domain ID
   {
     testing::internal::CaptureStderr();
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 1u);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 1u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
     std::string stderr_output = testing::internal::GetCapturedStderr();
     EXPECT_THAT(
       stderr_output,
@@ -137,8 +170,14 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
   {
     testing::internal::CaptureStderr();
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
     std::string stderr_output = testing::internal::GetCapturedStderr();
     EXPECT_THAT(
       stderr_output,
@@ -151,9 +190,18 @@ TEST_F(TestDomainBridge, bridge_topic_invalid)
   {
     testing::internal::CaptureStderr();
     domain_bridge::DomainBridge bridge;
-    bridge.bridge_topic("bar", "test_msgs/msg/Strings", 1u, 2u);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
-    bridge.bridge_topic("foo", "test_msgs/msg/BasicTypes", 1u, 2u);
+    bridge.bridge_topic(
+      "bar", "test_msgs/msg/Strings", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
+    bridge.bridge_topic(
+      "foo", "test_msgs/msg/BasicTypes", 1u, 2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
     std::string stderr_output = testing::internal::GetCapturedStderr();
     EXPECT_THAT(
       stderr_output,
@@ -178,7 +226,9 @@ TEST_F(TestDomainBridge, add_to_executor_valid)
       "foo",
       "test_msgs/msg/BasicTypes",
       1u,
-      2u);
+      2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
     rclcpp::executors::SingleThreadedExecutor executor;
     bridge.add_to_executor(executor);
   }
@@ -193,7 +243,9 @@ TEST_F(TestDomainBridge, add_to_executor_invalid)
       "foo",
       "test_msgs/msg/BasicTypes",
       1u,
-      2u);
+      2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
     rclcpp::executors::SingleThreadedExecutor executor;
     bridge.add_to_executor(executor);
     EXPECT_THROW(bridge.add_to_executor(executor), std::runtime_error);
@@ -205,7 +257,9 @@ TEST_F(TestDomainBridge, add_to_executor_invalid)
       "foo",
       "test_msgs/msg/BasicTypes",
       1u,
-      2u);
+      2u,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
     rclcpp::executors::SingleThreadedExecutor executor1;
     rclcpp::executors::SingleThreadedExecutor executor2;
     bridge.add_to_executor(executor1);
@@ -270,6 +324,8 @@ TEST_F(TestDomainBridge, remap_topic_name_invalid)
   topic_bridge_options.remap_name(remap_name);
   EXPECT_THROW(
     bridge.bridge_topic(
-      topic_name, "test_msgs/msg/BasicTypes", 0, 2, topic_bridge_options),
+      topic_name, "test_msgs/msg/BasicTypes", 0, 2,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+      domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, topic_bridge_options),
     rclcpp::exceptions::InvalidTopicNameError);
 }

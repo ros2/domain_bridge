@@ -30,6 +30,10 @@ class DomainBridgeImpl;
 class DomainBridgeOptions
 {
 public:
+  enum class LocalHostOnly
+  {
+    Default, Enabled, Disabled
+  };
   enum class Mode
   {
     Normal,
