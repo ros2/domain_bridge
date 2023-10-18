@@ -152,7 +152,9 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name)
   domain_bridge::TopicBridgeOptions topic_bridge_options;
   topic_bridge_options.remap_name(remap_name);
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, topic_bridge_options);
 
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
@@ -185,7 +187,9 @@ TEST_F(TestDomainBridgeEndToEnd, remap_topic_name_with_substitution)
   domain_bridge::TopicBridgeOptions topic_bridge_options;
   topic_bridge_options.remap_name(remap_name);
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, topic_bridge_options);
 
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
@@ -212,7 +216,9 @@ TEST_F(TestDomainBridgeEndToEnd, wait_for_subscription)
   topic_bridge_options.wait_for_subscription(true);
   ASSERT_TRUE(topic_bridge_options.wait_for_subscription());
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, topic_bridge_options);
 
   // bridge shouldn't be created until the subscription is up
   EXPECT_FALSE(poll_condition([pub]() {return pub->get_subscription_count() > 0;}, 5s));
@@ -248,7 +254,9 @@ TEST_F(TestDomainBridgeEndToEnd, auto_remove_no_subscription)
   topic_bridge_options.auto_remove(domain_bridge::TopicBridgeOptions::AutoRemove::OnNoSubscription);
   ASSERT_TRUE(topic_bridge_options.wait_for_subscription());
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2, topic_bridge_options);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, topic_bridge_options);
 
   // bridge shouldn't be created until the subscription is up
   EXPECT_FALSE(poll_condition([pub]() {return pub->get_subscription_count() > 0;}, 5s));
@@ -288,7 +296,9 @@ TEST_F(TestDomainBridgeEndToEnd, compress_mode)
   domain_bridge_options.mode(domain_bridge::DomainBridgeOptions::Mode::Compress);
   domain_bridge::DomainBridge bridge{domain_bridge_options};
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   pub->publish(test_msgs::msg::BasicTypes{});
   ScopedAsyncSpinner spinner{context_1_};
@@ -318,7 +328,9 @@ TEST_F(TestDomainBridgeEndToEnd, decompress_mode)
   domain_bridge_options.mode(domain_bridge::DomainBridgeOptions::Mode::Decompress);
   domain_bridge::DomainBridge bridge{domain_bridge_options};
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   rclcpp::Serialization<test_msgs::msg::BasicTypes> serializer;
   test_msgs::msg::BasicTypes msg;
@@ -388,7 +400,9 @@ TEST_F(TestDomainBridgeEndToEnd, domain_bridge_component_manager)
   const std::string topic_name("test_domain_bridge_component_manager");
   domain_bridge::DomainBridge bridge;
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2);
+    topic_name, "test_msgs/msg/BasicTypes", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   // Add component manager, client, and node_2 (to receive the message)
   ScopedAsyncSpinner spinner{context_1_};

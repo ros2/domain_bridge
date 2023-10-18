@@ -80,7 +80,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_before_bridge)
 
   // Bridge the publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   // Wait for bridge publisher to appear on domain 2
   auto node_2 = std::make_shared<rclcpp::Node>(
@@ -110,7 +113,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_after_bridge)
 
   // Bridge the publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   // Wait for bridge publisher to appear on domain 2
   // It shouldn't be available yet
@@ -169,7 +175,9 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_exists_multiple_publishers
   // Bridge the publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, bridge_options);
 
   // Wait for bridge publisher to appear on domain 2
   auto node_2 = std::make_shared<rclcpp::Node>(
@@ -197,7 +205,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_topic_does_not_exist)
 
   // Bridge a non-existent publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   // We do not expect a bridge publisher to appear because there is no input publisher
   auto node_2 = std::make_shared<rclcpp::Node>(
@@ -218,7 +229,10 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_always_automatic_liveliness)
 
   // Bridge the publisher topic to domain 2
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_topic(topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_);
+  bridge.bridge_topic(
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   // Wait for bridge publisher to appear on domain 2
   auto node_2 = std::make_shared<rclcpp::Node>(
@@ -261,7 +275,9 @@ TEST_F(TestDomainBridgeQosMatching, qos_matches_max_of_duration_policy)
   bridge_options.delay(std::chrono::milliseconds(1000));
   domain_bridge::DomainBridge bridge;
   bridge.bridge_topic(
-    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_, bridge_options);
+    topic_name, "test_msgs/msg/BasicTypes", domain_1_, domain_2_,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default, bridge_options);
 
   // Wait for bridge publisher to appear on domain 2
   auto node_2 = std::make_shared<rclcpp::Node>(

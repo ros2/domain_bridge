@@ -145,6 +145,21 @@ static QosOptions parse_qos_options(YAML::Node yaml_node, const std::string & fi
   return options;
 }
 
+static DomainBridgeOptions::LocalHostOnly string_to_local_host_only(
+  std::filesystem::path file_path,
+  const std::string & local_host_only)
+{
+  if (local_host_only == "default") {
+    return DomainBridgeOptions::LocalHostOnly::Default;
+  } else if (local_host_only == "enabled") {
+    return DomainBridgeOptions::LocalHostOnly::Enabled;
+  } else if (local_host_only == "disabled") {
+    return DomainBridgeOptions::LocalHostOnly::Disabled;
+  } else {
+    throw YamlParsingError(file_path, "Invalid local host only option '" + local_host_only + "'");
+  }
+}
+
 DomainBridgeConfig parse_domain_bridge_yaml_config(std::filesystem::path file_path)
 {
   DomainBridgeConfig domain_bridge_config;
@@ -191,6 +206,21 @@ update_domain_bridge_config_from_yaml(
   if (config["to_domain"]) {
     default_to_domain = config["to_domain"].as<std::size_t>();
     is_default_to_domain = true;
+  }
+  // Check for any default localhost mode
+  DomainBridgeOptions::LocalHostOnly default_from_local_host_only =
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default;
+  DomainBridgeOptions::LocalHostOnly default_to_local_host_only =
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default;
+  if (config["from_local_host_only"]) {
+    default_from_local_host_only = string_to_local_host_only(
+      file_path,
+      config["from_local_host_only"].as<std::string>());
+  }
+  if (config["to_local_host_only"]) {
+    default_to_local_host_only = string_to_local_host_only(
+      file_path,
+      config["to_local_host_only"].as<std::string>());
   }
   if (config["mode"]) {
     try {
@@ -243,6 +273,19 @@ update_domain_bridge_config_from_yaml(
         }
       }
 
+      DomainBridgeOptions::LocalHostOnly from_local_host_only = default_from_local_host_only;
+      if (config["from_local_host_only"]) {
+        from_local_host_only = string_to_local_host_only(
+          file_path,
+          config["from_local_host_only"].as<std::string>());
+      }
+      DomainBridgeOptions::LocalHostOnly to_local_host_only = default_to_local_host_only;
+      if (config["to_local_host_only"]) {
+        to_local_host_only = string_to_local_host_only(
+          file_path,
+          config["to_local_host_only"].as<std::string>());
+      }
+
       // Parse topic bridge options
       TopicBridgeOptions options;
       if (topic_info["remap"]) {
@@ -259,7 +302,9 @@ update_domain_bridge_config_from_yaml(
       }
 
       // Add topic bridge to config
-      domain_bridge_config.topics.push_back({{topic, type, from_domain_id, to_domain_id}, options});
+      domain_bridge_config.topics.push_back(
+        {{topic, type, from_domain_id, to_domain_id,
+          from_local_host_only, to_local_host_only}, options});
     }
   }
 }

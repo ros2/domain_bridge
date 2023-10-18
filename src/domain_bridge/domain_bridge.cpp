@@ -47,6 +47,18 @@
 
 #include "wait_for_graph_events.hpp"
 
+
+template<>
+struct std::hash<std::pair<std::size_t, domain_bridge::DomainBridgeOptions::LocalHostOnly>>
+{
+  size_t operator()(
+    const std::pair<std::size_t, domain_bridge::DomainBridgeOptions::LocalHostOnly> & key) const
+  {
+    return std::hash<std::size_t>{}(key.first) ^ std::hash<int>{}(static_cast<int>(key.second));
+  }
+};
+
+
 namespace domain_bridge
 {
 
@@ -99,7 +111,8 @@ private:
 class DomainBridgeImpl
 {
 public:
-  using NodeMap = std::unordered_map<std::size_t, std::shared_ptr<rclcpp::Node>>;
+  using NodeMap = std::unordered_map<
+    std::pair<std::size_t, DomainBridgeOptions::LocalHostOnly>, std::shared_ptr<rclcpp::Node>>;
   using TopicBridgeMap = std::map<
     TopicBridge,
     std::pair<
@@ -131,10 +144,27 @@ public:
 
   ~DomainBridgeImpl() = default;
 
-  rclcpp::Context::SharedPtr create_context_with_domain_id(std::size_t domain_id)
+  rclcpp::Context::SharedPtr create_context_with_domain_id(
+    std::size_t domain_id,
+    DomainBridgeOptions::LocalHostOnly local_host_only)
   {
     auto context = std::make_shared<rclcpp::Context>();
     rclcpp::InitOptions options;
+    // A hack which by-pass the mutex in rclcpp::InitOptions, but should be safe in this context.
+    rcl_init_options_t * init_options = const_cast<rcl_init_options_t *>(
+      options.get_rcl_init_options());
+    switch (local_host_only) {
+      case DomainBridgeOptions::LocalHostOnly::Default:
+        break;
+      case DomainBridgeOptions::LocalHostOnly::Disabled:
+        rcl_init_options_get_rmw_init_options(init_options)->localhost_only =
+          RMW_LOCALHOST_ONLY_DISABLED;
+        break;
+      case DomainBridgeOptions::LocalHostOnly::Enabled:
+        rcl_init_options_get_rmw_init_options(init_options)->localhost_only =
+          RMW_LOCALHOST_ONLY_ENABLED;
+        break;
+    }
     options.auto_initialize_logging(false).set_domain_id(domain_id);
     context->init(0, nullptr, options);
     return context;
@@ -149,21 +179,24 @@ public:
            .start_parameter_event_publisher(false);
   }
 
-  rclcpp::Node::SharedPtr get_node_for_domain(std::size_t domain_id)
+  rclcpp::Node::SharedPtr get_node_for_domain(
+    std::size_t domain_id,
+    DomainBridgeOptions::LocalHostOnly local_host_only)
   {
-    auto domain_id_node_pair = node_map_.find(domain_id);
+    std::pair<std::size_t, DomainBridgeOptions::LocalHostOnly> key{domain_id, local_host_only};
+    auto domain_id_node_pair = node_map_.find(key);
 
     // If we don't already have a node for the domain, create one
     if (node_map_.end() == domain_id_node_pair) {
       if (options_.on_new_domain_callback_) {
         options_.on_new_domain_callback_(domain_id);
       }
-      auto context = create_context_with_domain_id(domain_id);
+      auto context = create_context_with_domain_id(domain_id, local_host_only);
       auto node_options = create_node_options(context);
       std::ostringstream oss;
       oss << options_.name() << "_" << std::to_string(domain_id);
       auto node = std::make_shared<rclcpp::Node>(oss.str(), node_options);
-      node_map_[domain_id] = node;
+      node_map_[key] = node;
       return node;
     }
 
@@ -317,13 +350,16 @@ public:
     const std::string & type = topic_bridge.type_name;
     std::size_t from_domain_id = topic_bridge.from_domain_id;
     std::size_t to_domain_id = topic_bridge.to_domain_id;
+    DomainBridgeOptions::LocalHostOnly from_local_host_only = topic_bridge.from_local_host_only;
+    DomainBridgeOptions::LocalHostOnly to_local_host_only = topic_bridge.to_local_host_only;
 
     if (topic_options.reversed()) {
       std::swap(to_domain_id, from_domain_id);
+      std::swap(to_local_host_only, from_local_host_only);
     }
 
     // Ensure 'to' domain and 'from' domain are not equal
-    if (to_domain_id == from_domain_id) {
+    if (to_domain_id == from_domain_id && from_local_host_only == to_local_host_only) {
       std::cerr << "Cannot bridge topic '" << topic << "' from domain " <<
         std::to_string(from_domain_id) << " to domain " << std::to_string(to_domain_id) <<
         ". Domain IDs must be different." << std::endl;
@@ -348,8 +384,10 @@ public:
       bridged_topics_[topic_bridge] = {nullptr, nullptr};
     }
 
-    rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(from_domain_id);
-    rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id);
+    rclcpp::Node::SharedPtr from_domain_node = get_node_for_domain(
+      from_domain_id,
+      from_local_host_only);
+    rclcpp::Node::SharedPtr to_domain_node = get_node_for_domain(to_domain_id, to_local_host_only);
 
     auto create_bridge =
       [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
@@ -552,9 +590,11 @@ public:
 namespace detail
 {
 rclcpp::Node::SharedPtr
-get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id)
+get_node_for_domain(
+  DomainBridgeImpl & impl, std::size_t domain_id,
+  DomainBridgeOptions::LocalHostOnly localhost_only)
 {
-  return impl.get_node_for_domain(domain_id);
+  return impl.get_node_for_domain(domain_id, localhost_only);
 }
 
 bool
@@ -623,9 +663,13 @@ void DomainBridge::bridge_topic(
   const std::string & type,
   std::size_t from_domain_id,
   std::size_t to_domain_id,
+  DomainBridgeOptions::LocalHostOnly from_local_host_only,
+  DomainBridgeOptions::LocalHostOnly to_local_host_only,
   const TopicBridgeOptions & options)
 {
-  impl_->bridge_topic({topic, type, from_domain_id, to_domain_id}, options);
+  impl_->bridge_topic(
+    {topic, type, from_domain_id, to_domain_id, from_local_host_only,
+      to_local_host_only}, options);
 }
 
 void DomainBridge::bridge_topic(

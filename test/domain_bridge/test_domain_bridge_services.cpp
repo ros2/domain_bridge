@@ -133,7 +133,10 @@ TEST_F(TestDomainBridgeServices, bridge_service)
 
   // Bridge the publisher topic to domain 2 with a remap option
   domain_bridge::DomainBridge bridge;
-  bridge.bridge_service<test_msgs::srv::Empty>("my_service", kDomain1, kDomain2);
+  bridge.bridge_service<test_msgs::srv::Empty>(
+    "my_service", kDomain1, kDomain2,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default,
+    domain_bridge::DomainBridgeOptions::LocalHostOnly::Default);
 
   std::atomic<bool> got_response = false;
   EXPECT_TRUE(poll_condition([cli]() {return cli->service_is_ready();}, 3s));

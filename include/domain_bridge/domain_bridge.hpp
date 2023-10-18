@@ -114,6 +114,8 @@ public:
    * \param type: Name of the topic type (e.g. "example_interfaces/msg/String")
    * \param from_domain_id: Domain ID the bridge will use to subscribe to the topic.
    * \param to_domain_id: Domain ID the bridge will use to publish to the topic.
+   * \param from_local_host_only: Indicates the localhost mode that apply to the subscriber of the topic.
+   * \param to_local_host_only: Indicates the localhost mode that apply to the publisher of the topic.
    * \param options: Options for bridging the topic.
    */
   DOMAIN_BRIDGE_PUBLIC
@@ -122,6 +124,8 @@ public:
     const std::string & type,
     size_t from_domain_id,
     size_t to_domain_id,
+    DomainBridgeOptions::LocalHostOnly from_local_host_only,
+    DomainBridgeOptions::LocalHostOnly to_local_host_only,
     const TopicBridgeOptions & options = TopicBridgeOptions());
 
   /// Bridge a topic from one domain to another.
@@ -146,6 +150,8 @@ public:
     const std::string & service,
     size_t from_domain_id,
     size_t to_domain_id,
+    DomainBridgeOptions::LocalHostOnly from_local_host_only,
+    DomainBridgeOptions::LocalHostOnly to_local_host_only,
     const ServiceBridgeOptions & options = ServiceBridgeOptions());
 
   /// Get bridged topics.

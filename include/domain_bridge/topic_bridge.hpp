@@ -36,6 +36,14 @@ struct TopicBridge
   /// Domain ID that the publisher uses
   std::size_t to_domain_id;
 
+  // local host mode for subscriber
+  DomainBridgeOptions::LocalHostOnly from_local_host_only =
+    DomainBridgeOptions::LocalHostOnly::Default;
+
+  // local host mode for publisher
+  DomainBridgeOptions::LocalHostOnly to_local_host_only =
+    DomainBridgeOptions::LocalHostOnly::Default;
+
   /// Less-than operator.
   /**
    * Sort by 'from_domain_id',
@@ -55,6 +63,18 @@ struct TopicBridge
       return true;
     }
     if (to_domain_id > other.to_domain_id) {
+      return false;
+    }
+    if (from_local_host_only < other.from_local_host_only) {
+      return true;
+    }
+    if (from_local_host_only > other.from_local_host_only) {
+      return false;
+    }
+    if (to_local_host_only < other.to_local_host_only) {
+      return true;
+    }
+    if (to_local_host_only > other.to_local_host_only) {
       return false;
     }
     int name_compare = topic_name.compare(other.topic_name);
