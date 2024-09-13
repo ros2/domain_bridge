@@ -17,6 +17,9 @@
   <depend>rosidl_typesupport_cpp</depend>
   <depend>yaml-cpp</depend>
   <depend>zstd_vendor</depend>
+  <depend>ament_index_python</depend>
+  <depend>ament_cmake_python</depend>
+  <depend>python3</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>
 

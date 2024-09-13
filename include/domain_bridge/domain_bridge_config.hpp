@@ -33,6 +33,8 @@ struct DomainBridgeConfig
 
   /// Topic bridges with options
   std::vector<std::pair<TopicBridge, TopicBridgeOptions>> topics;
+  std::vector<std::pair<TopicBridge, TopicBridgeOptions>> services;
+  std::vector<std::pair<TopicBridge, TopicBridgeOptions>> actions;
 };
 
 }  // namespace domain_bridge
