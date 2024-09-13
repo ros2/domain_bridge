@@ -261,6 +261,45 @@ update_domain_bridge_config_from_yaml(
       // Add topic bridge to config
       domain_bridge_config.topics.push_back({{topic, type, from_domain_id, to_domain_id}, options});
     }
+    for (const auto & service_node : config["services"]) {
+      // Parse keys for a service bridge
+      const std::string service = service_node.first.as<std::string>();
+
+      auto service_info = service_node.second;
+      if (service_info.Type() != YAML::NodeType::Map) {
+        throw YamlParsingError(file_path, "expected map value for each service");
+      }
+
+      if (!service_info["type"]) {
+        throw YamlParsingError(file_path, "missing 'type' for service '" + service + "'");
+      }
+      const std::string type = service_info["type"].as<std::string>();
+
+      std::size_t from_domain_id = default_from_domain;
+      if (service_info["from_domain"]) {
+        from_domain_id = service_info["from_domain"].as<std::size_t>();
+      } else {
+        if (!is_default_from_domain) {
+          throw YamlParsingError(file_path, "missing 'from_domain' for service '" + service + "'");
+        }
+      }
+
+      std::size_t to_domain_id = default_to_domain;
+      if (service_info["to_domain"]) {
+        to_domain_id = service_info["to_domain"].as<std::size_t>();
+      } else {
+        if (!is_default_to_domain) {
+          throw YamlParsingError(file_path, "missing 'to_domain' for service '" + service + "'");
+        }
+      }
+
+      // Parse service bridge options
+      ServiceBridgeOptions options;
+      if (service_info["remap"]) {
+        options.remap_name(service_info["remap"].as<std::string>());
+      }
+      domain_bridge_config.services.push_back({{service, type, from_domain_id, to_domain_id}, options});
+    }
   }
 }
 

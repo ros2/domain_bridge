@@ -35,3 +35,10 @@ topics:
   chatter:
     type: example_interfaces/msg/String
     remap: chitter
+services:
+  add_two_ints:
+    type: example_interfaces/srv/AddTwoInts
+    remap: add_two_numbers
+    from_domain: 1
+    to_domain: 2
+

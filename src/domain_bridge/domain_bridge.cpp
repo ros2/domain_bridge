@@ -44,6 +44,7 @@
 #include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 #include "domain_bridge/msg/compressed_msg.hpp"
+#include "domain_bridge/generated_code_interface.hpp"
 
 #include "wait_for_graph_events.hpp"
 
@@ -600,6 +601,15 @@ DomainBridge::DomainBridge(const DomainBridgeConfig & config)
         reversed_topic_bridge_pair.first.to_domain_id);
       bridge_topic(reversed_topic_bridge_pair.first, reversed_topic_bridge_pair.second);
     }
+  }
+  for (const auto & service_bridge_pair : config.services) {
+    domain_bridge::add_service_bridge_by_name(
+      *this,
+      service_bridge_pair.first.service_name,
+      service_bridge_pair.first.type_name,
+      service_bridge_pair.first.from_domain_id,
+      service_bridge_pair.first.to_domain_id,
+      service_bridge_pair.second);
   }
 }
 

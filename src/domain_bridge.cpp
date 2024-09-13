@@ -17,6 +17,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/executors/single_threaded_executor.hpp"
 
+#include "domain_bridge/generated_code_interface.hpp"
 #include "domain_bridge/component_manager.hpp"
 #include "domain_bridge/domain_bridge.hpp"
 #include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
