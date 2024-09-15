@@ -8,7 +8,7 @@ topics:
     type: rosgraph_msgs/msg/Clock
   # Bridge "/chatter" topic from doman ID 2 to domain ID 3
   chatter:
-    type: example_interfaces/msg/String
+    type: std_msgs/msg/String
     # Override QoS reliablity setting to be best effort
     # This affects the domain bridge subscription and publisher
     # This does NOT affect the other "chatter" bridge below, which is for a different domain
@@ -16,16 +16,16 @@ topics:
       reliability: best_effort
   # Also bridge "/chatter" topic from doman ID 2 to domain ID 4
   chatter:
-    type: example_interfaces/msg/String
+    type: std_msgs/msg/String
     to_domain: 4
   # Bridge reversed "/chatter" topic
   chatter:
-    type: example_interfaces/msg/String
+    type: std_msgs/msg/String
     # Reverse 'from' and 'to' domains (bridge from domain ID 3 to domain ID 2)
     reversed: True
   # Bridge bidirectional "/chatter" topic
   chatter:
-    type: example_interfaces/msg/String
+    type: std_msgs/msg/String
     from_domain: 7
     to_domain: 8
     # Bridge from domain ID 7 to domain ID 8 AND from domain ID 8 to domain ID 7
@@ -33,5 +33,18 @@ topics:
 
   # Bridge "/chatter" topic from doman ID 2 to domain ID 3, but as "/chitter"
   chatter:
-    type: example_interfaces/msg/String
+    type: std_msgs/msg/String
     remap: chitter
+
+services:
+  add_two_ints:
+    type: example_interfaces/srv/AddTwoInts
+    remap: add_two_numbers
+    from_domain: 1
+    to_domain: 2
+
+actions:
+  fibonacci:
+    type: action_tutorials_interfaces/action/Fibonacci
+    from_domain: 1
+    to_domain: 2

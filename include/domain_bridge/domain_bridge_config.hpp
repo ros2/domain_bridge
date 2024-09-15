@@ -19,6 +19,10 @@
 #include <vector>
 
 #include "domain_bridge/domain_bridge_options.hpp"
+#include "domain_bridge/action_bridge.hpp"
+#include "domain_bridge/action_bridge_options.hpp"
+#include "domain_bridge/service_bridge.hpp"
+#include "domain_bridge/service_bridge_options.hpp"
 #include "domain_bridge/topic_bridge.hpp"
 #include "domain_bridge/topic_bridge_options.hpp"
 
@@ -33,6 +37,8 @@ struct DomainBridgeConfig
 
   /// Topic bridges with options
   std::vector<std::pair<TopicBridge, TopicBridgeOptions>> topics;
+  std::vector<std::pair<ServiceBridge, ServiceBridgeOptions>> services;
+  std::vector<std::pair<ActionBridge, ActionBridgeOptions>> actions;
 };
 
 }  // namespace domain_bridge

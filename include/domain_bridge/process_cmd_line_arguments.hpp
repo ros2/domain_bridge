@@ -22,6 +22,7 @@
 #include <vector>
 
 #include "domain_bridge/domain_bridge_config.hpp"
+#include "domain_bridge/parse_domain_bridge_yaml_config.hpp"
 
 namespace domain_bridge
 {
