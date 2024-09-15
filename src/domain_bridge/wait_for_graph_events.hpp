@@ -30,6 +30,7 @@
 #include <utility>
 #include <vector>
 
+#include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp/client.hpp"
 #include "rclcpp/node.hpp"
 #include "rclcpp/qos.hpp"
@@ -112,6 +113,34 @@ public:
     t.thread = this->launch_thread(node, t);
   }
 
+  /// Register a callback that is called when a action server is ready.
+  /**
+   * \param client: The client waiting for a matching server.
+   * \param node: The node to use to monitor the topic.
+   * \param callback: User callback that is triggered when a matching server is found.
+   */
+  void register_on_action_server_ready_callback(
+    rclcpp_action::ClientBase::SharedPtr client,
+    const rclcpp::Node::SharedPtr & node,
+    std::function<void()> callback)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto it_emplaced_pair = waiting_threads_.try_emplace(node);
+    auto & t = it_emplaced_pair.first->second;
+    {
+      std::lock_guard<std::mutex> lock(t.mutex);
+      t.action_clients_callback_vec.push_back({client, callback});
+    }
+    // If we already have a thread for this node, then notify that there is a new callback
+    if (!it_emplaced_pair.second) {
+      t.cv.notify_all();
+      return;
+    }
+    // If we made it this far, there doesn't exist a thread for waiting so we'll create one
+    t.thread = this->launch_thread(node, t);
+  }
+
+
   /// Register a callback that is called when QoS is ready for one or more publishers.
   /**
    * \param topic: The name of the topic to monitor.
@@ -192,6 +221,11 @@ private:
     rclcpp::ClientBase::SharedPtr client;
     std::function<void()> cb;
   };
+  struct ActionClientAndCallback
+  {
+    rclcpp_action::ClientBase::SharedPtr client;
+    std::function<void()> cb;
+  };
   struct ThreadMapValue
   {
     std::thread thread;
@@ -199,6 +233,7 @@ private:
     std::mutex mutex;
     std::vector<TopicAndCallback> topics_callback_vec;
     std::vector<ClientAndCallback> clients_callback_vec;
+    std::vector<ActionClientAndCallback> action_clients_callback_vec;
     bool shutting_down = false;
   };
   using ThreadMap = std::unordered_map<
@@ -334,6 +369,26 @@ private:
                   ++it;
                 }
               }
+            }
+            {
+              // TODO(tadachs): SharedPtr for action servers and clients are currently broken, so just
+              // start them all. For more info see https://github.com/ros2/rclcpp/issues/2630
+              auto it = t.action_clients_callback_vec.begin();
+              while (it != t.action_clients_callback_vec.end()) {
+                  it->cb();
+                  it = t.action_clients_callback_vec.erase(it);
+              }
+
+              // Check if a matching action server was found
+              // auto it = t.action_clients_callback_vec.begin();
+              // while (it != t.action_clients_callback_vec.end()) {
+              //   if (it->client->action_server_is_ready()) {
+              //     it->cb();
+              //     it = t.action_clients_callback_vec.erase(it);
+              //   } else {
+              //     ++it;
+              //   }
+              // }
             }
             {
               // Check if QoS is ready for any of the topics

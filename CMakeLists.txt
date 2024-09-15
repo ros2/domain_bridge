@@ -19,6 +19,7 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
 
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rcutils REQUIRED)
 # Leverage rosbag2's generic type support utilities
@@ -52,6 +53,7 @@ add_library(${PROJECT_NAME}_lib SHARED
   src/${PROJECT_NAME}/qos_options.cpp
   src/${PROJECT_NAME}/service_bridge_options.cpp
   src/${PROJECT_NAME}/topic_bridge_options.cpp
+  src/${PROJECT_NAME}/action_bridge_options.cpp
 
   ${GENERATED_CODE}
 )
@@ -82,6 +84,7 @@ endif()
 
 ament_target_dependencies(${PROJECT_NAME}_lib
   rclcpp
+  rclcpp_action
   rclcpp_components
   rcutils
   rosbag2_cpp
@@ -160,6 +163,7 @@ install(DIRECTORY examples launch
 ament_export_targets(export_${PROJECT_NAME})
 ament_export_dependencies(
   rclcpp
+  rclcpp_action
   rclcpp_components
   rosbag2_cpp
   rcutils
@@ -180,6 +184,7 @@ if(BUILD_TESTING)
   )
   ament_target_dependencies(${PROJECT_NAME}_test_component_lib
     rclcpp
+    rclcpp_action
     rclcpp_components
     test_msgs
   )

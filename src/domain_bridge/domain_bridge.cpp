@@ -109,6 +109,9 @@ public:
   using ServiceBridgeMap = std::map<
     detail::ServiceBridge,
     std::pair<std::shared_ptr<rclcpp::ServiceBase>, std::shared_ptr<rclcpp::ClientBase>>>;
+  using ActionBridgeMap = std::map<
+    detail::ActionBridge,
+    std::pair<std::shared_ptr<rclcpp_action::ServerBase>, std::shared_ptr<rclcpp_action::ClientBase>>>;
   using TypesupportMap = std::unordered_map<
     std::string, std::shared_ptr<rcpputils::SharedLibrary>>;
 
@@ -178,6 +181,14 @@ public:
     return bridged_services_.find(service_bridge) != bridged_services_.end();
   }
 
+  bool
+  is_bridging_action(const detail::ActionBridge & action_bridge) const
+  {
+    std::lock_guard guard{data_mutex_};
+    return bridged_actions_.find(action_bridge) != bridged_actions_.end();
+  }
+
+
   void
   add_service_bridge(
     const rclcpp::Node::SharedPtr & node,
@@ -201,6 +212,32 @@ public:
       {
         std::lock_guard guard{data_mutex_};
         service = create_service();
+      }
+    );
+  }
+
+  void
+  add_action_bridge(
+    const rclcpp::Node::SharedPtr & node,
+    detail::ActionBridge action_bridge,
+    std::function<std::shared_ptr<rclcpp_action::ServerBase>()> create_action,
+    std::shared_ptr<rclcpp_action::ClientBase> client) {
+    std::pair<ActionBridgeMap::iterator, bool> it_emplaced_pair;
+    {
+      std::lock_guard guard{data_mutex_};
+      it_emplaced_pair = bridged_actions_.try_emplace(
+        std::move(action_bridge), nullptr, client);
+    }
+    wait_for_graph_events_.register_on_action_server_ready_callback(
+      std::move(client),
+      node,
+      [
+        this,
+        & action = std::get<0>(it_emplaced_pair.first->second),
+        create_action = std::move(create_action)]()
+      {
+        std::lock_guard guard{data_mutex_};
+        action = create_action();
       }
     );
   }
@@ -538,6 +575,9 @@ public:
   /// Set of bridged services
   ServiceBridgeMap bridged_services_;
 
+  /// Set of bridged actions
+  ActionBridgeMap bridged_actions_;
+
   /// Cache of typesupport libraries
   TypesupportMap loaded_typesupports_;
 
@@ -576,6 +616,24 @@ add_service_bridge(
     node, std::move(service_bridge), std::move(create_service), std::move(client));
 }
 
+bool
+is_bridging_action(const DomainBridgeImpl & impl, const detail::ActionBridge & action_bridge)
+{
+  return impl.is_bridging_action(action_bridge);
+}
+
+void
+add_action_bridge(
+  DomainBridgeImpl & impl,
+  const rclcpp::Node::SharedPtr & node,
+  ActionBridge action_bridge,
+  std::function<std::shared_ptr<rclcpp_action::ServerBase>()> create_action,
+  std::shared_ptr<rclcpp_action::ClientBase> client)
+{
+  return impl.add_action_bridge(
+    node, std::move(action_bridge), std::move(create_action), std::move(client));
+}
+
 const std::string &
 get_node_name(const DomainBridgeImpl & impl)
 {
@@ -603,13 +661,28 @@ DomainBridge::DomainBridge(const DomainBridgeConfig & config)
     }
   }
   for (const auto & service_bridge_pair : config.services) {
-    domain_bridge::add_service_bridge_by_name(
+    if (!domain_bridge::add_service_bridge_by_name(
       *this,
       service_bridge_pair.first.service_name,
       service_bridge_pair.first.type_name,
       service_bridge_pair.first.from_domain_id,
       service_bridge_pair.first.to_domain_id,
-      service_bridge_pair.second);
+      service_bridge_pair.second)) {
+      std::cout << "Failed to add service bridge for service " <<
+        service_bridge_pair.first.service_name << std::endl;
+    }
+  }
+  for (const auto & action_bridge_pair : config.actions) {
+    if (!domain_bridge::add_action_bridge_by_name(
+      *this,
+      action_bridge_pair.first.action_name,
+      action_bridge_pair.first.type_name,
+      action_bridge_pair.first.from_domain_id,
+      action_bridge_pair.first.to_domain_id,
+      action_bridge_pair.second)) {
+      std::cout << "Failed to add action bridge for action " <<
+        action_bridge_pair.first.action_name << std::endl;
+    }
   }
 }
 
