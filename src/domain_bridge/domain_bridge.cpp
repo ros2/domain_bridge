@@ -353,7 +353,7 @@ public:
 
     auto create_bridge =
       [this, topic, topic_remapped, topic_bridge, topic_options, from_domain_node, to_domain_node]
-        (const QosMatchInfo & qos_match)
+      (const QosMatchInfo & qos_match)
       {
         {
           std::lock_guard guard{data_mutex_};
