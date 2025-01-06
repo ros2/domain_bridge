@@ -385,8 +385,8 @@ private:
               [&t]
               {
                 return (t.topics_callback_vec.size() > 0u) ||
-                (t.clients_callback_vec.size() > 0u) ||
-                t.shutting_down;
+                       (t.clients_callback_vec.size() > 0u) ||
+                       t.shutting_down;
               });
           }
         }
