@@ -67,6 +67,12 @@ target_link_libraries(${PROJECT_NAME}_lib "${cpp_typesupport_target}")
 
 set_target_properties(${PROJECT_NAME}_lib PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
 
+# Causes the visibility macros to use dllexport rather than dllimport,
+# which is appropriate when building the dll but not consuming it.
+target_compile_definitions(${PROJECT_NAME}_lib
+  PRIVATE "DOMAIN_BRIDGE_BUILDING_LIBRARY"
+)
+
 add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
 )

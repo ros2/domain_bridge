@@ -15,7 +15,7 @@
   <depend>rcutils</depend>
   <depend>rosbag2_cpp</depend>
   <depend>rosidl_typesupport_cpp</depend>
-  <depend>yaml-cpp</depend>
+  <depend>yaml_cpp_vendor</depend>
   <depend>zstd_vendor</depend>
 
   <exec_depend>rosidl_default_runtime</exec_depend>

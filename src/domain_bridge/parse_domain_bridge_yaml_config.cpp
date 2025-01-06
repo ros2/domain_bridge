@@ -12,7 +12,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <yaml-cpp/yaml.h>
+#ifdef _WIN32
+// TODO(jacobperron): Remove after https://github.com/ros2/yaml_cpp_vendor/issues/10 is resolved
+#define YAML_CPP_DLL
+// TODO(jacobperron): Silence warnings until they are resolved upstream
+#pragma warning(push)
+#pragma warning(disable: 4251)
+#pragma warning(disable: 4275)
+#include "yaml-cpp/yaml.h"
+#pragma warning(pop)
+#else
+#include "yaml-cpp/yaml.h"
+#endif
 
 // cpplint thinks this is a C system header
 #include <filesystem>
@@ -201,7 +212,7 @@ update_domain_bridge_config_from_yaml(
     throw YamlParsingError(file_path, "file does not exist");
   }
 
-  YAML::Node config = YAML::LoadFile(file_path);
+  YAML::Node config = YAML::LoadFile(file_path.string());
 
   if (config["name"]) {
     domain_bridge_config.options.name(config["name"].as<std::string>());
@@ -276,7 +287,7 @@ update_domain_bridge_config_from_yaml(
       if (topic_info["remap"]) {
         options.remap_name(topic_info["remap"].as<std::string>());
       }
-      options.qos_options(parse_qos_options(topic_info, file_path));
+      options.qos_options(parse_qos_options(topic_info, file_path.string()));
 
       if (topic_info["bidirectional"]) {
         options.bidirectional(topic_info["bidirectional"].as<bool>());

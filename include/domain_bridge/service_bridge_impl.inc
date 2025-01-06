@@ -37,10 +37,12 @@ namespace detail
 // service_name, from_domain_id, to_domain_id
 using ServiceBridge = std::tuple<std::string, size_t, size_t>;
 
+DOMAIN_BRIDGE_PUBLIC
 bool
 is_bridging_service(
   const DomainBridgeImpl & impl, const ServiceBridge & service_bridge);
 
+DOMAIN_BRIDGE_PUBLIC
 void
 add_service_bridge(
   DomainBridgeImpl & impl,
@@ -49,9 +51,11 @@ add_service_bridge(
   std::function<std::shared_ptr<rclcpp::ServiceBase>()> create_service,
   std::shared_ptr<rclcpp::ClientBase> client);
 
+DOMAIN_BRIDGE_PUBLIC
 rclcpp::Node::SharedPtr
 get_node_for_domain(DomainBridgeImpl & impl, std::size_t domain_id);
 
+DOMAIN_BRIDGE_PUBLIC
 const std::string &
 get_node_name(const DomainBridgeImpl & impl);
 }  // namespace detail
