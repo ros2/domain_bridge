@@ -1,18 +1,22 @@
-name: Continuous Integration
+name: Continuous Integration for rolling
 
 on: [pull_request]
 
 jobs:
   build_and_test:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - uses: ros-tooling/setup-ros@v0.3
+    - uses: actions/checkout@v4
+    - name: Set up ROS 2 rolling environment
+      id: setup-ros-ci
+      uses: ros-tooling/setup-ros@v0.7
       with:
         install-connext: true
         use-ros2-testing: true
         required-ros-distributions: rolling
-    - uses: ros-tooling/action-ros-ci@v0.2
+    - name: Build and run test
+      id: action-ros-ci
+      uses: ros-tooling/action-ros-ci@v0.3
       with:
         package-name: domain_bridge
         target-ros2-distro: rolling
