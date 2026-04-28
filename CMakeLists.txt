@@ -24,7 +24,7 @@ find_package(rosbag2_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
-find_package(zstd_vendor REQUIRED)
+find_package(zstd_cmake_module REQUIRED)
 find_package(zstd REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -134,7 +134,7 @@ ament_export_dependencies(
   rosbag2_cpp
   rcutils
   yaml_cpp_vendor
-  zstd_vendor
+  zstd_cmake_module
   zstd
 )
 
