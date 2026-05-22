@@ -1,37 +1,24 @@
 # Name of the domain bridge, used for node naming and logging
-name: my_bridge
-from_domain: 2
-to_domain: 3
+name: onboard_bridge
+# 无人机域ID
+from_domain: 1
+# 地面站域ID
+to_domain: 0
 topics:
-  # Bridge "/clock" topic from doman ID 2 to domain ID 3
-  clock:
-    type: rosgraph_msgs/msg/Clock
-  # Bridge "/chatter" topic from doman ID 2 to domain ID 3
-  chatter:
-    type: example_interfaces/msg/String
-    # Override QoS reliablity setting to be best effort
-    # This affects the domain bridge subscription and publisher
-    # This does NOT affect the other "chatter" bridge below, which is for a different domain
-    qos:
-      reliability: best_effort
-  # Also bridge "/chatter" topic from doman ID 2 to domain ID 4
-  chatter:
-    type: example_interfaces/msg/String
-    to_domain: 4
-  # Bridge reversed "/chatter" topic
-  chatter:
-    type: example_interfaces/msg/String
-    # Reverse 'from' and 'to' domains (bridge from domain ID 3 to domain ID 2)
+  # 无人机到地面站
+  /onboard/state:
+    type: onboard_msgs/msg/OnboardState
+  # 地面站到无人机
+  /onboard/cmd:
+    type: onboard_msgs/msg/OnboardCommand
     reversed: True
-  # Bridge bidirectional "/chatter" topic
-  chatter:
-    type: example_interfaces/msg/String
-    from_domain: 7
-    to_domain: 8
-    # Bridge from domain ID 7 to domain ID 8 AND from domain ID 8 to domain ID 7
-    bidirectional: True
-
-  # Bridge "/chatter" topic from doman ID 2 to domain ID 3, but as "/chitter"
-  chatter:
-    type: example_interfaces/msg/String
-    remap: chitter
+  # 靶标无人机GPS坐标到跟踪无人机
+  /uav6/global_position/global:
+    type: sensor_msgs/msg/NavSatFix
+    from_domain: 6
+    to_domain: 4
+  # 靶标无人机姿态到跟踪无人机
+  /uav6/local_position/pose:
+    type: geometry_msgs/msg/PoseStamped
+    from_domain: 6
+    to_domain: 4
